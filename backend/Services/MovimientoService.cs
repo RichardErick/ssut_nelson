@@ -87,7 +87,7 @@ public class MovimientoService : IMovimientoService
             AreaDestinoId = dto.AreaDestinoId,
             UsuarioId = dto.UsuarioId,
             Observaciones = dto.Observaciones,
-            FechaMovimiento = DateTime.Now,
+            FechaMovimiento = DateTime.UtcNow,
             Estado = "Activo"
         };
 
@@ -107,7 +107,7 @@ public class MovimientoService : IMovimientoService
             return null;
 
         movimiento.Estado = "Devuelto";
-        movimiento.FechaDevolucion = DateTime.Now;
+        movimiento.FechaDevolucion = DateTime.UtcNow;
         if (!string.IsNullOrEmpty(dto.Observaciones))
             movimiento.Observaciones = dto.Observaciones;
 
@@ -127,7 +127,7 @@ public class MovimientoService : IMovimientoService
             AreaOrigenId = movimiento.AreaDestinoId,
             AreaDestinoId = movimiento.AreaOrigenId,
             Observaciones = "Devolución de documento",
-            FechaMovimiento = DateTime.Now,
+            FechaMovimiento = DateTime.UtcNow,
             Estado = "Activo"
         };
 

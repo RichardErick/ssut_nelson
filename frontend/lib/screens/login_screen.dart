@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'forgot_password_screen.dart';
 
 import '../providers/auth_provider.dart';
-import '../widgets/glass_container.dart';
+import '../utils/error_helper.dart';
 import '../widgets/animated_background.dart';
+import '../widgets/glass_container.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -103,12 +104,8 @@ class _LoginScreenState extends State<LoginScreen>
           _showError('Credenciales inválidas');
         }
       } catch (e) {
-        String msg = e.toString().replaceAll('Exception: ', '');
-        if (msg.contains('Bloqueado') || msg.contains('bloqueada')) {
-           _showError(msg);
-        } else {
-           _showError(msg);
-        }
+        String msg = ErrorHelper.getErrorMessage(e);
+        _showError(msg);
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }
@@ -122,15 +119,21 @@ class _LoginScreenState extends State<LoginScreen>
           children: [
             const Icon(Icons.error_outline, color: Colors.white),
             const SizedBox(width: 12),
-            Text(message),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(fontSize: 14),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         backgroundColor: Colors.red.shade800,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        duration: const Duration(seconds: 5),
       ),
     );
   }
@@ -141,293 +144,327 @@ class _LoginScreenState extends State<LoginScreen>
     final isDesktop = size.width > 900;
 
     return Scaffold(
-      body: isDesktop 
-      ? Row(
-          children: [
-            // Left Side - Hero Section
-            Expanded(
-              flex: 5,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue.shade900, Colors.blue.shade700],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Decorative patterns
-                    Positioned(
-                      top: -100,
-                      right: -100,
-                      child: Container(
-                        width: 400,
-                        height: 400,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.05),
+      body:
+          isDesktop
+              ? Row(
+                children: [
+                  // Left Side - Hero Section
+                  Expanded(
+                    flex: 5,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade900, Colors.blue.shade700],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
                       ),
-                    ),
-                    Positioned(
-                      bottom: 50,
-                      left: 50,
-                      child: Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.05),
-                        ),
-                      ),
-                    ),
-                    // Content
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Stack(
                         children: [
-                           _buildLogo(size: 80),
-                           const SizedBox(height: 32),
-                           Text(
-                             'SSUT',
-                             style: GoogleFonts.poppins(
-                               fontSize: 48,
-                               fontWeight: FontWeight.bold,
-                               color: Colors.white,
-                               letterSpacing: 4,
-                             ),
-                           ),
-                           const SizedBox(height: 16),
-                           Text(
-                             'Sistema de Gestión Documental',
-                             style: GoogleFonts.inter(
-                               fontSize: 18,
-                               color: Colors.white70,
-                               letterSpacing: 1.2,
-                             ),
-                           ),
+                          // Decorative patterns
+                          Positioned(
+                            top: -100,
+                            right: -100,
+                            child: Container(
+                              width: 400,
+                              height: 400,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.05),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 50,
+                            left: 50,
+                            child: Container(
+                              width: 200,
+                              height: 200,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.05),
+                              ),
+                            ),
+                          ),
+                          // Content
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _buildLogo(size: 80),
+                                const SizedBox(height: 32),
+                                Text(
+                                  'SSUT',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 4,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Sistema de Gestión Documental',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 18,
+                                    color: Colors.white70,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            // Right Side - Login Form
-            Expanded(
-              flex: 4,
-              child: Container(
-                color: Colors.white,
-                child: Center(
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 450),
-                    padding: const EdgeInsets.all(48),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                           Text(
-                             'Bienvenido de nuevo',
-                             style: GoogleFonts.poppins(
-                               fontSize: 32,
-                               fontWeight: FontWeight.bold,
-                               color: Colors.blue.shade900,
-                             ),
-                           ),
-                           const SizedBox(height: 8),
-                           Text(
-                             'Ingrese sus credenciales para acceder',
-                             style: GoogleFonts.inter(
-                               fontSize: 14,
-                               color: Colors.grey.shade600,
-                             ),
-                           ),
-                           const SizedBox(height: 48),
-                           _buildTextField(
-                             controller: _usernameController,
-                             label: 'Usuario',
-                             hint: 'ej. juan.perez',
-                             icon: Icons.person_outline_rounded,
-                             isDark: true,
-                             validator: (v) {
-                               if (v == null || v.isEmpty) return 'Ingrese su usuario';
-                               if (v.length < 4 || v.length > 20) return 'Debe tener entre 4 y 20 caracteres';
-                               if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v)) return 'Solo letras, números y guión bajo';
-                               return null;
-                             },
-                           ),
-                           const SizedBox(height: 24),
-                           _buildTextField(
-                             controller: _passwordController,
-                             label: 'Contraseña',
-                             hint: '••••••••',
-                             icon: Icons.lock_outline_rounded,
-                             isPassword: true,
-                             isDark: true,
-                             validator: (v) {
-                               if (v == null || v.isEmpty) return 'Ingrese su contraseña';
-                               if (v.length < 8) return 'Mínimo 8 caracteres';
-                               return null;
-                             },
-                           ),
-                           const SizedBox(height: 16),
-                           Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  ),
+                  // Right Side - Login Form
+                  Expanded(
+                    flex: 4,
+                    child: Container(
+                      color: Colors.white,
+                      child: Center(
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 450),
+                          padding: const EdgeInsets.all(48),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                Text(
+                                  'Bienvenido de nuevo',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade900,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Ingrese sus credenciales para acceder',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                const SizedBox(height: 48),
+                                _buildTextField(
+                                  controller: _usernameController,
+                                  label: 'Usuario',
+                                  hint: 'ej. juan.perez',
+                                  icon: Icons.person_outline_rounded,
+                                  isDark: true,
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty)
+                                      return 'Ingrese su usuario';
+                                    if (v.length < 4 || v.length > 20)
+                                      return 'Debe tener entre 4 y 20 caracteres';
+                                    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v))
+                                      return 'Solo letras, números y guión bajo';
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 24),
+                                _buildTextField(
+                                  controller: _passwordController,
+                                  label: 'Contraseña',
+                                  hint: '••••••••',
+                                  icon: Icons.lock_outline_rounded,
+                                  isPassword: true,
+                                  isDark: true,
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty)
+                                      return 'Ingrese su contraseña';
+                                    if (v.length < 8)
+                                      return 'Mínimo 8 caracteres';
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
                                 Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Checkbox(
-                                      value: _rememberMe,
-                                      activeColor: Colors.blue.shade900,
-                                      checkColor: Colors.white,
-                                      onChanged: (val) {
-                                        setState(() {
-                                          _rememberMe = val ?? false;
-                                        });
-                                      },
+                                    Row(
+                                      children: [
+                                        Checkbox(
+                                          value: _rememberMe,
+                                          activeColor: Colors.blue.shade900,
+                                          checkColor: Colors.white,
+                                          onChanged: (val) {
+                                            setState(() {
+                                              _rememberMe = val ?? false;
+                                            });
+                                          },
+                                        ),
+                                        Text(
+                                          'Recordarme',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade700,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      'Recordarme',
-                                      style: TextStyle(color: Colors.grey.shade700),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder:
+                                                (_) =>
+                                                    const ForgotPasswordScreen(),
+                                          ),
+                                        );
+                                      },
+                                      child: Text(
+                                        '¿Olvidó su contraseña?',
+                                        style: TextStyle(
+                                          color: Colors.blue.shade700,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-                                    );
-                                  },
+                                const SizedBox(height: 40),
+                                _buildLoginButton(isDark: true),
+                                const SizedBox(height: 24),
+                                // Footer for Desktop
+                                Center(
                                   child: Text(
-                                    '¿Olvidó su contraseña?',
+                                    'SSUT - Gestión Documental v1.0',
                                     style: TextStyle(
-                                      color: Colors.blue.shade700, 
-                                      fontWeight: FontWeight.w600
+                                      color: Colors.grey.shade400,
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                           const SizedBox(height: 40),
-                           _buildLoginButton(isDark: true),
-                           const SizedBox(height: 24),
-                           // Footer for Desktop
-                           Center(
-                             child: Text(
-                               'SSUT - Gestión Documental v1.0',
-                               style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                             ),
-                           ),
-                        ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+              : AnimatedBackground(
+                // Mobile/Tablet View (Original Glassmorphism)
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24.0),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 400),
+                          child: GlassContainer(
+                            blur: 20,
+                            opacity: 0.15,
+                            padding: const EdgeInsets.all(40.0),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _buildLogo(),
+                                  const SizedBox(height: 32),
+                                  _buildTitle(),
+                                  const SizedBox(height: 48),
+                                  _buildTextField(
+                                    controller: _usernameController,
+                                    label: 'Usuario',
+                                    hint: 'Ingrese su usuario',
+                                    icon: Icons.person_outline_rounded,
+                                    validator: (v) {
+                                      if (v == null || v.isEmpty)
+                                        return 'Ingrese su usuario';
+                                      if (v.length < 4 || v.length > 20)
+                                        return 'Debe tener entre 4 y 20 caracteres';
+                                      if (!RegExp(
+                                        r'^[a-zA-Z0-9]+$',
+                                      ).hasMatch(v))
+                                        return 'Solo se permiten letras y números';
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 24),
+                                  _buildTextField(
+                                    controller: _passwordController,
+                                    label: 'Contraseña',
+                                    hint: 'Ingrese su contraseña',
+                                    icon: Icons.lock_outline_rounded,
+                                    isPassword: true,
+                                    validator: (v) {
+                                      if (v == null || v.isEmpty)
+                                        return 'Ingrese su contraseña';
+                                      if (v.length < 8)
+                                        return 'Mínimo 8 caracteres';
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Checkbox(
+                                            value: _rememberMe,
+                                            activeColor: Colors.white,
+                                            checkColor: Colors.blue.shade900,
+                                            onChanged: (val) {
+                                              setState(() {
+                                                _rememberMe = val ?? false;
+                                              });
+                                            },
+                                          ),
+                                          const Text(
+                                            'Recordarme',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (_) =>
+                                                      const ForgotPasswordScreen(),
+                                            ),
+                                          );
+                                        },
+                                        child: const Text(
+                                          '¿Olvidó su contraseña?',
+                                          style: TextStyle(
+                                            decoration:
+                                                TextDecoration.underline,
+                                            color: Colors.white70,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 40),
+                                  _buildLoginButton(),
+                                  const SizedBox(height: 24),
+                                  _buildFooter(),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        )
-      : AnimatedBackground(
-         // Mobile/Tablet View (Original Glassmorphism)
-         child: Center(
-           child: SingleChildScrollView(
-             padding: const EdgeInsets.all(24.0),
-             child: FadeTransition(
-               opacity: _fadeAnimation,
-               child: SlideTransition(
-                 position: _slideAnimation,
-                 child: Container(
-                   constraints: const BoxConstraints(maxWidth: 400),
-                   child: GlassContainer(
-                     blur: 20,
-                     opacity: 0.15,
-                     padding: const EdgeInsets.all(40.0),
-                     child: Form(
-                       key: _formKey,
-                       child: Column(
-                         mainAxisSize: MainAxisSize.min,
-                         children: [
-                           _buildLogo(),
-                           const SizedBox(height: 32),
-                           _buildTitle(),
-                           const SizedBox(height: 48),
-                           _buildTextField(
-                             controller: _usernameController,
-                             label: 'Usuario',
-                             hint: 'Ingrese su usuario',
-                             icon: Icons.person_outline_rounded,
-                             validator: (v) {
-                               if (v == null || v.isEmpty) return 'Ingrese su usuario';
-                               if (v.length < 4 || v.length > 20) return 'Debe tener entre 4 y 20 caracteres';
-                               if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(v)) return 'Solo se permiten letras y números';
-                               return null;
-                             },
-                           ),
-                           const SizedBox(height: 24),
-                           _buildTextField(
-                             controller: _passwordController,
-                             label: 'Contraseña',
-                             hint: 'Ingrese su contraseña',
-                             icon: Icons.lock_outline_rounded,
-                             isPassword: true,
-                             validator: (v) {
-                               if (v == null || v.isEmpty) return 'Ingrese su contraseña';
-                               if (v.length < 8) return 'Mínimo 8 caracteres';
-                               return null;
-                             },
-                           ),
-                           const SizedBox(height: 12),
-                           Row(
-                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                             children: [
-                               Row(
-                                 children: [
-                                   Checkbox(
-                                     value: _rememberMe,
-                                     activeColor: Colors.white,
-                                     checkColor: Colors.blue.shade900,
-                                     onChanged: (val) {
-                                       setState(() {
-                                         _rememberMe = val ?? false;
-                                       });
-                                     },
-                                   ),
-                                   const Text(
-                                     'Recordarme',
-                                     style: TextStyle(color: Colors.white70),
-                                   ),
-                                 ],
-                               ),
-                               TextButton(
-                                 onPressed: () {
-                                   Navigator.of(context).push(
-                                     MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-                                   );
-                                 },
-                                 child: const Text(
-                                   '¿Olvidó su contraseña?',
-                                   style: TextStyle(decoration: TextDecoration.underline, color: Colors.white70),
-                                 ),
-                               ),
-                             ],
-                           ),
-                           const SizedBox(height: 40),
-                           _buildLoginButton(),
-                           const SizedBox(height: 24),
-                           _buildFooter(),
-                         ],
-                       ),
-                     ),
-                   ),
-                 ),
-               ),
-             ),
-           ),
-         ),
-       ),
     );
   }
 
@@ -443,10 +480,7 @@ class _LoginScreenState extends State<LoginScreen>
             padding: EdgeInsets.all(size / 2),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Colors.blue.shade400,
-                  Colors.blue.shade700,
-                ],
+                colors: [Colors.blue.shade400, Colors.blue.shade700],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -506,10 +540,14 @@ class _LoginScreenState extends State<LoginScreen>
     String? Function(String?)? validator,
   }) {
     final textColor = isDark ? Colors.black87 : Colors.white;
-    final hintColor = isDark ? Colors.grey.withOpacity(0.6) : Colors.white.withOpacity(0.4);
-    final borderColor = isDark ? Colors.grey.shade300 : Colors.white.withOpacity(0.1);
-    final fillColor = isDark ? Colors.grey.shade50 : Colors.white.withOpacity(0.1);
-    final iconColor = isDark ? Colors.grey.shade600 : Colors.white.withOpacity(0.7);
+    final hintColor =
+        isDark ? Colors.grey.withOpacity(0.6) : Colors.white.withOpacity(0.4);
+    final borderColor =
+        isDark ? Colors.grey.shade300 : Colors.white.withOpacity(0.1);
+    final fillColor =
+        isDark ? Colors.grey.shade50 : Colors.white.withOpacity(0.1);
+    final iconColor =
+        isDark ? Colors.grey.shade600 : Colors.white.withOpacity(0.7);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,7 +557,8 @@ class _LoginScreenState extends State<LoginScreen>
           child: Text(
             label,
             style: GoogleFonts.inter(
-              color: isDark ? Colors.grey.shade800 : Colors.white.withOpacity(0.9),
+              color:
+                  isDark ? Colors.grey.shade800 : Colors.white.withOpacity(0.9),
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -533,15 +572,21 @@ class _LoginScreenState extends State<LoginScreen>
             hintText: hint,
             hintStyle: TextStyle(color: hintColor),
             prefixIcon: Icon(icon, color: iconColor),
-            suffixIcon: isPassword
-                ? IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                      color: iconColor,
-                    ),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                  )
-                : null,
+            suffixIcon:
+                isPassword
+                    ? IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                        color: iconColor,
+                      ),
+                      onPressed:
+                          () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
+                    )
+                    : null,
             filled: true,
             fillColor: fillColor,
             border: OutlineInputBorder(
@@ -554,10 +599,16 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: isDark ? Colors.blue.shade700 : Colors.white, width: 2),
+              borderSide: BorderSide(
+                color: isDark ? Colors.blue.shade700 : Colors.white,
+                width: 2,
+              ),
             ),
             errorStyle: const TextStyle(color: Colors.redAccent),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
           ),
           validator: validator,
         ),
@@ -580,25 +631,26 @@ class _LoginScreenState extends State<LoginScreen>
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: _isLoading
-            ? SizedBox(
-                height: 24,
-                width: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    isDark ? Colors.white : Colors.blue.shade900
+        child:
+            _isLoading
+                ? SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      isDark ? Colors.white : Colors.blue.shade900,
+                    ),
+                  ),
+                )
+                : Text(
+                  'INICIAR SESIÓN',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
                   ),
                 ),
-              )
-            : Text(
-                'INICIAR SESIÓN',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-              ),
       ),
     );
   }
@@ -607,7 +659,11 @@ class _LoginScreenState extends State<LoginScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.location_on_rounded, size: 16, color: Colors.white.withOpacity(0.6)),
+        Icon(
+          Icons.location_on_rounded,
+          size: 16,
+          color: Colors.white.withOpacity(0.6),
+        ),
         const SizedBox(width: 4),
         Text(
           'SSUT - Tarija, Bolivia',
@@ -620,4 +676,3 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 }
-

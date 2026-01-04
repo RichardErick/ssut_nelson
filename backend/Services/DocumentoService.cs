@@ -118,7 +118,8 @@ public class DocumentoService : IDocumentoService
             UbicacionFisica = dto.UbicacionFisica,
             CodigoQR = codigoQR,
             Estado = "Activo",
-            FechaRegistro = DateTime.Now
+            FechaRegistro = DateTime.UtcNow,
+            FechaActualizacion = DateTime.UtcNow,
         };
 
         _context.Documentos.Add(documento);
@@ -130,7 +131,7 @@ public class DocumentoService : IDocumentoService
             DocumentoId = documento.Id,
             TipoMovimiento = "Entrada",
             AreaOrigenId = dto.AreaOrigenId,
-            FechaMovimiento = DateTime.Now,
+            FechaMovimiento = DateTime.UtcNow,
             Estado = "Activo"
         };
 
@@ -157,7 +158,7 @@ public class DocumentoService : IDocumentoService
         if (!string.IsNullOrEmpty(dto.Estado))
             documento.Estado = dto.Estado;
 
-        documento.FechaActualizacion = DateTime.Now;
+        documento.FechaActualizacion = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
         return await GetByIdAsync(id);

@@ -45,7 +45,7 @@ public class Movimiento
     public string? Observaciones { get; set; }
 
     [Column("fecha_movimiento")]
-    public DateTime FechaMovimiento { get; set; } = DateTime.Now;
+    public DateTime FechaMovimiento { get; set; } = DateTime.UtcNow;
 
     [Column("fecha_devolucion")]
     public DateTime? FechaDevolucion { get; set; }

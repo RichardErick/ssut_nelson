@@ -35,7 +35,7 @@ public class Usuario
     public string PasswordHash { get; set; } = string.Empty;
 
     [Column("rol")]
-    public string Rol { get; set; } = "Usuario"; // Administrador, AdministradorDocumentos, Usuario, Supervisor
+    public UsuarioRol Rol { get; set; } = UsuarioRol.Usuario;
 
     [Column("area_id")]
     public int? AreaId { get; set; }
@@ -65,5 +65,15 @@ public class Usuario
     public virtual ICollection<Documento> DocumentosResponsable { get; set; } = new List<Documento>();
     public virtual ICollection<Movimiento> Movimientos { get; set; } = new List<Movimiento>();
     public virtual ICollection<Alerta> Alertas { get; set; } = new List<Alerta>();
+}
+
+public enum UsuarioRol
+{
+    Administrador,
+    AdministradorDocumentos,
+    ArchivoCentral,
+    TramiteDocumentario,
+    Supervisor,
+    Usuario,
 }
 

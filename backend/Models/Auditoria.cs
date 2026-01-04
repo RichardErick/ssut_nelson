@@ -36,5 +36,5 @@ public class Auditoria
     public string? IpAddress { get; set; }
 
     [Column("fecha_accion")]
-    public DateTime FechaAccion { get; set; } = DateTime.Now;
+    public DateTime FechaAccion { get; set; } = DateTime.UtcNow;
 }

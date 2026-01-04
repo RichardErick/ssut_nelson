@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/documento.dart';
 import '../../services/documento_service.dart';
+import '../../utils/error_helper.dart';
 import 'documento_detail_screen.dart';
 
 class DocumentoSearchScreen extends StatefulWidget {
@@ -77,9 +78,27 @@ class _DocumentoSearchScreenState extends State<DocumentoSearchScreen> {
     } catch (e) {
       setState(() => _isSearching = false);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error en la búsqueda: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    ErrorHelper.getErrorMessage(e),
+                    style: const TextStyle(fontSize: 14),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+          ),
+        );
       }
     }
   }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/movimiento.dart';
 import '../../services/movimiento_service.dart';
+import '../../utils/error_helper.dart';
 import '../../widgets/animated_card.dart';
 import '../../widgets/loading_shimmer.dart';
 
@@ -37,7 +38,25 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar movimientos: $e')),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    ErrorHelper.getErrorMessage(e),
+                    style: const TextStyle(fontSize: 14),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
@@ -326,12 +345,29 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                                                         color: Colors.white,
                                                       ),
                                                       const SizedBox(width: 12),
-                                                      Text('Error: $e'),
+                                                      Expanded(
+                                                        child: Text(
+                                                          ErrorHelper.getErrorMessage(
+                                                            e,
+                                                          ),
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 14,
+                                                              ),
+                                                          maxLines: 3,
+                                                          overflow:
+                                                              TextOverflow
+                                                                  .ellipsis,
+                                                        ),
+                                                      ),
                                                     ],
                                                   ),
                                                   backgroundColor: Colors.red,
                                                   behavior:
                                                       SnackBarBehavior.floating,
+                                                  duration: const Duration(
+                                                    seconds: 5,
+                                                  ),
                                                   shape: RoundedRectangleBorder(
                                                     borderRadius:
                                                         BorderRadius.circular(

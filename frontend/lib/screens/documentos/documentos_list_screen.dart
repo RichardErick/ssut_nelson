@@ -5,9 +5,9 @@ import 'package:provider/provider.dart';
 import '../../models/documento.dart';
 import '../../services/documento_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/error_helper.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_shimmer.dart';
-import '../../widgets/glass_container.dart';
 import 'documento_detail_screen.dart';
 
 class DocumentosListScreen extends StatefulWidget {
@@ -61,7 +61,7 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
     } catch (e) {
       if (mounted) {
         setState(() => _estaCargando = false);
-        _mostrarSnackBarError('Error al cargar documentos: $e');
+        _mostrarSnackBarError(ErrorHelper.getErrorMessage(e));
       }
     }
   }
@@ -70,17 +70,21 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
     var filtrados = _documentos;
 
     if (_consultaBusqueda.isNotEmpty) {
-      filtrados = filtrados.where((doc) {
-        final query = _consultaBusqueda.toLowerCase();
-        return doc.codigo.toLowerCase().contains(query) ||
-            doc.numeroCorrelativo.toLowerCase().contains(query) ||
-            (doc.tipoDocumentoNombre ?? '').toLowerCase().contains(query) ||
-            (doc.descripcion ?? '').toLowerCase().contains(query);
-      }).toList();
+      filtrados =
+          filtrados.where((doc) {
+            final query = _consultaBusqueda.toLowerCase();
+            return doc.codigo.toLowerCase().contains(query) ||
+                doc.numeroCorrelativo.toLowerCase().contains(query) ||
+                (doc.tipoDocumentoNombre ?? '').toLowerCase().contains(query) ||
+                (doc.descripcion ?? '').toLowerCase().contains(query);
+          }).toList();
     }
 
     if (_filtroSeleccionado != 'todos') {
-      filtrados = filtrados.where((doc) => doc.estado.toLowerCase() == _filtroSeleccionado).toList();
+      filtrados =
+          filtrados
+              .where((doc) => doc.estado.toLowerCase() == _filtroSeleccionado)
+              .toList();
     }
 
     return filtrados;
@@ -91,7 +95,7 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
     super.build(context);
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
-    
+
     int crossAxisCount = 1;
     if (size.width > 1200) {
       crossAxisCount = 3;
@@ -105,16 +109,18 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
         children: [
           _construirFiltrosSuperior(theme),
           Expanded(
-            child: _estaCargando
-                ? _construirShimmerCarga(crossAxisCount)
-                : _documentosFiltrados.isEmpty
+            child:
+                _estaCargando
+                    ? _construirShimmerCarga(crossAxisCount)
+                    : _documentosFiltrados.isEmpty
                     ? EmptyState(
-                        icon: Icons.folder_open_outlined,
-                        title: 'No hay documentos',
-                        subtitle: _consultaBusqueda.isNotEmpty
-                            ? 'No se encontraron resultados'
-                            : 'Comience agregando su primer documento',
-                      )
+                      icon: Icons.folder_open_outlined,
+                      title: 'No hay documentos',
+                      subtitle:
+                          _consultaBusqueda.isNotEmpty
+                              ? 'No se encontraron resultados'
+                              : 'Comience agregando su primer documento',
+                    )
                     : _construirGridDocumentos(theme, crossAxisCount),
           ),
         ],
@@ -132,11 +138,12 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
         mainAxisSpacing: 20,
       ),
       itemCount: 6,
-      itemBuilder: (context, index) => LoadingShimmer(
-        width: double.infinity,
-        height: 200,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      itemBuilder:
+          (context, index) => LoadingShimmer(
+            width: double.infinity,
+            height: 200,
+            borderRadius: BorderRadius.circular(20),
+          ),
     );
   }
 
@@ -164,14 +171,22 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Buscar...',
-                      prefixIcon: Icon(Icons.search_rounded, color: theme.colorScheme.primary),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: theme.colorScheme.primary,
+                      ),
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: theme.colorScheme.primary.withOpacity(0.5)),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary.withOpacity(0.5),
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                     ),
                   ),
                 ),
@@ -205,9 +220,21 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
   Widget _construirChipsSelector(ThemeData theme) {
     final filtros = [
       {'value': 'todos', 'label': 'Todos', 'icon': Icons.grid_view_rounded},
-      {'value': 'activo', 'label': 'Activos', 'icon': Icons.check_circle_rounded},
-      {'value': 'archivado', 'label': 'Archivados', 'icon': Icons.archive_rounded},
-      {'value': 'prestado', 'label': 'Prestados', 'icon': Icons.handshake_rounded},
+      {
+        'value': 'activo',
+        'label': 'Activos',
+        'icon': Icons.check_circle_rounded,
+      },
+      {
+        'value': 'archivado',
+        'label': 'Archivados',
+        'icon': Icons.archive_rounded,
+      },
+      {
+        'value': 'prestado',
+        'label': 'Prestados',
+        'icon': Icons.handshake_rounded,
+      },
     ];
 
     return SizedBox(
@@ -223,21 +250,34 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
             label: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(f['icon'] as IconData, size: 16, color: isSel ? Colors.white : theme.colorScheme.primary),
+                Icon(
+                  f['icon'] as IconData,
+                  size: 16,
+                  color: isSel ? Colors.white : theme.colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(f['label'] as String),
               ],
             ),
             selected: isSel,
-            onSelected: (val) => setState(() => _filtroSeleccionado = f['value'] as String),
+            onSelected:
+                (val) =>
+                    setState(() => _filtroSeleccionado = f['value'] as String),
             selectedColor: theme.colorScheme.primary,
             backgroundColor: theme.colorScheme.surface,
             labelStyle: GoogleFonts.inter(
               color: isSel ? Colors.white : theme.colorScheme.onSurface,
               fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
             ),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            side: BorderSide(color: isSel ? Colors.transparent : theme.colorScheme.outline.withOpacity(0.1)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            side: BorderSide(
+              color:
+                  isSel
+                      ? Colors.transparent
+                      : theme.colorScheme.outline.withOpacity(0.1),
+            ),
           );
         },
       ),
@@ -257,7 +297,9 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
           mainAxisSpacing: 20,
         ),
         itemCount: filtrados.length,
-        itemBuilder: (context, index) => _buildModernCard(filtrados[index], theme, index),
+        itemBuilder:
+            (context, index) =>
+                _buildModernCard(filtrados[index], theme, index),
       ),
     );
   }
@@ -299,14 +341,20 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
                   const Spacer(),
                   Text(
                     doc.codigo,
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18),
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     doc.descripcion ?? 'Sin descripción',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(fontSize: 13, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
                   ),
                   const Spacer(),
                   const Divider(height: 1),
@@ -332,7 +380,11 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
             color: theme.colorScheme.primary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Icon(_obtenerIconoTipoDocumento(doc.tipoDocumentoNombre ?? ''), color: theme.colorScheme.primary, size: 20),
+          child: Icon(
+            _obtenerIconoTipoDocumento(doc.tipoDocumentoNombre ?? ''),
+            color: theme.colorScheme.primary,
+            size: 20,
+          ),
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -342,7 +394,12 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
           ),
           child: Text(
             doc.estado.toUpperCase(),
-            style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.5),
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
       ],
@@ -352,16 +409,27 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
   Widget _buildCardFooter(Documento doc, ThemeData theme) {
     return Row(
       children: [
-        Icon(Icons.calendar_today_rounded, size: 14, color: theme.colorScheme.onSurface.withOpacity(0.4)),
+        Icon(
+          Icons.calendar_today_rounded,
+          size: 14,
+          color: theme.colorScheme.onSurface.withOpacity(0.4),
+        ),
         const SizedBox(width: 6),
         Text(
           _formatearFecha(doc.fechaRegistro),
-          style: GoogleFonts.inter(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            color: theme.colorScheme.onSurface.withOpacity(0.5),
+          ),
         ),
         const Spacer(),
         Text(
           'G-${doc.gestion}',
-          style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.primary,
+          ),
         ),
       ],
     );
@@ -369,19 +437,27 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
 
   Color _obtenerColorEstado(String estado) {
     switch (estado.toLowerCase()) {
-      case 'activo': return AppTheme.colorExito;
-      case 'archivado': return AppTheme.colorInfo;
-      case 'prestado': return AppTheme.colorAdvertencia;
-      default: return AppTheme.colorPrimario;
+      case 'activo':
+        return AppTheme.colorExito;
+      case 'archivado':
+        return AppTheme.colorInfo;
+      case 'prestado':
+        return AppTheme.colorAdvertencia;
+      default:
+        return AppTheme.colorPrimario;
     }
   }
 
   IconData _obtenerIconoTipoDocumento(String tipo) {
     switch (tipo.toLowerCase()) {
-      case 'factura': return Icons.receipt_long_rounded;
-      case 'contrato': return Icons.handshake_rounded;
-      case 'informe': return Icons.analytics_rounded;
-      default: return Icons.description_rounded;
+      case 'factura':
+        return Icons.receipt_long_rounded;
+      case 'contrato':
+        return Icons.handshake_rounded;
+      case 'informe':
+        return Icons.analytics_rounded;
+      default:
+        return Icons.description_rounded;
     }
   }
 
@@ -390,18 +466,36 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   void _navegarAlDetalle(Documento doc) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => DocumentoDetailScreen(documento: doc)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DocumentoDetailScreen(documento: doc),
+      ),
+    );
   }
 
   void _mostrarSnackBarError(String mensaje) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(mensaje),
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                mensaje,
+                style: const TextStyle(fontSize: 14),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
         backgroundColor: AppTheme.colorError,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 5),
       ),
     );
   }
 }
-

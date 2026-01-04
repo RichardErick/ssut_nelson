@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/documento_service.dart';
+import '../../utils/error_helper.dart';
 import '../../widgets/animated_card.dart';
 import '../documentos/documento_detail_screen.dart';
 
@@ -101,7 +102,14 @@ class _QRScannerScreenState extends State<QRScannerScreen>
               children: [
                 const Icon(Icons.error_outline, color: Colors.white),
                 const SizedBox(width: 12),
-                Expanded(child: Text('Error: $e')),
+                Expanded(
+                  child: Text(
+                    ErrorHelper.getErrorMessage(e),
+                    style: const TextStyle(fontSize: 14),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
             backgroundColor: Colors.red.shade600,
@@ -109,6 +117,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
+            duration: const Duration(seconds: 5),
           ),
         );
       }

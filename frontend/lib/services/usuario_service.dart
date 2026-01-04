@@ -21,6 +21,33 @@ class UsuarioService {
     }
   }
 
+  Future<Usuario> create(CreateUsuarioDTO dto) async {
+    try {
+      final apiService = Provider.of<ApiService>(
+        navigatorKey.currentContext!,
+        listen: false,
+      );
+      final response = await apiService.post('/usuarios', data: dto.toJson());
+      return Usuario.fromJson(response.data);
+    } catch (e) {
+      print('Error al crear usuario: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteUsuario(int id, {bool hard = false}) async {
+    try {
+      final apiService = Provider.of<ApiService>(
+        navigatorKey.currentContext!,
+        listen: false,
+      );
+      await apiService.delete('/usuarios/$id?hard=$hard');
+    } catch (e) {
+      print('Error al eliminar usuario: $e');
+      rethrow;
+    }
+  }
+
   Future<Usuario> getById(int id) async {
     try {
       final apiService = Provider.of<ApiService>(

@@ -38,7 +38,7 @@ public class Anexo
     public string? TipoContenido { get; set; }
 
     [Column("fecha_registro")]
-    public DateTime FechaRegistro { get; set; } = DateTime.Now;
+    public DateTime FechaRegistro { get; set; } = DateTime.UtcNow;
 
     [Column("activo")]
     public bool Activo { get; set; } = true;

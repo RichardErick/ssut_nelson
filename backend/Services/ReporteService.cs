@@ -23,12 +23,15 @@ public class ReporteService : IReporteService
 
     public async Task<IEnumerable<MovimientoDTO>> GenerarReporteMovimientosAsync(ReporteMovimientosDTO filtros)
     {
+        var fechaDesdeUtc = NormalizeToUtc(filtros.FechaDesde);
+        var fechaHastaUtc = NormalizeToUtc(filtros.FechaHasta);
+
         var query = _context.Movimientos
             .Include(m => m.Documento)
             .Include(m => m.AreaOrigen)
             .Include(m => m.AreaDestino)
             .Include(m => m.Usuario)
-            .Where(m => m.FechaMovimiento >= filtros.FechaDesde && m.FechaMovimiento <= filtros.FechaHasta)
+            .Where(m => m.FechaMovimiento >= fechaDesdeUtc && m.FechaMovimiento <= fechaHastaUtc)
             .AsQueryable();
 
         if (filtros.AreaId.HasValue)
@@ -84,7 +87,8 @@ public class ReporteService : IReporteService
         var documentosPrestados = await _context.Documentos.CountAsync(d => d.Estado == "Prestado");
         var documentosArchivados = await _context.Documentos.CountAsync(d => d.Estado == "Archivado");
 
-        var inicioMes = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        var nowUtc = DateTime.UtcNow;
+        var inicioMes = new DateTime(nowUtc.Year, nowUtc.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var movimientosMes = await _context.Movimientos
             .CountAsync(m => m.FechaMovimiento >= inicioMes);
 
@@ -108,6 +112,16 @@ public class ReporteService : IReporteService
             MovimientosMes = movimientosMes,
             DocumentosPorTipo = documentosPorTipo,
             MovimientosPorTipo = movimientosPorTipo
+        };
+    }
+
+    private static DateTime NormalizeToUtc(DateTime value)
+    {
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime(),
         };
     }
 }

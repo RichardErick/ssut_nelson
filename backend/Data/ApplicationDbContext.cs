@@ -108,6 +108,15 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(u => u.Rol);
             entity.HasIndex(u => u.Activo);
             
+            // Convertir el enum a string para evitar problemas de orden entre PostgreSQL y C#
+            // Esto evita problemas cuando el orden del enum en PostgreSQL no coincide con C#
+            entity.Property(u => u.Rol)
+                .HasConversion(
+                    v => v.ToString(),  // Convertir enum a string al escribir
+                    v => (UsuarioRol)Enum.Parse(typeof(UsuarioRol), v, true)  // Convertir string a enum al leer
+                )
+                .HasColumnType("text");  // Usar text para almacenar como string
+            
             entity.HasOne(u => u.Area)
                 .WithMany(a => a.Usuarios)
                 .HasForeignKey(u => u.AreaId)

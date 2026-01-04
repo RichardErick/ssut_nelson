@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         Provider(
-          create: (_) => ApiService(baseUrl: 'https://localhost:5001/api'),
+          create: (_) => ApiService(baseUrl: 'http://localhost:5000/api'),
         ),
         ProxyProvider<ApiService, AuditService>(
           update: (_, api, __) => AuditService(api),

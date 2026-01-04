@@ -1,35 +1,104 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using SistemaGestionDocumental.Data;
+using SistemaGestionDocumental.Models;
 using SistemaGestionDocumental.Services;
+using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers();
+// Agrega los servicios .
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+    });
 
-// Configure CORS
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer",
+                }
+            },
+            new List<string>()
+        }
+    });
+});
+
+// Configuramos CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFlutterApp",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:8080")
+            policy.SetIsOriginAllowed(origin =>
+                !string.IsNullOrWhiteSpace(origin)
+                && Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                && uri.IsLoopback)
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
         });
 });
 
-// Configure PostgreSQL Database
+// Configuramos Postgres
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? "Host=localhost;Database=ssut_gestion_documental;Username=postgres;Password=postgres";
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
+var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+// Ya no necesitamos mapear el enum porque usamos text en lugar de rol_enum
+var dataSource = dataSourceBuilder.Build();
 
-// Register services
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(dataSource));
+
+builder.Services.AddAuthorization();
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+var jwtKey = builder.Configuration["Jwt:Key"];
+
+if (!string.IsNullOrWhiteSpace(jwtIssuer) &&
+    !string.IsNullOrWhiteSpace(jwtAudience) &&
+    !string.IsNullOrWhiteSpace(jwtKey))
+{
+    builder.Services
+        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtIssuer,
+                ValidAudience = jwtAudience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                ClockSkew = TimeSpan.FromMinutes(2),
+            };
+        });
+}
+
+// Registrando servicios
 builder.Services.AddScoped<IDocumentoService, DocumentoService>();
 builder.Services.AddScoped<IMovimientoService, MovimientoService>();
 builder.Services.AddScoped<IQRCodeService, QRCodeService>();
@@ -37,19 +106,24 @@ builder.Services.AddScoped<IReporteService, ReporteService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configuramos el pipeline de HTTP
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("AllowFlutterApp");
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Ensure database connection and schema
+// Verificamos la conexión a la base de datos
 using (var scope = app.Services.CreateScope())
 {
     // AQUI SE DEFINE LOS SERVICIOS QUE SE VA A USAR EN LA APLICACION
