@@ -82,6 +82,20 @@ class ErrorHelper {
 
       case DioExceptionType.badResponse:
         final statusCode = error.response?.statusCode;
+        final responseData = error.response?.data;
+
+        // Intentar extraer el mensaje del cuerpo de la respuesta
+        if (responseData is Map<String, dynamic>) {
+          final message = responseData['message'] as String?;
+          if (message != null && message.isNotEmpty) {
+            return message;
+          }
+        }
+
+        // Mensajes específicos por código de estado
+        if (statusCode == 400) {
+          return 'Solicitud inválida. Verifique los datos ingresados.';
+        }
         if (statusCode == 401) {
           return 'Credenciales inválidas. Verifique su usuario y contraseña.';
         }

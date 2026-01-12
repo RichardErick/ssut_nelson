@@ -247,18 +247,12 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
           final f = filtros[index];
           final isSel = _filtroSeleccionado == f['value'];
           return ChoiceChip(
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  f['icon'] as IconData,
-                  size: 16,
-                  color: isSel ? Colors.white : theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(f['label'] as String),
-              ],
+            avatar: Icon(
+              f['icon'] as IconData,
+              size: 16,
+              color: isSel ? Colors.white : theme.colorScheme.primary,
             ),
+            label: Text(f['label'] as String),
             selected: isSel,
             onSelected:
                 (val) =>

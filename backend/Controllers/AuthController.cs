@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -101,6 +102,69 @@ public class AuthController : ControllerBase
                 usuario.AreaId,
                 usuario.Activo
             }
+        });
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<ActionResult> Me()
+    {
+        var idClaim = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (int.TryParse(idClaim, out var userId))
+        {
+            var usuarioById = await _context.Usuarios
+                .AsNoTracking()
+                .Include(u => u.Area)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (usuarioById == null)
+                return Unauthorized(new { message = "Sesión inválida" });
+
+            return Ok(new
+            {
+                usuarioById.Id,
+                usuarioById.NombreUsuario,
+                usuarioById.NombreCompleto,
+                usuarioById.Email,
+                usuarioById.Rol,
+                usuarioById.AreaId,
+                AreaNombre = usuarioById.Area != null ? usuarioById.Area.Nombre : null,
+                usuarioById.Activo,
+                usuarioById.UltimoAcceso,
+                usuarioById.FechaRegistro,
+                usuarioById.FechaActualizacion,
+            });
+        }
+
+        var username = User.FindFirstValue(JwtRegisteredClaimNames.UniqueName)
+            ?? User.Identity?.Name;
+
+        if (string.IsNullOrWhiteSpace(username))
+            return Unauthorized(new { message = "Sesión inválida" });
+
+        var usuario = await _context.Usuarios
+            .AsNoTracking()
+            .Include(u => u.Area)
+            .FirstOrDefaultAsync(u => u.NombreUsuario == username || u.Email == username);
+
+        if (usuario == null)
+            return Unauthorized(new { message = "Sesión inválida" });
+
+        return Ok(new
+        {
+            usuario.Id,
+            usuario.NombreUsuario,
+            usuario.NombreCompleto,
+            usuario.Email,
+            usuario.Rol,
+            usuario.AreaId,
+            AreaNombre = usuario.Area != null ? usuario.Area.Nombre : null,
+            usuario.Activo,
+            usuario.UltimoAcceso,
+            usuario.FechaRegistro,
+            usuario.FechaActualizacion,
         });
     }
 

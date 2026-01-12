@@ -35,7 +35,7 @@ public class Usuario
     public string PasswordHash { get; set; } = string.Empty;
 
     [Column("rol")]
-    public UsuarioRol Rol { get; set; } = UsuarioRol.Usuario;
+    public UsuarioRol Rol { get; set; } = UsuarioRol.Contador;
 
     [Column("area_id")]
     public int? AreaId { get; set; }
@@ -69,11 +69,9 @@ public class Usuario
 
 public enum UsuarioRol
 {
-    Administrador,
-    AdministradorDocumentos,
-    ArchivoCentral,
-    TramiteDocumentario,
-    Supervisor,
-    Usuario,
+    Administrador,           // Administrador de Sistema
+    AdministradorDocumentos,  // Administrador de Documentos
+    Contador,                 // Contador
+    Gerente,                  // Gerente
 }
 

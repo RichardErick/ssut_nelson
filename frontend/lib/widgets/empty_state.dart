@@ -18,16 +18,18 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 600),
       tween: Tween(begin: 0.0, end: 1.0),
       curve: Curves.easeOutBack,
       builder: (context, value, child) {
+        // Asegurar que la opacidad esté en el rango [0.0, 1.0]
+        final clampedOpacity = value.clamp(0.0, 1.0);
         return Opacity(
-          opacity: value,
+          opacity: clampedOpacity,
           child: Transform.scale(
-            scale: 0.5 + (0.5 * value),
+            scale: 0.5 + (0.5 * clampedOpacity),
             child: child,
           ),
         );
@@ -73,10 +75,7 @@ class EmptyState extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ),
-              if (action != null) ...[
-                const SizedBox(height: 32),
-                action!,
-              ],
+              if (action != null) ...[const SizedBox(height: 32), action!],
             ],
           ),
         ),
@@ -84,4 +83,3 @@ class EmptyState extends StatelessWidget {
     );
   }
 }
-

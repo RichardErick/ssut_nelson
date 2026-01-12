@@ -8,6 +8,7 @@ import '../providers/theme_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/sidebar.dart';
+import 'admin/permisos_screen.dart';
 import 'admin/roles_permissions_screen.dart';
 import 'admin/users_sync_screen.dart';
 import 'documentos/documentos_list_screen.dart';
@@ -73,6 +74,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           icon: Icons.admin_panel_settings_outlined,
           selectedIcon: Icons.admin_panel_settings,
           screen: const RolesPermissionsScreen(),
+        ),
+      );
+      _navItems.add(
+        NavigationItem(
+          label: 'Gestión de Permisos',
+          icon: Icons.security_outlined,
+          selectedIcon: Icons.security,
+          screen: const PermisosScreen(),
         ),
       );
       _navItems.add(

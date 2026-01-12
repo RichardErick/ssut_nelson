@@ -20,6 +20,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Auditoria> Auditoria { get; set; }
     public DbSet<Alerta> Alertas { get; set; }
     public DbSet<Configuracion> Configuraciones { get; set; }
+    public DbSet<Permiso> Permisos { get; set; }
+    public DbSet<RolPermiso> RolPermisos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -222,6 +224,25 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(c => c.ActualizadoPor)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Configuración de Permiso
+        modelBuilder.Entity<Permiso>(entity =>
+        {
+            entity.HasIndex(p => p.Codigo).IsUnique();
+            entity.HasIndex(p => p.Modulo);
+        });
+
+        // Configuración de RolPermiso
+        modelBuilder.Entity<RolPermiso>(entity =>
+        {
+            entity.HasIndex(rp => new { rp.Rol, rp.PermisoId }).IsUnique();
+            entity.HasIndex(rp => rp.Rol);
+            
+            entity.HasOne(rp => rp.Permiso)
+                .WithMany(p => p.RolPermisos)
+                .HasForeignKey(rp => rp.PermisoId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

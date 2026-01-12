@@ -43,19 +43,16 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Configuramos CORS
+// Configuramos CORS - Permitir todos los orígenes localhost
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFlutterApp",
         policy =>
         {
-            policy.SetIsOriginAllowed(origin =>
-                !string.IsNullOrWhiteSpace(origin)
-                && Uri.TryCreate(origin, UriKind.Absolute, out var uri)
-                && uri.IsLoopback)
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
+            policy.SetIsOriginAllowed(_ => true) // Permitir todos los orígenes en desarrollo
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
         });
 });
 
@@ -118,7 +115,73 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
+// CORS debe estar ANTES de cualquier otro middleware que pueda fallar
 app.UseCors("AllowFlutterApp");
+
+// Middleware de manejo de errores global DESPUÉS de CORS
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Error no manejado: {Message}", ex.Message);
+        
+        // SIEMPRE agregar headers CORS antes de escribir la respuesta
+        var origin = context.Request.Headers["Origin"].ToString();
+        if (string.IsNullOrWhiteSpace(origin))
+        {
+            origin = context.Request.Headers["Referer"].ToString();
+        }
+        
+        if (!string.IsNullOrWhiteSpace(origin))
+        {
+            try
+            {
+                if (!context.Response.HasStarted)
+                {
+                    context.Response.Headers.Remove("Access-Control-Allow-Origin");
+                    context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+                    context.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
+                    context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                    context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                }
+            }
+            catch { }
+        }
+        else
+        {
+            // Si no hay origin, agregar headers CORS de todos modos
+            if (!context.Response.HasStarted)
+            {
+                context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+                context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            }
+        }
+        
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = 500;
+            context.Response.ContentType = "application/json";
+            
+            var errorResponse = new
+            {
+                message = app.Environment.IsDevelopment() 
+                    ? $"Error: {ex.Message}" 
+                    : "Error interno del servidor. Por favor, intente más tarde.",
+                error = app.Environment.IsDevelopment() ? ex.ToString() : null
+            };
+            
+            await context.Response.WriteAsJsonAsync(errorResponse);
+        }
+    }
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

@@ -23,7 +23,7 @@ class AuthProvider extends ChangeNotifier {
   bool _isAuthenticated = false;
   String? _token;
   Map<String, dynamic>? _user;
-  UserRole _role = UserRole.invitado;
+  UserRole _role = UserRole.contador; // Rol por defecto
 
   bool get isAuthenticated => _isAuthenticated;
   String? get token => _token;
@@ -210,17 +210,17 @@ class AuthProvider extends ChangeNotifier {
   UserRole _parseRole(String roleName) {
     switch (roleName) {
       case 'AdministradorSistema':
-        return UserRole.administradorSistema;
       case 'Administrador':
         return UserRole.administradorSistema;
       case 'AdministradorDocumentos':
         return UserRole.administradorDocumentos;
-      case 'ArchivoCentral':
-        return UserRole.archivoCentral;
-      case 'TramiteDocumentario':
-        return UserRole.tramiteDocumentario;
+      case 'Contador':
+        return UserRole.contador;
+      case 'Gerente':
+        return UserRole.gerente;
       default:
-        return UserRole.invitado;
+        // Si el rol no existe, asignar como Administrador de Sistema por defecto
+        return UserRole.administradorSistema;
     }
   }
 }

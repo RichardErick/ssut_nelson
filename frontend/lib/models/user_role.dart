@@ -1,22 +1,32 @@
 enum UserRole {
   administradorSistema,
   administradorDocumentos,
-  archivoCentral,
-  tramiteDocumentario,
-  invitado;
+  contador,
+  gerente;
 
   String get displayName {
     switch (this) {
       case UserRole.administradorSistema:
-        return 'Admin Sistema';
+        return 'Administrador de Sistema';
       case UserRole.administradorDocumentos:
-        return 'Admin Documentos';
-      case UserRole.archivoCentral:
-        return 'Archivo Central';
-      case UserRole.tramiteDocumentario:
-        return 'Trámite Doc.';
-      default:
-        return 'Invitado';
+        return 'Administrador de Documentos';
+      case UserRole.contador:
+        return 'Contador';
+      case UserRole.gerente:
+        return 'Gerente';
+    }
+  }
+
+  String get codigo {
+    switch (this) {
+      case UserRole.administradorSistema:
+        return 'AdministradorSistema';
+      case UserRole.administradorDocumentos:
+        return 'AdministradorDocumentos';
+      case UserRole.contador:
+        return 'Contador';
+      case UserRole.gerente:
+        return 'Gerente';
     }
   }
 }

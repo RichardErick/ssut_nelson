@@ -35,7 +35,7 @@ class Usuario {
       nombreUsuario: json['nombreUsuario'],
       nombreCompleto: json['nombreCompleto'],
       email: json['email'],
-      rol: json['rol'] ?? 'Usuario',
+      rol: json['rol'] ?? 'Contador', // Rol por defecto
       areaId: json['areaId'],
       areaNombre: json['areaNombre'],
       activo: json['activo'] ?? true,
@@ -80,7 +80,7 @@ class CreateUsuarioDTO {
     required this.nombreCompleto,
     required this.email,
     required this.password,
-    this.rol = 'Usuario',
+    this.rol = 'Contador', // Rol por defecto
     this.areaId,
     this.activo = true,
   });

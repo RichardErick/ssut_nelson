@@ -17,13 +17,11 @@ public class UsuariosController : ControllerBase
 
     private static readonly string[] RolesValidos =
     [
-        "AdministradorSistema",
+        "AdministradorSistema",  // Alias para Administrador
         nameof(UsuarioRol.Administrador),
         nameof(UsuarioRol.AdministradorDocumentos),
-        nameof(UsuarioRol.ArchivoCentral),
-        nameof(UsuarioRol.TramiteDocumentario),
-        nameof(UsuarioRol.Supervisor),
-        nameof(UsuarioRol.Usuario),
+        nameof(UsuarioRol.Contador),
+        nameof(UsuarioRol.Gerente),
     ];
 
     public UsuariosController(ApplicationDbContext context, IConfiguration configuration)
@@ -43,7 +41,8 @@ public class UsuariosController : ControllerBase
         if (string.Equals(normalized, "AdministradorSistema", StringComparison.Ordinal))
             normalized = nameof(UsuarioRol.Administrador);
 
-        return Enum.TryParse<UsuarioRol>(normalized, ignoreCase: false, out var parsed)
+        // Intentar parsear con ignoreCase para mayor flexibilidad
+        return Enum.TryParse<UsuarioRol>(normalized, ignoreCase: true, out var parsed)
             ? parsed
             : null;
     }
@@ -84,7 +83,7 @@ public class UsuariosController : ControllerBase
             return BadRequest(new { message = "NombreUsuario, NombreCompleto, Email y Password son obligatorios" });
         }
 
-        var rolInput = string.IsNullOrWhiteSpace(dto.Rol) ? nameof(UsuarioRol.Usuario) : dto.Rol.Trim();
+        var rolInput = string.IsNullOrWhiteSpace(dto.Rol) ? nameof(UsuarioRol.Contador) : dto.Rol.Trim();
         if (!RolesValidos.Contains(rolInput))
             return BadRequest(new { message = $"Rol inválido. Roles permitidos: {string.Join(", ", RolesValidos)}" });
 
@@ -418,11 +417,11 @@ FROM usuarios";
 
                 if (!RolesValidos.Contains(src.Rol))
                 {
-                    // Si el rol no está en el catálogo del sistema, lo degradamos a Usuario
-                    src.Rol = nameof(UsuarioRol.Usuario);
+                    // Si el rol no está en el catálogo del sistema, lo degradamos a Contador (rol seguro)
+                    src.Rol = nameof(UsuarioRol.Contador);
                 }
 
-                var srcRol = ParseRolOrNull(src.Rol) ?? UsuarioRol.Usuario;
+                var srcRol = ParseRolOrNull(src.Rol) ?? UsuarioRol.Contador;
 
                 if (localByUsername.TryGetValue(src.NombreUsuario, out var local))
                 {
