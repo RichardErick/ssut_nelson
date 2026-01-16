@@ -98,11 +98,7 @@ BEGIN
 
     IF rol_type = 'text' OR rol_type = 'character varying' THEN
         EXECUTE 'ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_rol_check';
-        EXECUTE $$
-            ALTER TABLE usuarios
-            ADD CONSTRAINT usuarios_rol_check
-            CHECK (rol IN (''Administrador'', ''AdministradorDocumentos'', ''Contador'', ''Gerente''))
-        $$;
+        EXECUTE 'ALTER TABLE usuarios ADD CONSTRAINT usuarios_rol_check CHECK (rol IN (''Administrador'', ''AdministradorDocumentos'', ''Contador'', ''Gerente''))';
     END IF;
 END $$;
 
