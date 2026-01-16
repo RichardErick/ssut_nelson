@@ -102,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen>
             Navigator.of(context).pushReplacementNamed('/home');
           }
         } else {
-          _showError('Credenciales inválidas');
+          _showError('Credenciales invalidas');
         }
       } catch (e) {
         String msg = ErrorHelper.getErrorMessage(e);
@@ -205,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'Sistema de Gestión Documental',
+                                  'Sistema de Gestion Documental',
                                   style: GoogleFonts.inter(
                                     fontSize: 18,
                                     color: Colors.white70,
@@ -263,23 +263,23 @@ class _LoginScreenState extends State<LoginScreen>
                                     if (v.length < 4 || v.length > 20)
                                       return 'Debe tener entre 4 y 20 caracteres';
                                     if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v))
-                                      return 'Solo letras, números y guión bajo';
+                                      return 'Solo letras, numeros y guion bajo';
                                     return null;
                                   },
                                 ),
                                 const SizedBox(height: 24),
                                 _buildTextField(
                                   controller: _passwordController,
-                                  label: 'Contraseña',
-                                  hint: '••••••••',
+                                  label: 'Contrasena',
+                                  hint: '********',
                                   icon: Icons.lock_outline_rounded,
                                   isPassword: true,
                                   isDark: true,
                                   validator: (v) {
                                     if (v == null || v.isEmpty)
-                                      return 'Ingrese su contraseña';
+                                      return 'Ingrese su contrasena';
                                     if (v.length < 8)
-                                      return 'Mínimo 8 caracteres';
+                                      return 'Minimo 8 caracteres';
                                     return null;
                                   },
                                 ),
@@ -319,7 +319,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         );
                                       },
                                       child: Text(
-                                        '¿Olvidó su contraseña?',
+                                        'Olvido su contrasena',
                                         style: TextStyle(
                                           color: Colors.blue.shade700,
                                           fontWeight: FontWeight.w600,
@@ -342,7 +342,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       },
                                       child: RichText(
                                         text: TextSpan(
-                                          text: '¿No tienes cuenta? ',
+                                          text: 'No tienes cuenta? ',
                                           style: TextStyle(
                                             color: isDesktop
                                                 ? Colors.grey.shade600
@@ -370,7 +370,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   if (isDesktop)
                                     Center(
                                       child: Text(
-                                        'SSUT - Gestión Documental v1.0',
+                                        'SSUT - Gestion Documental v1.0',
                                         style: TextStyle(
                                           color: Colors.grey.shade400,
                                           fontSize: 12,
@@ -388,6 +388,7 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                 ),
+              ]
               )
               : _buildMobileLayout(),
     );
@@ -443,7 +444,7 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         const SizedBox(height: 8),
         Text(
-          'Sistema de Gestión Documental SSUT',
+          'Sistema de Gestion Documental SSUT',
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
             fontSize: 14,
@@ -494,7 +495,7 @@ class _LoginScreenState extends State<LoginScreen>
                   _buildTextField(
                     controller: _passwordController,
                     label: 'Contrasena',
-                    hint: '********',
+                                  hint: '********',
                     icon: Icons.lock_outline_rounded,
                     isPassword: true,
                     validator: (v) {
@@ -556,7 +557,7 @@ class _LoginScreenState extends State<LoginScreen>
                     },
                     child: RichText(
                       text: TextSpan(
-                        text: 'No tienes cuenta? ',
+                        text: 'No tienes cuenta ',
                         style: TextStyle(color: Colors.white.withOpacity(0.8)),
                         children: const [
                           TextSpan(
@@ -696,7 +697,7 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 )
                 : Text(
-                  'INICIAR SESIÓN',
+                  'INICIAR SESION',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

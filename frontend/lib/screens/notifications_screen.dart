@@ -43,7 +43,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       // 2. If Admin, load pending users
       List<Usuario> pending = [];
       if (authProvider.role == UserRole.administradorSistema || 
-          authProvider.role == UserRole.administrador ||
           authProvider.role == UserRole.administradorDocumentos) {
           
           final allUsers = await usuarioService.getAll();
@@ -96,7 +95,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
      // For now, let's assume reject = delete for pending registrations
      try {
        final apiService = Provider.of<ApiService>(context, listen: false);
-       await apiService.delete('/usuarios/${user.id}', queryParameters: {'hard': true});
+       await apiService.delete('/usuarios/${user.id}?hard=true');
        
        _loadData();
        
@@ -140,7 +139,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
@@ -345,7 +343,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             child: Icon(icon, color: iconColor, size: 24),
           ),
           title: Text(
-            alerta['titulo'] ?? 'Notificación',
+            alerta['titulo'] ?? 'Notificacion',
             style: TextStyle(
               fontWeight: leida ? FontWeight.normal : FontWeight.bold,
               fontSize: 14,
