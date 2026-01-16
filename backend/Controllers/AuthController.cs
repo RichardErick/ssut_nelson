@@ -58,7 +58,10 @@ public class AuthController : ControllerBase
         
         // Notify Admins
         var admins = await _context.Usuarios
-            .Where(u => u.Rol == UsuarioRol.Administrador || u.Rol.ToString() == "AdministradorSistema")
+            .Where(u =>
+                u.Rol == UsuarioRol.Administrador ||
+                u.Rol == UsuarioRol.AdministradorDocumentos ||
+                u.Rol.ToString() == "AdministradorSistema")
             .ToListAsync();
 
         foreach (var admin in admins)

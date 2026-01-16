@@ -58,8 +58,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               title: const Text('Registro Exitoso'),
               content: const Text(
                 'Su cuenta ha sido creada exitosamente.\n\n'
-                'Un administrador debe aprobar su cuenta antes de que pueda iniciar sesión. '
-                'Se le notificará via correo electrónico.',
+                'Un administrador debe aprobar su cuenta antes de que pueda iniciar sesion. '
+                'El administrador recibira la solicitud para su aprobacion.',
               ),
               actions: [
                 FilledButton(

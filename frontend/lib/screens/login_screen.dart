@@ -388,7 +388,8 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                 ),
-              ),
+              )
+              : _buildMobileLayout(),
     );
   }
 
@@ -451,6 +452,133 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return AnimatedBackground(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: GlassContainer(
+            blur: 20,
+            opacity: 0.12,
+            borderRadius: 24,
+            padding: const EdgeInsets.all(28),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildLogo(size: 60),
+                  const SizedBox(height: 20),
+                  _buildTitle(),
+                  const SizedBox(height: 32),
+                  _buildTextField(
+                    controller: _usernameController,
+                    label: 'Usuario',
+                    hint: 'ej. juan.perez',
+                    icon: Icons.person_outline_rounded,
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Ingrese su usuario';
+                      if (v.length < 4 || v.length > 20) {
+                        return 'Debe tener entre 4 y 20 caracteres';
+                      }
+                      if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v)) {
+                        return 'Solo letras, numeros y guion bajo';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _passwordController,
+                    label: 'Contrasena',
+                    hint: '********',
+                    icon: Icons.lock_outline_rounded,
+                    isPassword: true,
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Ingrese su contrasena';
+                      if (v.length < 8) return 'Minimo 8 caracteres';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _rememberMe,
+                            activeColor: Colors.white,
+                            checkColor: Colors.blue.shade900,
+                            onChanged: (val) {
+                              setState(() {
+                                _rememberMe = val ?? false;
+                              });
+                            },
+                          ),
+                          Text(
+                            'Recordarme',
+                            style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                          ),
+                        ],
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ForgotPasswordScreen(),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'Olvide mi contrasena',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  _buildLoginButton(),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const RegisterScreen(),
+                        ),
+                      );
+                    },
+                    child: RichText(
+                      text: TextSpan(
+                        text: 'No tienes cuenta? ',
+                        style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                        children: const [
+                          TextSpan(
+                            text: 'Registrarse',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildFooter(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
