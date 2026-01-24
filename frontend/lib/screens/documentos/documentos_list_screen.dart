@@ -294,6 +294,68 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
       ),
     );
   }
+  Widget _construirShimmerCarga(int columns) {
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        childAspectRatio: columns == 1 ? 2.5 : 1.4,
+        crossAxisSpacing: 20,
+        mainAxisSpacing: 20,
+      ),
+      itemCount: 6,
+      itemBuilder: (context, index) => _buildShimmerCard(),
+    );
+  }
+
+  Widget _buildShimmerCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const LoadingShimmer(
+                width: 40,
+                height: 40,
+                borderRadius: BorderRadius.all(Radius.circular(14)),
+              ),
+              LoadingShimmer(
+                width: 60,
+                height: 24,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ],
+          ),
+          const Spacer(),
+          const LoadingShimmer(width: 120, height: 24),
+          const SizedBox(height: 8),
+          const LoadingShimmer(width: double.infinity, height: 16),
+          const SizedBox(height: 4),
+          const LoadingShimmer(width: 100, height: 16),
+          const Spacer(),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const LoadingShimmer(width: 80, height: 16),
+              const Spacer(),
+              const LoadingShimmer(width: 40, height: 16),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _construirGridDocumentos(ThemeData theme, int columns) {
     final filtrados = _documentosFiltrados;
