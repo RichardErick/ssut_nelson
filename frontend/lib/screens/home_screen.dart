@@ -32,6 +32,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _fabController;
   late Animation<double> _fabAnimation;
 
+  // GlobalKey para poder refrescar DocumentosListScreen
+  final GlobalKey<_DocumentosListScreenState> _documentosKey = GlobalKey<_DocumentosListScreenState>();
+
   List<NavigationItem> _navItems = [];
 
   @override
@@ -48,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         label: 'Documentos',
         icon: Icons.description_outlined,
         selectedIcon: Icons.description,
-        screen: const DocumentosListScreen(),
+        screen: DocumentosListScreen(key: _documentosKey),
       ),
       NavigationItem(
         label: 'Movimientos',
@@ -456,8 +459,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               );
               // Refresh documents if we are on the documentos tab
               if (result == true && _selectedIndex == 0) {
-                 // The child screen will refresh itself if we navigate back, 
-                 // but we ensure the signal is caught if needed.
+                 // Recargar la lista de documentos
+                 _documentosKey.currentState?._cargarDocumentos();
               }
             } 
           : () {
