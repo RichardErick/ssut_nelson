@@ -287,6 +287,20 @@ public class DocumentosController : ControllerBase
             FechaActualizacion = DateTime.UtcNow
         };
 
+        // Generar QR automáticamente
+        try 
+        {
+            var baseUrl = _configuration["FrontendUrl"] ?? "http://localhost:5286";
+            documento.IdDocumento = documento.Codigo; 
+            var qrContent = $"{baseUrl}/documentos/ver/{documento.IdDocumento}";
+            documento.UrlQR = qrContent;
+            documento.CodigoQR = _qrService.GenerarQRBase64(qrContent);
+        }
+        catch (Exception qrEx)
+        {
+            _logger.LogWarning(qrEx, "No se pudo generar el QR automáticamente, pero el documento se creará.");
+        }
+
         try
         {
             _context.Documentos.Add(documento);

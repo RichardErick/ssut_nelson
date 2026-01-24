@@ -19,10 +19,10 @@ class DocumentosListScreen extends StatefulWidget {
   const DocumentosListScreen({super.key});
 
   @override
-  State<DocumentosListScreen> createState() => _DocumentosListScreenState();
+  State<DocumentosListScreen> createState() => DocumentosListScreenState();
 }
 
-class _DocumentosListScreenState extends State<DocumentosListScreen>
+class DocumentosListScreenState extends State<DocumentosListScreen>
     with AutomaticKeepAliveClientMixin {
   List<Documento> _documentos = [];
   bool _estaCargando = true;
@@ -37,7 +37,7 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
   @override
   void initState() {
     super.initState();
-    _cargarDocumentos();
+    cargarDocumentos();
     _searchController.addListener(_alCambiarBusqueda);
   }
 
@@ -54,7 +54,7 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
     });
   }
 
-  Future<void> _cargarDocumentos() async {
+  Future<void> cargarDocumentos() async {
     setState(() => _estaCargando = true);
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
@@ -352,7 +352,7 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
   Widget _construirGridDocumentos(ThemeData theme, int columns) {
     final filtrados = _documentosFiltrados;
     return RefreshIndicator(
-      onRefresh: _cargarDocumentos,
+      onRefresh: cargarDocumentos,
       child: GridView.builder(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(

@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<double> _fabAnimation;
 
   // GlobalKey para poder refrescar DocumentosListScreen
-  final GlobalKey<_DocumentosListScreenState> _documentosKey = GlobalKey<_DocumentosListScreenState>();
+  final GlobalKey<DocumentosListScreenState> _documentosKey = GlobalKey<DocumentosListScreenState>();
 
   List<NavigationItem> _navItems = [];
 
@@ -460,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               // Refresh documents if we are on the documentos tab
               if (result == true && _selectedIndex == 0) {
                  // Recargar la lista de documentos
-                 _documentosKey.currentState?._cargarDocumentos();
+                 _documentosKey.currentState?.cargarDocumentos();
               }
             } 
           : () {
