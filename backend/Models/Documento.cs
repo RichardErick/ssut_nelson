@@ -62,8 +62,7 @@ public class Documento
     [ForeignKey("ResponsableId")]
     public virtual Usuario? Responsable { get; set; }
 
-    [Column("codigo_qr")]
-    [StringLength(255)]
+    [Column("codigo_qr", TypeName = "text")]
     public string? CodigoQR { get; set; }
 
     [Column("url_qr")]
