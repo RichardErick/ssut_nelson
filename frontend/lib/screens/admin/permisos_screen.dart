@@ -740,19 +740,35 @@ class _PermisosScreenState extends State<PermisosScreen> {
           )
         ] : [],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: isLockedByRole ? null : () => _onPermisoChanged(entry, !tienePermiso),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
+      child: Opacity(
+        opacity: isLockedByRole ? 0.5 : 1.0,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: isLockedByRole 
+              ? () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Este permiso es heredado del rol y no se puede modificar.'),
+                      backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 2),
+                    )
+                  );
+                } 
+              : () => _onPermisoChanged(entry, !tienePermiso),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                Switch(
-                  value: tienePermiso,
-                  onChanged: isLockedByRole ? null : (val) => _onPermisoChanged(entry, val),
-                  activeColor: AppTheme.colorExito,
+                AbsorbPointer(
+                  absorbing: isLockedByRole,
+                  child: Switch(
+                    value: tienePermiso,
+                    onChanged: isLockedByRole ? null : (val) => _onPermisoChanged(entry, val),
+                    activeColor: AppTheme.colorExito,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -812,7 +828,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildEmptyState(ThemeData theme) {

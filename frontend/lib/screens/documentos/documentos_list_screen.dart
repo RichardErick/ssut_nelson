@@ -12,6 +12,8 @@ import '../../widgets/loading_shimmer.dart';
 import 'documento_detail_screen.dart';
 import 'documento_form_screen.dart';
 import 'carpetas_screen.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/user_role.dart';
 
 class DocumentosListScreen extends StatefulWidget {
   const DocumentosListScreen({super.key});
@@ -93,11 +95,14 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
     return filtrados;
   }
 
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
+    final authProvider = Provider.of<AuthProvider>(context);
+    final canCreate = authProvider.role != UserRole.gerente;
 
     int crossAxisCount = 1;
     if (size.width > 1200) {
@@ -108,18 +113,22 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const DocumentoFormScreen()),
-          );
-          if (result == true) _cargarDocumentos();
-        },
-        label: const Text('Nuevo Documento'),
-        icon: const Icon(Icons.add),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
+      floatingActionButton: Opacity(
+        opacity: canCreate ? 1.0 : 0.5,
+        child: FloatingActionButton.extended(
+          onPressed: canCreate ? () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DocumentoFormScreen()),
+            );
+            if (result == true) _cargarDocumentos();
+          } : null,
+          label: const Text('Nuevo Documento'),
+          icon: const Icon(Icons.add),
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: Colors.white,
+          elevation: canCreate ? 6 : 0,
+        ),
       ),
       body: Column(
         children: [
