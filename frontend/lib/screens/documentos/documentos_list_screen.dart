@@ -8,7 +8,11 @@ import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_shimmer.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/loading_shimmer.dart';
 import 'documento_detail_screen.dart';
+import 'documento_form_screen.dart';
+import 'carpetas_screen.dart';
 
 class DocumentosListScreen extends StatefulWidget {
   const DocumentosListScreen({super.key});
@@ -105,6 +109,19 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const DocumentoFormScreen()),
+          );
+          if (result == true) _cargarDocumentos();
+        },
+        label: const Text('Nuevo Documento'),
+        icon: const Icon(Icons.add),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: Colors.white,
+      ),
       body: Column(
         children: [
           _construirFiltrosSuperior(theme),
@@ -125,25 +142,6 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _construirShimmerCarga(int columns) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(24),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columns,
-        childAspectRatio: 1.5,
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 20,
-      ),
-      itemCount: 6,
-      itemBuilder:
-          (context, index) => LoadingShimmer(
-            width: double.infinity,
-            height: 200,
-            borderRadius: BorderRadius.circular(20),
-          ),
     );
   }
 
@@ -192,6 +190,26 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
                 ),
               ),
               const SizedBox(width: 12),
+              // Botón Carpetas
+               Container(
+                height: 54,
+                width: 54,
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.folder_shared_rounded, color: Colors.amber.shade800),
+                  tooltip: 'Gestionar Carpetas',
+                  onPressed: () {
+                     Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const CarpetasScreen()),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
               _buildFilterButton(theme),
             ],
           ),

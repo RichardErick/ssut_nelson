@@ -48,10 +48,19 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult> GetAll()
+    public async Task<ActionResult> GetAll([FromQuery] bool incluirInactivos = false)
     {
-        var usuarios = await _context.Usuarios
+        var query = _context.Usuarios
             .Include(u => u.Area)
+            .AsQueryable();
+
+        // Por defecto, solo mostrar usuarios activos
+        if (!incluirInactivos)
+        {
+            query = query.Where(u => u.Activo);
+        }
+
+        var usuarios = await query
             .Select(u => new
             {
                 u.Id,

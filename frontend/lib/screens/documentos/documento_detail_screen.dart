@@ -222,6 +222,16 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                   doc.responsableNombre ?? 'No asignado',
                   Icons.person_rounded,
                 ),
+                _buildMiniInfo(
+                  'Carpeta',
+                  doc.carpetaNombre ?? 'Sin carpeta',
+                  Icons.folder_shared_rounded,
+                ),
+                _buildMiniInfo(
+                  'Ubicación Fís.',
+                  doc.ubicacionFisica ?? 'No registrada',
+                  Icons.shelves,
+                ),
               ],
             ),
           ],

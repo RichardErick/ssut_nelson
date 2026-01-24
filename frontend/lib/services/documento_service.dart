@@ -5,19 +5,34 @@ import '../models/documento.dart';
 import 'api_service.dart';
 
 class DocumentoService {
-  Future<List<Documento>> getAll() async {
+  Future<PaginatedResponse<Documento>> getAll({
+    bool incluirInactivos = false,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
     try {
       final apiService = Provider.of<ApiService>(
         navigatorKey.currentContext!,
         listen: false,
       );
-      final response = await apiService.get('/documentos');
-      return (response.data as List)
-          .map((json) => Documento.fromJson(json))
-          .toList();
+      final response = await apiService.get(
+        '/documentos', 
+        queryParameters: {
+          'incluirInactivos': incluirInactivos,
+          'page': page,
+          'pageSize': pageSize,
+        }
+      );
+      return PaginatedResponse.fromJson(response.data, Documento.fromJson);
     } catch (e) {
       print('API Error: $e. Returning mock data.');
-      return _getMockDocumentos();
+      return PaginatedResponse(
+        items: _getMockDocumentos(),
+        totalItems: 4,
+        page: 1,
+        pageSize: 20,
+        totalPages: 1
+      );
     }
   }
 
@@ -25,6 +40,7 @@ class DocumentoService {
     return [
       Documento(
         id: 1,
+        idDocumento: 'INF-CONT-2024-001',
         codigo: 'INF-2024-001',
         numeroCorrelativo: '001',
         tipoDocumentoId: 1,
@@ -36,10 +52,13 @@ class DocumentoService {
         descripcion: 'Informe de gestión financiera Q1',
         estado: 'activo',
         fechaRegistro: DateTime.now().subtract(const Duration(days: 2)),
+        fechaActualizacion: DateTime.now(),
         responsableNombre: 'Juan Perez',
+        carpetaNombre: 'Informes 2024',
       ),
       Documento(
         id: 2,
+        idDocumento: 'MEM-RH-2024-045',
         codigo: 'MEM-2024-045',
         numeroCorrelativo: '045',
         tipoDocumentoId: 2,
@@ -51,10 +70,12 @@ class DocumentoService {
         descripcion: 'Asignación de nuevo personal',
         estado: 'archivado',
         fechaRegistro: DateTime.now().subtract(const Duration(days: 5)),
+        fechaActualizacion: DateTime.now(),
         responsableNombre: 'Maria Diaz',
       ),
       Documento(
         id: 3,
+        idDocumento: 'FAC-VEN-2024-789',
         codigo: 'FAC-2024-789',
         numeroCorrelativo: '789',
         tipoDocumentoId: 3,
@@ -66,10 +87,12 @@ class DocumentoService {
         descripcion: 'Factura de servicios cloud',
         estado: 'prestado',
         fechaRegistro: DateTime.now().subtract(const Duration(days: 1)),
+        fechaActualizacion: DateTime.now(),
         responsableNombre: 'Carlos Ruiz',
       ),
        Documento(
         id: 4,
+        idDocumento: 'CON-LEG-2024-102',
         codigo: 'CON-2024-102',
         numeroCorrelativo: '102',
         tipoDocumentoId: 4,
@@ -81,6 +104,7 @@ class DocumentoService {
         descripcion: 'Contrato de servicios de mantenimiento',
         estado: 'activo',
         fechaRegistro: DateTime.now().subtract(const Duration(days: 10)),
+        fechaActualizacion: DateTime.now(),
         responsableNombre: 'Ana Lopez',
       ),
     ];
@@ -94,26 +118,17 @@ class DocumentoService {
     final response = await apiService.get('/documentos/$id');
     return Documento.fromJson(response.data);
   }
-
-  Future<Documento?> getByCodigo(String codigo) async {
+  
+  Future<Documento?> getByIdDocumento(String idDocumento) async {
     final apiService = Provider.of<ApiService>(
       navigatorKey.currentContext!,
       listen: false,
     );
-    final response = await apiService.get('/documentos/codigo/$codigo');
+    final response = await apiService.get('/documentos/ficha/$idDocumento');
     return Documento.fromJson(response.data);
   }
 
-  Future<Documento?> getByQRCode(String codigoQR) async {
-    final apiService = Provider.of<ApiService>(
-      navigatorKey.currentContext!,
-      listen: false,
-    );
-    final response = await apiService.get('/documentos/qr/$codigoQR');
-    return Documento.fromJson(response.data);
-  }
-
-  Future<List<Documento>> buscar(BusquedaDocumentoDTO busqueda) async {
+  Future<PaginatedResponse<Documento>> buscar(BusquedaDocumentoDTO busqueda) async {
     final apiService = Provider.of<ApiService>(
       navigatorKey.currentContext!,
       listen: false,
@@ -122,9 +137,7 @@ class DocumentoService {
       '/documentos/buscar',
       data: busqueda.toJson(),
     );
-    return (response.data as List)
-        .map((json) => Documento.fromJson(json))
-        .toList();
+    return PaginatedResponse.fromJson(response.data, Documento.fromJson);
   }
 
   Future<Documento> create(CreateDocumentoDTO dto) async {
@@ -136,20 +149,42 @@ class DocumentoService {
     return Documento.fromJson(response.data);
   }
 
-  Future<Documento> update(int id, Map<String, dynamic> data) async {
+  Future<Documento> update(int id, UpdateDocumentoDTO dto) async {
     final apiService = Provider.of<ApiService>(
       navigatorKey.currentContext!,
       listen: false,
     );
-    final response = await apiService.put('/documentos/$id', data: data);
-    return Documento.fromJson(response.data);
+    final response = await apiService.put('/documentos/$id', data: dto.toJson());
+    // El backend devuelve solo confirmación parcial, mejor hacer getById o asumir éxito
+    return await getById(id) as Documento; 
   }
 
-  Future<void> delete(int id) async {
+  Future<void> delete(int id, {bool hard = false}) async {
     final apiService = Provider.of<ApiService>(
       navigatorKey.currentContext!,
       listen: false,
     );
-    await apiService.delete('/documentos/$id');
+    await apiService.delete('/documentos/$id?hard=$hard');
+  }
+  
+  Future<Map<String, dynamic>> generarQR(int id) async {
+    final apiService = Provider.of<ApiService>(
+      navigatorKey.currentContext!,
+      listen: false,
+    );
+    final response = await apiService.post('/documentos/$id/qr');
+    return response.data;
+  }
+  
+  Future<void> moverLote(List<int> documentoIds, int carpetaDestinoId, {String? observaciones}) async {
+    final apiService = Provider.of<ApiService>(
+      navigatorKey.currentContext!,
+      listen: false,
+    );
+    await apiService.post('/documentos/mover-lote', data: {
+      'documentoIds': documentoIds,
+      'carpetaDestinoId': carpetaDestinoId,
+      'observaciones': observaciones
+    });
   }
 }

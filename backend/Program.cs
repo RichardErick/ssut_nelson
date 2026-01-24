@@ -99,6 +99,7 @@ if (!string.IsNullOrWhiteSpace(jwtIssuer) &&
 builder.Services.AddScoped<IDocumentoService, DocumentoService>();
 builder.Services.AddScoped<IMovimientoService, MovimientoService>();
 builder.Services.AddScoped<IQRCodeService, QRCodeService>();
+builder.Services.AddScoped<IQRService, QRService>();
 builder.Services.AddScoped<IReporteService, ReporteService>();
 
 var app = builder.Build();
