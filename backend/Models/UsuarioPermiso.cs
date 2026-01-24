@@ -27,6 +27,9 @@ public class UsuarioPermiso
     [Column("activo")]
     public bool Activo { get; set; } = true;
 
+    [Column("denegado")]
+    public bool Denegado { get; set; } = false;
+
     [Column("fecha_asignacion")]
     public DateTime FechaAsignacion { get; set; } = DateTime.UtcNow;
 }

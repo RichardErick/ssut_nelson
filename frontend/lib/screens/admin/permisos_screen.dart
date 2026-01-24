@@ -20,11 +20,13 @@ class _PermisoUsuarioEntry {
   final Permiso permiso;
   final bool roleHas;
   final bool userHas;
+  final bool isDenied;
 
   const _PermisoUsuarioEntry({
     required this.permiso,
     required this.roleHas,
     required this.userHas,
+    this.isDenied = false,
   });
 }
 
@@ -134,10 +136,12 @@ class _PermisosScreenState extends State<PermisosScreen> {
             final permiso = Permiso.fromJson(p as Map<String, dynamic>);
             final roleHas = p['roleHas'] as bool? ?? false;
             final userHas = p['userHas'] as bool? ?? false;
+            final isDenied = p['isDenied'] as bool? ?? false;
             return _PermisoUsuarioEntry(
               permiso: permiso,
               roleHas: roleHas,
               userHas: userHas,
+              isDenied: isDenied,
             );
           })
           .toList();
@@ -186,7 +190,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
   }
 
   void _onPermisoChanged(_PermisoUsuarioEntry entry, bool value) {
-    if (entry.roleHas) return;
+    // Allows changing any permission now
     setState(() {
       final permisoId = entry.permiso.id;
       final originalState = _userPermOriginal[permisoId] ?? false;
@@ -720,17 +724,21 @@ class _PermisosScreenState extends State<PermisosScreen> {
     final tienePermiso = _tienePermiso(entry);
     final isModified = _isModified(entry);
     final isLockedByRole = entry.roleHas;
+    
+    // Logic: If user explicitely DENIED a role permission
+    final isExplicitlyDenied = isLockedByRole && !tienePermiso;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: isExplicitlyDenied ? Colors.red.withOpacity(0.05) : theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isModified 
             ? Colors.orange 
-            : (tienePermiso ? theme.colorScheme.primary.withOpacity(0.5) : theme.colorScheme.outline.withOpacity(0.1)),
-          width: isModified || tienePermiso ? 1.5 : 1,
+            : (tienePermiso ? theme.colorScheme.primary.withOpacity(0.5) : 
+               isExplicitlyDenied ? Colors.red.withOpacity(0.3) : theme.colorScheme.outline.withOpacity(0.1)),
+          width: isModified || tienePermiso || isExplicitlyDenied ? 1.5 : 1,
         ),
         boxShadow: tienePermiso ? [
           BoxShadow(
@@ -740,35 +748,21 @@ class _PermisosScreenState extends State<PermisosScreen> {
           )
         ] : [],
       ),
-      child: Opacity(
-        opacity: isLockedByRole ? 0.5 : 1.0,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: isLockedByRole 
-              ? () {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Este permiso es heredado del rol y no se puede modificar.'),
-                      backgroundColor: Colors.orange,
-                      duration: Duration(seconds: 2),
-                    )
-                  );
-                } 
-              : () => _onPermisoChanged(entry, !tienePermiso),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _onPermisoChanged(entry, !tienePermiso), // Allow tap always
+          child: Padding(
+            padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                AbsorbPointer(
-                  absorbing: isLockedByRole,
-                  child: Switch(
-                    value: tienePermiso,
-                    onChanged: isLockedByRole ? null : (val) => _onPermisoChanged(entry, val),
-                    activeColor: AppTheme.colorExito,
-                  ),
+                Switch(
+                  value: tienePermiso,
+                  onChanged: (val) => _onPermisoChanged(entry, val), // Allow toggle always
+                  activeColor: AppTheme.colorExito,
+                  inactiveTrackColor: isExplicitlyDenied ? Colors.red.withOpacity(0.2) : null,
+                  inactiveThumbColor: isExplicitlyDenied ? Colors.red : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -781,6 +775,8 @@ class _PermisosScreenState extends State<PermisosScreen> {
                          style: GoogleFonts.inter(
                            fontWeight: FontWeight.w600,
                            fontSize: 13,
+                           decoration: isExplicitlyDenied ? TextDecoration.lineThrough : null,
+                           color: isExplicitlyDenied ? Colors.red : null,
                          ),
                          maxLines: 2,
                          overflow: TextOverflow.ellipsis,
@@ -801,13 +797,25 @@ class _PermisosScreenState extends State<PermisosScreen> {
                          const SizedBox(height: 4),
                          Row(
                            children: [
-                             Icon(Icons.lock_outline, size: 12, color: theme.colorScheme.onSurfaceVariant),
+                             Icon(
+                               isExplicitlyDenied ? Icons.block : Icons.lock_outline, 
+                               size: 12, 
+                               color: isExplicitlyDenied ? Colors.red : theme.colorScheme.onSurfaceVariant
+                             ),
                              const SizedBox(width: 4),
-                             Text(
-                               'Rol: ${_getRolDisplayName(_usuarioSeleccionado!.rol)}',
-                               style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurfaceVariant),
-                               maxLines: 1,
-                               overflow: TextOverflow.ellipsis,
+                             Expanded(
+                               child: Text(
+                                 isExplicitlyDenied 
+                                   ? 'DENEGADO (Sobreescribe Rol)' 
+                                   : 'Heredado del Rol: ${_getRolDisplayName(_usuarioSeleccionado!.rol)}',
+                                 style: TextStyle(
+                                   fontSize: 10, 
+                                   color: isExplicitlyDenied ? Colors.red : theme.colorScheme.onSurfaceVariant,
+                                   fontWeight: isExplicitlyDenied ? FontWeight.bold : FontWeight.normal
+                                 ),
+                                 maxLines: 1,
+                                 overflow: TextOverflow.ellipsis,
+                               ),
                              ),
                            ],
                          ),
@@ -828,7 +836,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
           ),
         ),
       ),
-    ));
+    );
   }
 
   Widget _buildEmptyState(ThemeData theme) {
