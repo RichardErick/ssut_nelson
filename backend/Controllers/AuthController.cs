@@ -78,11 +78,9 @@ public class AuthController : ControllerBase
         try
         {
             // Notify Admins
+            // We search for users with roles that can manage users
             var admins = await _context.Usuarios
-                .Where(u =>
-                    u.Rol == UsuarioRol.Administrador ||
-                    u.Rol == UsuarioRol.AdministradorDocumentos ||
-                    u.Rol.ToString() == "AdministradorSistema")
+                .Where(u => u.Rol == UsuarioRol.Administrador || u.Rol == UsuarioRol.AdministradorDocumentos)
                 .ToListAsync();
 
             foreach (var admin in admins)
@@ -91,26 +89,26 @@ public class AuthController : ControllerBase
                 {
                     UsuarioId = admin.Id,
                     Titulo = "Nuevo Registro de Usuario",
-                    Mensaje = $"Usuario {newUser.NombreCompleto} registrado. Requiere aprobaciA3n.",
+                    Mensaje = $"El usuario {newUser.NombreCompleto} ({newUser.NombreUsuario}) se ha registrado y requiere aprobación para ingresar.",
                     TipoAlerta = "warning",
                     FechaCreacion = DateTime.UtcNow,
                     Leida = false
                 });
             }
 
-            if (admins.Count > 0)
+            if (admins.Any())
             {
                 await _context.SaveChangesAsync();
             }
         }
-        catch
+        catch (Exception)
         {
             alertsError = true;
         }
 
         var responseMessage = alertsError
             ? "Registro exitoso. No se pudo notificar a los administradores."
-            : "Registro exitoso. Pendiente de aprobaciA3n.";
+            : "Registro exitoso. Pendiente de aprobación por parte de un administrador.";
 
         return Ok(new { message = responseMessage });
     }

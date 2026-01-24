@@ -106,6 +106,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  int _unreadNotifications = 0;
+  bool _isDisposed = false;
+
   @override
   void initState() {
     super.initState();
@@ -118,12 +121,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       curve: Curves.elasticOut,
     );
     _fabController.forward();
+    _fetchUnreadCount();
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _fabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchUnreadCount() async {
+    if (_isDisposed) return;
+    try {
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      final response = await apiService.get('/alertas/unread-count');
+      if (mounted) {
+        setState(() {
+          _unreadNotifications = response.data['count'] ?? 0;
+        });
+      }
+    } catch (_) {}
+    
+    // Poll every 30 seconds
+    Future.delayed(const Duration(seconds: 30), _fetchUnreadCount);
   }
 
   void _onItemSelected(int index) {
@@ -207,11 +228,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             actions: [
               _buildActionIcon(Icons.search, 'Búsqueda Global', theme),
               const SizedBox(width: 12),
-              _buildActionIcon(
-                Icons.notifications_none_rounded,
-                'Notificaciones',
-                theme,
-              ),
+              _buildNotificationBadge(theme),
               const SizedBox(width: 12),
               _buildThemeToggle(theme),
               const SizedBox(width: 12),
@@ -221,6 +238,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildNotificationBadge(ThemeData theme) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _buildActionIcon(
+          _unreadNotifications > 0 ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
+          'Notificaciones',
+          theme,
+        ),
+        if (_unreadNotifications > 0)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+                border: Border.all(color: theme.colorScheme.surface, width: 2),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 18,
+                minHeight: 18,
+              ),
+              child: Text(
+                '$_unreadNotifications',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -383,11 +439,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildFAB(ThemeData theme) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final canCreate = authProvider.role != UserRole.gerente;
+
     return ScaleTransition(
       scale: _fabAnimation,
       child: FloatingActionButton.extended(
-        onPressed: () {},
-        backgroundColor: AppTheme.colorPrimario,
+        onPressed: canCreate 
+          ? () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DocumentoFormScreen()),
+              );
+              // Refresh documents if we are on the documentos tab
+              if (result == true && _selectedIndex == 0) {
+                 // The child screen will refresh itself if we navigate back, 
+                 // but we ensure the signal is caught if needed.
+              }
+            } 
+          : () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('No tienes el rol suficiente para crear documentos.'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+        backgroundColor: canCreate ? AppTheme.colorPrimario : Colors.grey.withOpacity(0.5),
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: Text(
           'NUEVO DOCUMENTO',
