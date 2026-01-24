@@ -22,39 +22,38 @@ public class AuditoriaController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Accion) || string.IsNullOrWhiteSpace(dto.Modulo))
             return BadRequest(new { message = "accion y modulo son obligatorios" });
 
-        int? usuarioId = null;
-        if (!string.IsNullOrWhiteSpace(dto.Usuario))
-        {
-            var usuario = await _context.Usuarios
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.NombreUsuario == dto.Usuario);
-            usuarioId = usuario?.Id;
-        }
-
-        var auditoria = new Auditoria
-        {
-            UsuarioId = usuarioId,
-            Accion = $"{dto.Modulo}:{dto.Accion}",
-            TablaAfectada = dto.TablaAfectada,
-            RegistroId = dto.RegistroId,
-            Detalle = dto.Detalles,
-            IpAddress = dto.Ip,
-            FechaAccion = NormalizeToUtc(dto.Fecha) ?? DateTime.UtcNow,
-        };
-
         try
         {
+            int? usuarioId = null;
+            if (!string.IsNullOrWhiteSpace(dto.Usuario))
+            {
+                // Busca el usuario de forma segura dentro del try
+                var usuario = await _context.Usuarios
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.NombreUsuario == dto.Usuario);
+                usuarioId = usuario?.Id;
+            }
+
+            var auditoria = new Auditoria
+            {
+                UsuarioId = usuarioId,
+                Accion = $"{dto.Modulo}:{dto.Accion}",
+                TablaAfectada = dto.TablaAfectada,
+                RegistroId = dto.RegistroId,
+                Detalle = dto.Detalles,
+                IpAddress = dto.Ip,
+                FechaAccion = NormalizeToUtc(dto.Fecha) ?? DateTime.UtcNow,
+            };
+
             _context.Auditoria.Add(auditoria);
             await _context.SaveChangesAsync();
             return Ok(new { auditoria.Id });
         }
-        catch (DbUpdateException ex)
-        {
-            return Ok(new { message = "Auditoría no persistida", error = ex.Message });
-        }
         catch (Exception ex)
         {
-            return Ok(new { message = "Auditoría no persistida", error = ex.Message });
+            // Devuelve el error real en lugar de un 500 genérico para facilitar el debug
+            // Usamos 200 OK con mensaje de error para evitar excepciones en el cliente si es solo un log
+            return Ok(new { message = "Auditoría no persistida", error = ex.Message, details = ex.InnerException?.Message });
         }
     }
 
