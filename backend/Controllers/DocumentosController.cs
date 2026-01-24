@@ -215,8 +215,9 @@ public class DocumentosController : ControllerBase
         var gestion = dto.Gestion?.Trim();
 
         // Validaciones
-        if (string.IsNullOrWhiteSpace(numeroCorrelativo) || !Regex.IsMatch(numeroCorrelativo, @"^[0-9]{1,6}$"))
-            return BadRequest(new { message = "El número correlativo debe tener entre 1 y 6 dígitos numéricos" });
+        // Permitimos más flexibilidad: números, letras, guiones. Longitud hasta 20.
+        if (string.IsNullOrWhiteSpace(numeroCorrelativo) || numeroCorrelativo.Length > 20)
+            return BadRequest(new { message = "El número correlativo es inválido (máx 20 caracteres)" });
 
         if (string.IsNullOrWhiteSpace(gestion) || !Regex.IsMatch(gestion, @"^[0-9]{4}$"))
             return BadRequest(new { message = "La gestión debe tener 4 dígitos numéricos" });
