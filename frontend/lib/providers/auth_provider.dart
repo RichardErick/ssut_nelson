@@ -157,6 +157,13 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _failedAttempts++;
 
+      // Handle server-side lockout (HTTP 423)
+      if (e is DioException && e.response?.statusCode == 423) {
+        // Try to parse duration if we wanted to be more precise, 
+        // but for now setting a local block based on the error.
+        _lockoutEndTime = DateTime.now().add(const Duration(minutes: 30));
+      }
+
       _auditService?.logEvent(
         action: 'LOGIN_FAILED',
         module: 'AUTH',

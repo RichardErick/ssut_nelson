@@ -12,10 +12,12 @@ import 'admin/permisos_screen.dart';
 import 'admin/roles_permissions_screen.dart';
 import 'admin/users_sync_screen.dart';
 import 'documentos/documentos_list_screen.dart';
+import 'documentos/documento_form_screen.dart';
 import 'movimientos/movimientos_screen.dart';
 import 'notifications_screen.dart';
 import 'qr/qr_scanner_screen.dart';
 import 'reportes/reportes_screen.dart';
+import '../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -449,7 +451,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ? () async {
               final result = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const DocumentoFormScreen()),
+                MaterialPageRoute(builder: (context) => DocumentoFormScreen()),
               );
               // Refresh documents if we are on the documentos tab
               if (result == true && _selectedIndex == 0) {

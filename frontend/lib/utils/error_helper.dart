@@ -105,6 +105,9 @@ class ErrorHelper {
         if (statusCode == 404) {
           return 'Recurso no encontrado.';
         }
+        if (statusCode == 423) {
+          return message ?? 'Cuenta bloqueada temporalmente por exceso de intentos.';
+        }
         if (statusCode == 500) {
           return 'Error del servidor. Por favor, intente más tarde.';
         }
