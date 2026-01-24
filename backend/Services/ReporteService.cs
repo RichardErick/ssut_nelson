@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaGestionDocumental.Data;
 using SistemaGestionDocumental.DTOs;
 using SistemaGestionDocumental.Services;
+using SistemaGestionDocumental.Models;
 
 namespace SistemaGestionDocumental.Services;
 
