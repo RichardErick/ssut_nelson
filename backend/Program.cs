@@ -205,33 +205,86 @@ using (var scope = app.Services.CreateScope())
             // Esto evita errores de "datatype mismatch" en PostgreSQL
             try {
                 const string fixSql = @"
-DO $$ 
+DO $mig$ 
 BEGIN 
-    IF EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'documentos' AND column_name = 'estado' 
-        AND data_type = 'USER-DEFINED'
-    ) THEN 
+    -- Elimina vistas que referencian enums para permitir ALTER
+    IF EXISTS (SELECT 1 FROM information_schema.views WHERE table_name = 'vista_documentos_activos') THEN
+        EXECUTE 'DROP VIEW IF EXISTS vista_documentos_activos';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.views WHERE table_name = 'vista_movimientos_activos') THEN
+        EXECUTE 'DROP VIEW IF EXISTS vista_movimientos_activos';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.views WHERE table_name = 'vista_documentos_completa') THEN
+        EXECUTE 'DROP VIEW IF EXISTS vista_documentos_completa';
+    END IF;
+
+    -- Convierte columnas enum a texto (ignora si ya est
+n en texto)
+    BEGIN
         ALTER TABLE documentos ALTER COLUMN estado TYPE VARCHAR(50) USING estado::text;
-        RAISE NOTICE 'Columna estado convertida a VARCHAR';
-    END IF;
+    EXCEPTION WHEN undefined_column THEN
+        NULL;
+    WHEN others THEN
+        RAISE;
+    END;
 
-    IF EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'movimientos' AND column_name = 'tipo_movimiento' 
-        AND data_type = 'USER-DEFINED'
-    ) THEN 
+    BEGIN
         ALTER TABLE movimientos ALTER COLUMN tipo_movimiento TYPE VARCHAR(50) USING tipo_movimiento::text;
-    END IF;
+    EXCEPTION WHEN undefined_column THEN
+        NULL;
+    WHEN others THEN
+        RAISE;
+    END;
 
-    IF EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'movimientos' AND column_name = 'estado' 
-        AND data_type = 'USER-DEFINED'
-    ) THEN 
+    BEGIN
         ALTER TABLE movimientos ALTER COLUMN estado TYPE VARCHAR(50) USING estado::text;
+    EXCEPTION WHEN undefined_column THEN
+        NULL;
+    WHEN others THEN
+        RAISE;
+    END;
+
+    BEGIN
+        ALTER TABLE historial_documento ALTER COLUMN estado_anterior TYPE VARCHAR(50) USING estado_anterior::text;
+    EXCEPTION WHEN undefined_column THEN
+        NULL;
+    WHEN others THEN
+        RAISE;
+    END;
+
+    BEGIN
+        ALTER TABLE historial_documento ALTER COLUMN estado_nuevo TYPE VARCHAR(50) USING estado_nuevo::text;
+    EXCEPTION WHEN undefined_column THEN
+        NULL;
+    WHEN others THEN
+        RAISE;
+    END;
+
+    BEGIN
+        ALTER TABLE usuarios ALTER COLUMN rol TYPE VARCHAR(30) USING rol::text;
+    EXCEPTION WHEN undefined_column THEN
+        NULL;
+    WHEN others THEN
+        RAISE;
+    END;
+END $mig$;
+
+-- Opcional: eliminar types si ya no se usan
+DO $cleanup$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tipo_movimiento_enum') THEN
+        DROP TYPE IF EXISTS tipo_movimiento_enum;
     END IF;
-END $$;";
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'estado_movimiento_enum') THEN
+        DROP TYPE IF EXISTS estado_movimiento_enum;
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'estado_documento_enum') THEN
+        DROP TYPE IF EXISTS estado_documento_enum;
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'rol_enum') THEN
+        DROP TYPE IF EXISTS rol_enum;
+    END IF;
+END $cleanup$;";
                 db.Database.ExecuteSqlRaw(fixSql);
             } catch (Exception ex) {
                 logger.LogWarning("No se pudo ejecutar el script de corrección de tipos: {Message}", ex.Message);
