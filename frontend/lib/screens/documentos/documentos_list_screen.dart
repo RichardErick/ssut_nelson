@@ -372,9 +372,9 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
       onRefresh: _cargarDocumentos,
       child: GridView.builder(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: columns,
-          childAspectRatio: columns == 1 ? 2.5 : 1.4,
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 400,
+          childAspectRatio: 1.4,
           crossAxisSpacing: 20,
           mainAxisSpacing: 20,
         ),
