@@ -113,34 +113,6 @@ class _DocumentosListScreenState extends State<DocumentosListScreen>
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: Opacity(
-        opacity: canCreate ? 1.0 : 0.5,
-        child: FloatingActionButton.extended(
-          onPressed: canCreate 
-            ? () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const DocumentoFormScreen()),
-                );
-                if (result == true) _cargarDocumentos();
-              } 
-            : () {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('No tienes el rol suficiente para crear documentos.'),
-                    backgroundColor: Colors.orange,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-          label: const Text('Nuevo Documento'),
-          icon: const Icon(Icons.add),
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: Colors.white,
-          elevation: canCreate ? 6 : 0,
-        ),
-      ),
       body: Column(
         children: [
           _construirFiltrosSuperior(theme),

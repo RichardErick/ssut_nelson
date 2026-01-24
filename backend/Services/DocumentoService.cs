@@ -83,10 +83,10 @@ public class DocumentoService : IDocumentoService
             query = query.Where(d => d.Gestion == busqueda.Gestion);
 
         if (busqueda.FechaDesde.HasValue)
-            query = query.Where(d => d.FechaDocumento >= busqueda.FechaDesde.Value);
+            query = query.Where(d => d.FechaDocumento >= DateTime.SpecifyKind(busqueda.FechaDesde.Value, DateTimeKind.Utc));
 
         if (busqueda.FechaHasta.HasValue)
-            query = query.Where(d => d.FechaDocumento <= busqueda.FechaHasta.Value);
+            query = query.Where(d => d.FechaDocumento <= DateTime.SpecifyKind(busqueda.FechaHasta.Value, DateTimeKind.Utc));
 
         if (!string.IsNullOrEmpty(busqueda.Estado))
             query = query.Where(d => d.Estado == busqueda.Estado);
@@ -112,7 +112,7 @@ public class DocumentoService : IDocumentoService
             TipoDocumentoId = dto.TipoDocumentoId,
             AreaOrigenId = dto.AreaOrigenId,
             Gestion = dto.Gestion,
-            FechaDocumento = dto.FechaDocumento,
+            FechaDocumento = DateTime.SpecifyKind(dto.FechaDocumento, DateTimeKind.Utc),
             Descripcion = dto.Descripcion,
             ResponsableId = dto.ResponsableId,
             UbicacionFisica = dto.UbicacionFisica,

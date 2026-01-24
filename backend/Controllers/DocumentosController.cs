@@ -258,7 +258,7 @@ public class DocumentosController : ControllerBase
             AreaOrigenId = dto.AreaOrigenId,
             AreaActualId = dto.AreaOrigenId, // Inicialmente es la misma
             Gestion = dto.Gestion,
-            FechaDocumento = dto.FechaDocumento,
+            FechaDocumento = DateTime.SpecifyKind(dto.FechaDocumento, DateTimeKind.Utc),
             Descripcion = dto.Descripcion,
             ResponsableId = dto.ResponsableId,
             UbicacionFisica = dto.UbicacionFisica,
@@ -344,7 +344,7 @@ public class DocumentosController : ControllerBase
             documento.Gestion = dto.Gestion;
 
         if (dto.FechaDocumento.HasValue)
-            documento.FechaDocumento = dto.FechaDocumento.Value;
+            documento.FechaDocumento = DateTime.SpecifyKind(dto.FechaDocumento.Value, DateTimeKind.Utc);
 
         if (dto.Descripcion != null)
             documento.Descripcion = dto.Descripcion;
@@ -504,12 +504,14 @@ public class DocumentosController : ControllerBase
 
         if (filtros.FechaDesde.HasValue)
         {
-            query = query.Where(d => d.FechaDocumento >= filtros.FechaDesde.Value);
+            var fechaDesdeUtc = DateTime.SpecifyKind(filtros.FechaDesde.Value, DateTimeKind.Utc);
+            query = query.Where(d => d.FechaDocumento >= fechaDesdeUtc);
         }
 
         if (filtros.FechaHasta.HasValue)
         {
-            query = query.Where(d => d.FechaDocumento <= filtros.FechaHasta.Value);
+            var fechaHastaUtc = DateTime.SpecifyKind(filtros.FechaHasta.Value, DateTimeKind.Utc);
+            query = query.Where(d => d.FechaDocumento <= fechaHastaUtc);
         }
 
         if (!string.IsNullOrWhiteSpace(filtros.Estado))

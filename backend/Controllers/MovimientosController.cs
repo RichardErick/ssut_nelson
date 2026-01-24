@@ -44,7 +44,9 @@ public class MovimientosController : ControllerBase
         [FromQuery] DateTime fechaDesde,
         [FromQuery] DateTime fechaHasta)
     {
-        var movimientos = await _movimientoService.GetMovimientosPorFechaAsync(fechaDesde, fechaHasta);
+        var desdeUtc = DateTime.SpecifyKind(fechaDesde, DateTimeKind.Utc);
+        var hastaUtc = DateTime.SpecifyKind(fechaHasta, DateTimeKind.Utc);
+        var movimientos = await _movimientoService.GetMovimientosPorFechaAsync(desdeUtc, hastaUtc);
         return Ok(movimientos);
     }
 

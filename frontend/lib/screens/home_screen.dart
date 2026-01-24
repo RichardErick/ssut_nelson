@@ -447,6 +447,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return ScaleTransition(
       scale: _fabAnimation,
       child: FloatingActionButton.extended(
+        heroTag: 'home_fab',
         onPressed: canCreate 
           ? () async {
               final result = await Navigator.push(
