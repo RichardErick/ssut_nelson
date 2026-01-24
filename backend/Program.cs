@@ -61,8 +61,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? "Host=localhost;Database=ssut_gestion_documental;Username=postgres;Password=postgres";
 
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
-// Mapeamos el enum explícitamente para que Npgsql sepa cómo manejarlo
-dataSourceBuilder.MapEnum<EstadoDocumento>("estado_documento_enum");
+        // MapEnum eliminado ya que guardamos el estado como string
+        // dataSourceBuilder.MapEnum<EstadoDocumento>("estado_documento_enum");
 var dataSource = dataSourceBuilder.Build();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

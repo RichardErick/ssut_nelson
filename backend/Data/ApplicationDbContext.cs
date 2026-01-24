@@ -44,8 +44,13 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(d => d.ResponsableId);
             
             // Fix: Mapear explícitamente el tipo de columna para el enum de PostgreSQL
+            // Convertir el enum a string para evitar problemas de orden entre PostgreSQL y C#
             entity.Property(d => d.Estado)
-                .HasColumnType("estado_documento_enum");
+                .HasConversion(
+                    v => v.ToString(),
+                    v => (EstadoDocumento)Enum.Parse(typeof(EstadoDocumento), v, true)
+                )
+                .HasColumnType("varchar(50)");
 
             // Relaciones
             entity.HasOne(d => d.TipoDocumento)
