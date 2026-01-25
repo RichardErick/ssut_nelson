@@ -325,6 +325,28 @@ public class DocumentosController : ControllerBase
                 return CreatedAtAction(nameof(GetById), new { id = documento.Id }, documento);
             }
 
+            // Asegurar QR si el trigger asignó IdDocumento distinto
+            try
+            {
+                var idDoc = string.IsNullOrWhiteSpace(documentoCompleto.IdDocumento)
+                    ? documentoCompleto.Codigo
+                    : documentoCompleto.IdDocumento;
+
+                if (string.IsNullOrWhiteSpace(documentoCompleto.CodigoQR) || string.IsNullOrWhiteSpace(documentoCompleto.UrlQR))
+                {
+                    var baseUrl = _configuration["FrontendUrl"] ?? "http://localhost:5286";
+                    var qrContent = $"{baseUrl}/documentos/ver/{idDoc}";
+                    documentoCompleto.UrlQR = qrContent;
+                    documentoCompleto.CodigoQR = _qrService.GenerarQRBase64(qrContent);
+                    documentoCompleto.FechaActualizacion = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception qrEx)
+            {
+                _logger.LogWarning(qrEx, "No se pudo generar el QR después de guardar el documento.");
+            }
+
             var resultDto = new DocumentoDTO
             {
                 Id = documentoCompleto.Id,
