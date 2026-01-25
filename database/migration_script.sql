@@ -73,8 +73,8 @@ ALTER TABLE documentos ADD COLUMN IF NOT EXISTS fecha_actualizacion TIMESTAMP WI
 ALTER TABLE documentos ADD COLUMN IF NOT EXISTS estado estado_documento_enum DEFAULT 'Activo';
 
 -- Migrar estado existente
-UPDATE documentos SET estado = 'Activo' WHERE estado = 'Activo';
-UPDATE documentos SET estado = 'Inactivo' WHERE estado != 'Activo';
+UPDATE documentos SET estado = 'Activo' WHERE estado::text = 'Activo';
+UPDATE documentos SET estado = 'Inactivo' WHERE estado::text != 'Activo';
 
 -- Establecer area_actual_id igual a area_origen_id si es NULL
 UPDATE documentos SET area_actual_id = area_origen_id WHERE area_actual_id IS NULL;
@@ -95,13 +95,13 @@ ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS tipo_movimiento tipo_movimiento
 ALTER TABLE movimientos ADD COLUMN IF NOT EXISTS estado estado_movimiento_enum DEFAULT 'Activo';
 
 -- Migrar tipo_movimiento existente
-UPDATE movimientos SET tipo_movimiento = 'Prestamo' WHERE tipo_movimiento = 'Prestamo';
-UPDATE movimientos SET tipo_movimiento = 'Devolucion' WHERE tipo_movimiento = 'Devolucion';
-UPDATE movimientos SET tipo_movimiento = 'Transferencia' WHERE tipo_movimiento NOT IN ('Prestamo', 'Devolucion');
+UPDATE movimientos SET tipo_movimiento = 'Prestamo' WHERE tipo_movimiento::text = 'Prestamo';
+UPDATE movimientos SET tipo_movimiento = 'Devolucion' WHERE tipo_movimiento::text = 'Devolucion';
+UPDATE movimientos SET tipo_movimiento = 'Transferencia' WHERE tipo_movimiento::text NOT IN ('Prestamo', 'Devolucion');
 
 -- Migrar estado existente
-UPDATE movimientos SET estado = 'Activo' WHERE estado = 'Activo';
-UPDATE movimientos SET estado = 'Completado' WHERE estado != 'Activo';
+UPDATE movimientos SET estado = 'Activo' WHERE estado::text = 'Activo';
+UPDATE movimientos SET estado = 'Completado' WHERE estado::text != 'Activo';
 
 -- Tabla anexos
 ALTER TABLE anexos ADD COLUMN IF NOT EXISTS uuid UUID DEFAULT uuid_generate_v4() UNIQUE;
