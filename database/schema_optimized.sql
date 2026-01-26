@@ -385,8 +385,8 @@ INSERT INTO configuracion (clave, valor, descripcion, tipo_dato) VALUES
 ('notificaciones_email', 'true', 'Activar notificaciones por email', 'boolean')
 ON CONFLICT (clave) DO NOTHING;
 
--- Usuario administrador por defecto (password: admin123 - debe ser hasheado en producción)
+-- Usuario administrador por defecto (password: admin)
 INSERT INTO usuarios (nombre_usuario, nombre_completo, email, password_hash, rol, area_id) VALUES
-('admin', 'Administrador del Sistema', 'admin@ssut.edu.bo', '$2a$11$placeholder_hash_here', 'Administrador', 1),
-('doc_admin', 'Administrador de Documentos', 'docadmin@ssut.edu.bo', '$2a$11$placeholder_hash_here', 'AdministradorDocumentos', 4)
+('admin', 'Administrador del Sistema', 'admin@ssut.edu.bo', 'admin', 'Administrador', 1),
+('doc_admin', 'Administrador de Documentos', 'docadmin@ssut.edu.bo', 'admin', 'AdministradorDocumentos', 4)
 ON CONFLICT (nombre_usuario) DO NOTHING;
