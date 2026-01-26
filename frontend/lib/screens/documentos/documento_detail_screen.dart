@@ -308,7 +308,8 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         _qrData ?? widget.documento.urlQR ?? widget.documento.codigoQR,
       );
     }
-    qrData ??= widget.documento.codigo;
+    final qrDataSafe =
+        (qrData != null && qrData.isNotEmpty) ? qrData : widget.documento.codigo;
 
     final doc = widget.documento;
     final dateFormat = DateFormat('dd/MM/yyyy');
@@ -462,13 +463,13 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                 pw.SizedBox(height: 8),
                 pw.BarcodeWidget(
                   barcode: pw.Barcode.qrCode(),
-                  data: qrData,
+                  data: qrDataSafe,
                   width: 120,
                   height: 120,
                 ),
                 pw.SizedBox(height: 8),
                 pw.Text(
-                  qrData,
+                  qrDataSafe,
                   style: const pw.TextStyle(fontSize: 10),
                 ),
               ],
