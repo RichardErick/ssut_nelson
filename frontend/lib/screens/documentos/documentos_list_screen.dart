@@ -28,6 +28,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   bool _estaCargando = true;
   String _consultaBusqueda = '';
   String _filtroSeleccionado = 'todos';
+  String _vistaSeleccionada = 'documentos';
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
 
@@ -117,8 +118,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         children: [
           _construirFiltrosSuperior(theme, canCreate),
           Expanded(
-            child:
-                _estaCargando
+            child: _vistaSeleccionada == 'carpetas'
+                ? const CarpetasScreen()
+                : _estaCargando
                     ? _construirShimmerCarga(crossAxisCount)
                     : _documentosFiltrados.isEmpty
                     ? EmptyState(
@@ -224,8 +226,55 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               _buildFilterButton(theme),
             ],
           ),
-          const SizedBox(height: 20),
-          _construirChipsSelector(theme),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: () => setState(() => _vistaSeleccionada = 'documentos'),
+                    icon: const Icon(Icons.description_rounded),
+                    label: const Text('Ver documentos'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _vistaSeleccionada == 'documentos'
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.primary.withOpacity(0.1),
+                      foregroundColor: _vistaSeleccionada == 'documentos'
+                          ? Colors.white
+                          : theme.colorScheme.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: () => setState(() => _vistaSeleccionada = 'carpetas'),
+                    icon: const Icon(Icons.folder_rounded),
+                    label: const Text('Ver carpetas'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _vistaSeleccionada == 'carpetas'
+                          ? Colors.amber.shade800
+                          : Colors.amber.shade100,
+                      foregroundColor: _vistaSeleccionada == 'carpetas'
+                          ? Colors.white
+                          : Colors.amber.shade900,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_vistaSeleccionada == 'documentos')
+            _construirChipsSelector(theme),
         ],
       ),
     );
