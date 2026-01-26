@@ -115,7 +115,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       backgroundColor: Colors.transparent,
       body: Column(
         children: [
-          _construirFiltrosSuperior(theme),
+          _construirFiltrosSuperior(theme, canCreate),
           Expanded(
             child:
                 _estaCargando
@@ -136,7 +136,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
-  Widget _construirFiltrosSuperior(ThemeData theme) {
+  Widget _construirFiltrosSuperior(ThemeData theme, bool canCreate) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Column(
@@ -201,12 +201,32 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 ),
               ),
               const SizedBox(width: 8),
+              if (canCreate) ...[
+                _buildAddButton(theme),
+                const SizedBox(width: 8),
+              ],
               _buildFilterButton(theme),
             ],
           ),
           const SizedBox(height: 20),
           _construirChipsSelector(theme),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAddButton(ThemeData theme) {
+    return Container(
+      height: 54,
+      width: 54,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: IconButton(
+        icon: Icon(Icons.add_rounded, color: theme.colorScheme.primary),
+        tooltip: 'Agregar documento',
+        onPressed: _abrirNuevoDocumento,
       ),
     );
   }
@@ -537,6 +557,16 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         builder: (context) => DocumentoDetailScreen(documento: doc),
       ),
     );
+  }
+
+  Future<void> _abrirNuevoDocumento() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DocumentoFormScreen()),
+    );
+    if (result == true) {
+      cargarDocumentos();
+    }
   }
 
   void _mostrarSnackBarError(String mensaje) {

@@ -370,6 +370,24 @@ ON CONFLICT (clave) DO NOTHING;
 -- 9. Actualizar estadísticas de la base de datos
 ANALYZE;
 
+-- 10. Asegurar QR y IdDocumento para registros existentes
+DO $$
+DECLARE
+    v_base_url TEXT := 'http://localhost:5286';
+BEGIN
+    -- Rellenar IdDocumento si está vacío
+    UPDATE documentos
+    SET id_documento = COALESCE(NULLIF(id_documento, ''), codigo)
+    WHERE id_documento IS NULL OR id_documento = '';
+
+    -- Completar url_qr y codigo_qr faltantes
+    UPDATE documentos
+    SET url_qr = CONCAT(v_base_url, '/documentos/ver/', id_documento),
+        codigo_qr = CONCAT(v_base_url, '/documentos/ver/', id_documento)
+    WHERE (url_qr IS NULL OR url_qr = '')
+       OR (codigo_qr IS NULL OR codigo_qr = '');
+END $$;
+
 COMMIT;
 
 -- Mensaje de finalización

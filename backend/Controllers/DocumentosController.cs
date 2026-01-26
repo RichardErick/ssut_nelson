@@ -212,7 +212,9 @@ public class DocumentosController : ControllerBase
     public async Task<ActionResult<DocumentoDTO>> Create([FromBody] CreateDocumentoDTO dto)
     {
         var numeroCorrelativo = dto.NumeroCorrelativo?.Trim();
-        var gestion = dto.Gestion?.Trim();
+        var gestion = string.IsNullOrWhiteSpace(dto.Gestion)
+            ? DateTime.UtcNow.Year.ToString()
+            : dto.Gestion!.Trim();
 
         // Validaciones
         // Normalizamos a solo dígitos para evitar errores por espacios/separadores
@@ -220,7 +222,7 @@ public class DocumentosController : ControllerBase
             ? string.Empty
             : Regex.Replace(numeroCorrelativo, @"\D", "");
 
-        if (string.IsNullOrWhiteSpace(correlativoDigits) || correlativoDigits.Length > 6)
+        if (!string.IsNullOrWhiteSpace(correlativoDigits) && correlativoDigits.Length > 6)
             return BadRequest(new { message = "El número correlativo debe tener entre 1 y 6 dígitos numéricos" });
 
         if (string.IsNullOrWhiteSpace(gestion) || !Regex.IsMatch(gestion, @"^[0-9]{4}$"))
@@ -248,14 +250,24 @@ public class DocumentosController : ControllerBase
         }
 
         // Verificar carpeta si se proporciona
+        int? carpetaId = null;
         if (dto.CarpetaId.HasValue)
         {
             var carpeta = await _context.Carpetas.FindAsync(dto.CarpetaId.Value);
             if (carpeta == null)
                 return BadRequest(new { message = "Carpeta no encontrada" });
+
+            // Validar máximo 11 documentos por carpeta (contando el nuevo)
+            var countEnCarpeta = await _context.Documentos.CountAsync(d => d.CarpetaId == dto.CarpetaId.Value && d.Activo);
+            if (countEnCarpeta >= 11)
+                return BadRequest(new { message = "La carpeta ya tiene el máximo de 11 documentos" });
+
+            carpetaId = dto.CarpetaId.Value;
         }
 
-        var correlativoFormateado = correlativoDigits.PadLeft(4, '0');
+        var correlativoFormateado = string.IsNullOrWhiteSpace(correlativoDigits)
+            ? (await ObtenerSiguienteCorrelativoAsync(carpetaId, gestion)).PadLeft(4, '0')
+            : correlativoDigits.PadLeft(4, '0');
         var tipoCodigo = (tipoDocumento.Codigo ?? "DOC").ToUpperInvariant();
         var areaCodigo = (area.Codigo ?? "AREA").ToUpperInvariant();
 
@@ -279,7 +291,7 @@ public class DocumentosController : ControllerBase
             Descripcion = dto.Descripcion,
             ResponsableId = dto.ResponsableId,
             UbicacionFisica = dto.UbicacionFisica,
-            CarpetaId = dto.CarpetaId,
+            CarpetaId = carpetaId,
             NivelConfidencialidad = dto.NivelConfidencialidad,
             Estado = EstadoDocumento.Activo,
             Activo = true,
@@ -435,6 +447,8 @@ public class DocumentosController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(dto.Gestion))
             documento.Gestion = dto.Gestion;
+        else if (string.IsNullOrWhiteSpace(documento.Gestion))
+            documento.Gestion = DateTime.UtcNow.Year.ToString();
 
         if (dto.FechaDocumento.HasValue)
             documento.FechaDocumento = DateTime.SpecifyKind(dto.FechaDocumento.Value, DateTimeKind.Utc);
@@ -453,11 +467,19 @@ public class DocumentosController : ControllerBase
         if (dto.UbicacionFisica != null)
             documento.UbicacionFisica = dto.UbicacionFisica;
 
-        if (dto.CarpetaId.HasValue)
+        if (dto.CarpetaId.HasValue && dto.CarpetaId.Value != documento.CarpetaId)
         {
             var carpeta = await _context.Carpetas.FindAsync(dto.CarpetaId.Value);
             if (carpeta == null)
                 return BadRequest(new { message = "Carpeta no encontrada" });
+
+            var countEnCarpeta = await _context.Documentos.CountAsync(d =>
+                d.CarpetaId == dto.CarpetaId.Value &&
+                d.Activo &&
+                d.Id != documento.Id);
+            if (countEnCarpeta >= 11)
+                return BadRequest(new { message = "La carpeta destino ya tiene el máximo de 11 documentos" });
+
             documento.CarpetaId = dto.CarpetaId.Value;
         }
 
@@ -798,5 +820,22 @@ public class DocumentosController : ControllerBase
             QrImageBase64 = qrBase64,
             message = "Código QR generado exitosamente"
         });
+    }
+
+    private async Task<string> ObtenerSiguienteCorrelativoAsync(int? carpetaId, string gestion)
+    {
+        if (carpetaId.HasValue)
+        {
+            var count = await _context.Documentos.CountAsync(d =>
+                d.CarpetaId == carpetaId.Value &&
+                d.Gestion == gestion &&
+                d.Activo);
+            return (count + 1).ToString();
+        }
+
+        var countGlobal = await _context.Documentos.CountAsync(d =>
+            d.Gestion == gestion &&
+            d.Activo);
+        return (countGlobal + 1).ToString();
     }
 }

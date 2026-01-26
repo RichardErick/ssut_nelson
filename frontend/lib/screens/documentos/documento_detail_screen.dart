@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
+import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../models/documento.dart';
@@ -35,6 +38,11 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       widget.documento.urlQR ?? widget.documento.codigoQR,
     );
     _loadMovimientos();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _qrData == null) {
+        _generateQr();
+      }
+    });
   }
 
   Future<void> _loadMovimientos() async {
@@ -75,7 +83,14 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         setState(() => _qrData = _normalizeQrData(qrContent?.toString()));
       }
     } catch (e) {
-      ErrorHelper.showError(context, 'No se pudo generar el código QR');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ErrorHelper.getErrorMessage(e)),
+            backgroundColor: AppTheme.colorError,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isGeneratingQr = false);
@@ -132,6 +147,14 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 18),
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.print_rounded),
+          onPressed: _printDocumento,
+          style: IconButton.styleFrom(
+            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+          ),
+        ),
+        const SizedBox(width: 8),
         IconButton(
           icon: const Icon(Icons.edit_rounded),
           onPressed: () {},
@@ -275,6 +298,217 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     );
   }
 
+  Future<void> _printDocumento() async {
+    String? qrData = _normalizeQrData(
+      _qrData ?? widget.documento.urlQR ?? widget.documento.codigoQR,
+    );
+    if (qrData == null) {
+      await _generateQr();
+      qrData = _normalizeQrData(
+        _qrData ?? widget.documento.urlQR ?? widget.documento.codigoQR,
+      );
+    }
+    qrData ??= widget.documento.codigo;
+
+    final doc = widget.documento;
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build:
+            (context) => pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(width: 0.6, color: PdfColors.grey600),
+                  ),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Expanded(
+                        flex: 3,
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'Comprobante de Documento',
+                              style: pw.TextStyle(
+                                fontSize: 18,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                            pw.Text(
+                              'Correspondiente al ${dateFormat.format(doc.fechaDocumento)}',
+                              style: pw.TextStyle(
+                                fontSize: 10,
+                                color: PdfColors.grey700,
+                              ),
+                            ),
+                            pw.SizedBox(height: 6),
+                            _buildPdfRow('Área', doc.areaOrigenNombre ?? 'N/A'),
+                            _buildPdfRow('Tipo', doc.tipoDocumentoNombre ?? 'N/A'),
+                            _buildPdfRow('Gestión', doc.gestion),
+                          ],
+                        ),
+                      ),
+                      pw.SizedBox(width: 8),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.all(8),
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(width: 0.6, color: PdfColors.grey600),
+                        ),
+                        child: pw.Column(
+                          children: [
+                            pw.Text('N°', style: pw.TextStyle(fontSize: 10)),
+                            pw.Text(
+                              doc.numeroCorrelativo,
+                              style: pw.TextStyle(
+                                fontSize: 16,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                            pw.SizedBox(height: 6),
+                            pw.Text(
+                              'Estado: ${doc.estado}',
+                              style: pw.TextStyle(fontSize: 10),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 14),
+                pw.Text(
+                  'Detalle',
+                  style: pw.TextStyle(
+                    fontSize: 12,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+                _buildPdfRow('Codigo', doc.codigo),
+                _buildPdfRow('Correlativo', doc.numeroCorrelativo),
+                _buildPdfRow('Tipo', doc.tipoDocumentoNombre ?? 'N/A'),
+                _buildPdfRow('Area origen', doc.areaOrigenNombre ?? 'N/A'),
+                _buildPdfRow('Gestion', doc.gestion),
+                _buildPdfRow(
+                  'Fecha documento',
+                  dateFormat.format(doc.fechaDocumento),
+                ),
+                _buildPdfRow(
+                  'Responsable',
+                  doc.responsableNombre ?? 'No asignado',
+                ),
+                _buildPdfRow(
+                  'Carpeta',
+                  doc.carpetaNombre ?? 'Sin carpeta',
+                ),
+                _buildPdfRow(
+                  'Ubicacion fisica',
+                  doc.ubicacionFisica ?? 'No registrada',
+                ),
+                _buildPdfRow('Estado', doc.estado),
+                _buildPdfRow(
+                  'Descripcion',
+                  doc.descripcion ?? 'Sin descripcion',
+                ),
+                pw.SizedBox(height: 16),
+                pw.Container(
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey600, width: 0.6),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Container(
+                        color: PdfColors.blue100,
+                        padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                        child: pw.Row(
+                          children: [
+                            _pdfHeaderCell('Cuenta', flex: 2),
+                            _pdfHeaderCell('Descripción', flex: 4),
+                            _pdfHeaderCell('Débitos', flex: 2, alignEnd: true),
+                            _pdfHeaderCell('Créditos', flex: 2, alignEnd: true),
+                          ],
+                        ),
+                      ),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                        child: pw.Row(
+                          children: [
+                            _pdfBodyCell('—', flex: 2),
+                            _pdfBodyCell(doc.descripcion ?? 'Detalle no registrado', flex: 4),
+                            _pdfBodyCell('0.00', flex: 2, alignEnd: true),
+                            _pdfBodyCell('0.00', flex: 2, alignEnd: true),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 12),
+                pw.Text(
+                  'QR',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.BarcodeWidget(
+                  barcode: pw.Barcode.qrCode(),
+                  data: qrData,
+                  width: 120,
+                  height: 120,
+                ),
+                pw.SizedBox(height: 8),
+                pw.Text(
+                  qrData,
+                  style: const pw.TextStyle(fontSize: 10),
+                ),
+              ],
+            ),
+      ),
+    );
+
+    try {
+      await Printing.layoutPdf(onLayout: (_) async => pdf.save());
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ErrorHelper.getErrorMessage(e)),
+            backgroundColor: AppTheme.colorError,
+          ),
+        );
+      }
+    }
+  }
+
+  pw.Widget _buildPdfRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 6),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(
+            width: 120,
+            child: pw.Text(
+              label,
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+          ),
+          pw.Expanded(child: pw.Text(value)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatusChip(String estado) {
     final color = _getStatusColor(estado);
     return Container(
@@ -318,6 +552,31 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  pw.Widget _pdfHeaderCell(String text, {int flex = 1, bool alignEnd = false}) {
+    return pw.Expanded(
+      flex: flex,
+      child: pw.Text(
+        text,
+        textAlign: alignEnd ? pw.TextAlign.right : pw.TextAlign.left,
+        style: pw.TextStyle(
+          fontSize: 10,
+          fontWeight: pw.FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _pdfBodyCell(String text, {int flex = 1, bool alignEnd = false}) {
+    return pw.Expanded(
+      flex: flex,
+      child: pw.Text(
+        text,
+        textAlign: alignEnd ? pw.TextAlign.right : pw.TextAlign.left,
+        style: const pw.TextStyle(fontSize: 10),
+      ),
     );
   }
 
