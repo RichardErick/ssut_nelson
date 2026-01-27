@@ -1,5 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:zxing2/qrcode.dart';
 
 import '../../services/documento_service.dart';
 import '../../utils/error_helper.dart';
@@ -40,59 +45,39 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     super.dispose();
   }
 
-  Future<void> _buscarPorQR() async {
-    if (_qrCodeController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.white),
-              SizedBox(width: 12),
-              Text('Ingrese un código QR'),
-            ],
-          ),
-          backgroundColor: Colors.orange.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-      return;
-    }
-
+  Future<void> _buscarPorCodigo(String codigoQr) async {
     setState(() => _isSearching = true);
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
-      final documento = await service.getByQRCode(_qrCodeController.text);
+      final documento = await service.getByQRCode(codigoQr);
 
-      if (mounted) {
-        if (documento != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DocumentoDetailScreen(documento: documento),
+      if (!mounted) return;
+
+      if (documento != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DocumentoDetailScreen(documento: documento),
+          ),
+        );
+        _qrCodeController.clear();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Documento no encontrado'),
+              ],
             ),
-          );
-          _qrCodeController.clear();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.white),
-                  SizedBox(width: 12),
-                  Text('Documento no encontrado'),
-                ],
-              ),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-          );
-        }
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -126,6 +111,122 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         setState(() => _isSearching = false);
       }
     }
+  }
+
+  Future<void> _buscarPorQR() async {
+    final codigo = _qrCodeController.text.trim();
+    if (codigo.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Ingrese un código QR'),
+            ],
+          ),
+          backgroundColor: Colors.orange.shade600,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
+    await _buscarPorCodigo(codigo);
+  }
+
+  Future<void> _buscarDesdeImagen() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+
+    setState(() => _isSearching = true);
+    try {
+      final bytes = await file.readAsBytes();
+      final codigo = _extraerQrDeBytes(bytes);
+
+      if (!mounted) return;
+
+      if (codigo == null || codigo.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(child: Text('No se pudo leer un QR en la imagen')),
+              ],
+            ),
+            backgroundColor: Colors.orange.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        return;
+      }
+
+      _qrCodeController.text = codigo;
+      await _buscarPorCodigo(codigo);
+    } on NotFoundException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('No se detectó un código QR en la imagen'),
+            backgroundColor: Colors.orange.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error leyendo QR: $e'),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSearching = false);
+      }
+    }
+  }
+
+  String? _extraerQrDeBytes(Uint8List bytes) {
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) return null;
+    final image = decoded.convert(numChannels: 4);
+    final pixels = image
+        .getBytes(order: img.ChannelOrder.abgr)
+        .buffer
+        .asInt32List();
+
+    final source = RGBLuminanceSource(image.width, image.height, pixels);
+    final bitmap = BinaryBitmap(HybridBinarizer(source));
+    final result = QRCodeReader().decode(bitmap);
+    return result.text.trim();
+  }
+
+  void _showScanInfo() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(child: Text('Escaneo disponible en dispositivos móviles')),
+          ],
+        ),
+        backgroundColor: Colors.blueGrey.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   @override
@@ -204,6 +305,55 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 40),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _showScanInfo,
+                              icon: const Icon(Icons.qr_code_scanner_rounded),
+                              label: const Text('Escanear QR'),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _isSearching ? null : _buscarPorQR,
+                              icon: const Icon(Icons.search_rounded),
+                              label: const Text('Buscar'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue.shade700,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _isSearching ? null : _buscarDesdeImagen,
+                          icon: const Icon(Icons.photo_library_rounded),
+                          label: const Text('Adjuntar foto QR'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                       // Campo de entrada
                       TextField(
                         controller: _qrCodeController,

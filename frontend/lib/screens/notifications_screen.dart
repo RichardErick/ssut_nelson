@@ -45,7 +45,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (authProvider.role == UserRole.administradorSistema || 
           authProvider.role == UserRole.administradorDocumentos) {
           
-          final allUsers = await usuarioService.getAll();
+          final allUsers = await usuarioService.getAll(incluirInactivos: true);
           pending = allUsers.where((u) => !u.activo).toList();
       }
       

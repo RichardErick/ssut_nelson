@@ -77,10 +77,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
       } catch (e) {
         if (mounted) {
+          final msg = ErrorHelper.getErrorMessage(e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(ErrorHelper.getErrorMessage(e)),
-              backgroundColor: Colors.red.shade700,
+              content: Text(msg),
+              backgroundColor:
+                  msg.toLowerCase().contains('usuario') &&
+                          msg.toLowerCase().contains('uso')
+                      ? Colors.orange.shade700
+                      : Colors.red.shade700,
               behavior: SnackBarBehavior.floating,
             ),
           );
