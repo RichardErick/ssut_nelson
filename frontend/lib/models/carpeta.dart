@@ -11,6 +11,10 @@ class Carpeta {
   final String? usuarioCreacionNombre;
   final int numeroSubcarpetas;
   final int numeroDocumentos;
+  final int? numeroCarpeta;
+  final String? codigoRomano;
+  final int? rangoInicio;
+  final int? rangoFin;
   final List<Carpeta> subcarpetas;
 
   Carpeta({
@@ -26,6 +30,10 @@ class Carpeta {
     this.usuarioCreacionNombre,
     this.numeroSubcarpetas = 0,
     this.numeroDocumentos = 0,
+    this.numeroCarpeta,
+    this.codigoRomano,
+    this.rangoInicio,
+    this.rangoFin,
     this.subcarpetas = const [],
   });
 
@@ -46,6 +54,10 @@ class Carpeta {
       usuarioCreacionNombre: json['usuarioCreacionNombre'],
       numeroSubcarpetas: json['numeroSubcarpetas'] ?? 0,
       numeroDocumentos: json['numeroDocumentos'] ?? 0,
+      numeroCarpeta: json['numeroCarpeta'],
+      codigoRomano: json['codigoRomano'],
+      rangoInicio: json['rangoInicio'],
+      rangoFin: json['rangoFin'],
       subcarpetas: json['subcarpetas'] != null
           ? (json['subcarpetas'] as List)
               .map((e) => Carpeta.fromJson(e))
