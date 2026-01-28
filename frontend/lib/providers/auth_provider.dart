@@ -162,9 +162,22 @@ class AuthProvider extends ChangeNotifier {
 
       // Handle server-side lockout (HTTP 423)
       if (e is DioException && e.response?.statusCode == 423) {
-        // Try to parse duration if we wanted to be more precise, 
-        // but for now setting a local block based on the error.
-        _lockoutEndTime = DateTime.now().add(const Duration(minutes: 30));
+        // Intentar leer los segundos de bloqueo desde el mensaje del backend
+        try {
+          final data = e.response?.data;
+          final message = data is Map<String, dynamic> ? data['message']?.toString() ?? '' : '';
+          final regex = RegExp(r'(\d+)\s*segundos');
+          final match = regex.firstMatch(message);
+          if (match != null) {
+            final seconds = int.parse(match.group(1)!);
+            _lockoutEndTime = DateTime.now().add(Duration(seconds: seconds));
+          } else {
+            // Fallback genérico si no se puede parsear
+            _lockoutEndTime = DateTime.now().add(const Duration(seconds: 30));
+          }
+        } catch (_) {
+          _lockoutEndTime = DateTime.now().add(const Duration(seconds: 30));
+        }
       }
 
       _auditService?.logEvent(

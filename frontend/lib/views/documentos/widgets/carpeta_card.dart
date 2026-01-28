@@ -7,12 +7,14 @@ class CarpetaCard extends StatelessWidget {
   final Carpeta carpeta;
   final VoidCallback onTap;
   final ThemeData theme;
+  final VoidCallback? onDelete;
 
   const CarpetaCard({
     super.key,
     required this.carpeta,
     required this.onTap,
     required this.theme,
+    this.onDelete,
   });
 
   @override
@@ -32,84 +34,104 @@ class CarpetaCard extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.amber.shade300, Colors.orange.shade400],
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
                 ),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.folder_rounded, color: Colors.white),
+              ],
             ),
-            const Spacer(),
-            Text(
-              carpeta.nombre,
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            if (gestionLine != null)
-              Text(
-                gestionLine,
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.amber.shade300, Colors.orange.shade400],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.folder_rounded, color: Colors.white),
                 ),
-              ),
-            if (nroLine != null)
-              Text(
-                nroLine,
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                const Spacer(),
+                Text(
+                  carpeta.nombre,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            if (romanoLine != null)
-              Text(
-                romanoLine,
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                const SizedBox(height: 4),
+                if (gestionLine != null)
+                  Text(
+                    gestionLine,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                if (nroLine != null)
+                  Text(
+                    nroLine,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                if (romanoLine != null)
+                  Text(
+                    romanoLine,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                Text(
+                  rangoLine,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
                 ),
-              ),
-            Text(
-              rangoLine,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                Text(
+                  'Doc: ${carpeta.numeroDocumentos}',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onDelete != null)
+            Positioned(
+              top: 6,
+              right: 6,
+              child: IconButton(
+                icon: Icon(
+                  Icons.delete_outline_rounded,
+                  size: 20,
+                  color: Colors.red.shade600,
+                ),
+                onPressed: onDelete,
+                tooltip: 'Eliminar carpeta',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
             ),
-            Text(
-              'Doc: ${carpeta.numeroDocumentos}',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }

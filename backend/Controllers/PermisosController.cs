@@ -21,7 +21,7 @@ public class PermisosController : ControllerBase
 
     // GET: api/permisos
     [HttpGet]
-    [Authorize(Roles = "AdministradorSistema,Administrador")]
+    [Authorize(Roles = "AdministradorSistema")]
     public async Task<ActionResult<IEnumerable<object>>> GetAll()
     {
         try
@@ -111,7 +111,7 @@ public class PermisosController : ControllerBase
 
     // GET: api/permisos/roles
     [HttpGet("roles")]
-    [Authorize(Roles = "AdministradorSistema,Administrador")]
+    [Authorize(Roles = "AdministradorSistema")]
     public async Task<ActionResult<object>> GetRolesPermisos()
     {
         var roles = new[] { "AdministradorSistema", "AdministradorDocumentos", "Contador", "Gerente" };
@@ -178,7 +178,7 @@ public class PermisosController : ControllerBase
 
     // GET: api/permisos/usuarios/{id}
     [HttpGet("usuarios/{id}")]
-    [Authorize(Roles = "AdministradorSistema,Administrador")]
+    [Authorize(Roles = "AdministradorSistema")]
     public async Task<ActionResult<object>> GetPermisosUsuarioAdmin(int id)
     {
         try
@@ -245,7 +245,7 @@ public class PermisosController : ControllerBase
 
     // POST: api/permisos/usuarios/asignar
     [HttpPost("usuarios/asignar")]
-    [Authorize(Roles = "AdministradorSistema,Administrador")]
+    [Authorize(Roles = "AdministradorSistema")]
     public async Task<ActionResult> AsignarPermisoUsuario([FromBody] AsignarPermisoUsuarioDTO dto)
     {
         if (dto.UsuarioId <= 0 || dto.PermisoId <= 0)
@@ -290,7 +290,7 @@ public class PermisosController : ControllerBase
 
     // POST: api/permisos/usuarios/revocar
     [HttpPost("usuarios/revocar")]
-    [Authorize(Roles = "AdministradorSistema,Administrador")]
+    [Authorize(Roles = "AdministradorSistema")]
     public async Task<ActionResult> RevocarPermisoUsuario([FromBody] AsignarPermisoUsuarioDTO dto)
     {
         if (dto.UsuarioId <= 0 || dto.PermisoId <= 0)

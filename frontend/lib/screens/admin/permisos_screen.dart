@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../models/permiso.dart';
 import '../../models/usuario.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/user_role.dart';
 import '../../services/api_service.dart';
 import '../../services/usuario_service.dart';
 import '../../theme/app_theme.dart';
@@ -190,7 +192,13 @@ class _PermisosScreenState extends State<PermisosScreen> {
   }
 
   void _onPermisoChanged(_PermisoUsuarioEntry entry, bool value) {
-    // Allows changing any permission now
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.role != UserRole.administradorSistema) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solo el Administrador de Sistema puede modificar permisos.')),
+      );
+      return;
+    }
     setState(() {
       final permisoId = entry.permiso.id;
       final originalState = _userPermOriginal[permisoId] ?? false;
@@ -235,6 +243,13 @@ class _PermisosScreenState extends State<PermisosScreen> {
   Future<void> _guardarCambios() async {
     if (_isSaving) return;
     if (_usuarioSeleccionado == null) return;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.role != UserRole.administradorSistema) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solo el Administrador de Sistema puede guardar cambios de permisos.')),
+      );
+      return;
+    }
     setState(() => _isSaving = true);
 
     final apiService = Provider.of<ApiService>(context, listen: false);
@@ -319,6 +334,8 @@ class _PermisosScreenState extends State<PermisosScreen> {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
     final changesCount = _countChanges();
+    final auth = Provider.of<AuthProvider>(context);
+    final bool canEdit = auth.role == UserRole.administradorSistema;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
@@ -341,84 +358,111 @@ class _PermisosScreenState extends State<PermisosScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Stack(
-              children: [
-                isDesktop
-                    ? _buildDesktopLayout(theme)
-                    : _buildMobileLayout(theme),
-                
-                // Floating Action Bar for Changes
-                if (changesCount > 0)
-                  Positioned(
-                    bottom: 24,
-                    left: 24,
-                    right: 24,
-                    child: Center(
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 500),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.inverseSurface,
-                          borderRadius: BorderRadius.circular(50),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 16,
-                              offset: const Offset(0, 8),
-                            )
-                          ],
+          : !canEdit
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.lock_outline, size: 72, color: theme.colorScheme.error),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Solo el Administrador de Sistema puede modificar los permisos.',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppTheme.colorExito,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '$changesCount',
-                                style: const TextStyle(
-                                  color: Colors.white, 
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Cambios pendientes',
-                              style: TextStyle(
-                                color: theme.colorScheme.onInverseSurface,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const Spacer(),
-                            TextButton(
-                              onPressed: _isSaving ? null : _restaurarCambios,
-                              child: const Text('Descartar'),
-                            ),
-                            const SizedBox(width: 8),
-                            FilledButton.icon(
-                              onPressed: _isSaving ? null : _guardarCambios,
-                              icon: _isSaving 
-                                ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black)) 
-                                : const Icon(Icons.check, size: 16),
-                              label: const Text('Guardar'),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: AppTheme.colorExito,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'Puede consultar qué permisos tiene cada usuario, pero no editarlos.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-              ],
-            ),
+                )
+              : Stack(
+                  children: [
+                    isDesktop
+                        ? _buildDesktopLayout(theme)
+                        : _buildMobileLayout(theme),
+                    
+                    // Floating Action Bar for Changes
+                    if (changesCount > 0)
+                      Positioned(
+                        bottom: 24,
+                        left: 24,
+                        right: 24,
+                        child: Center(
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: 500),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.inverseSurface,
+                              borderRadius: BorderRadius.circular(50),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 8),
+                                )
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.colorExito,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '$changesCount',
+                                    style: const TextStyle(
+                                      color: Colors.white, 
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Cambios pendientes',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onInverseSurface,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const Spacer(),
+                                TextButton(
+                                  onPressed: _isSaving ? null : _restaurarCambios,
+                                  child: const Text('Descartar'),
+                                ),
+                                const SizedBox(width: 8),
+                                FilledButton.icon(
+                                  onPressed: _isSaving ? null : _guardarCambios,
+                                  icon: _isSaving 
+                                    ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black)) 
+                                    : const Icon(Icons.check, size: 16),
+                                  label: const Text('Guardar'),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppTheme.colorExito,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
     );
   }
 

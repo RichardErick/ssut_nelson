@@ -104,15 +104,51 @@ class _VistaCarpetas extends StatelessWidget {
           ),
           itemCount: controller.carpetas.length,
           itemBuilder: (context, index) {
+            final carpeta = controller.carpetas[index];
             return CarpetaCard(
-              carpeta: controller.carpetas[index],
-              onTap: () => controller.abrirCarpeta(controller.carpetas[index]),
+              carpeta: carpeta,
+              onTap: () => controller.abrirCarpeta(carpeta),
               theme: theme,
+              onDelete: () => _confirmarEliminarCarpeta(context, controller, carpeta),
             );
           },
         );
       },
     );
+  }
+
+  Future<void> _confirmarEliminarCarpeta(
+    BuildContext context,
+    DocumentosController controller,
+    Carpeta carpeta,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar carpeta'),
+        content: Text(
+          '¿Estás seguro de eliminar la carpeta "${carpeta.nombre}"?\n\nEsta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Sí, Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await controller.eliminarCarpeta(carpeta);
+    }
   }
 }
 
@@ -249,14 +285,59 @@ class _VistaDocumentosCarpeta extends StatelessWidget {
         itemCount: controller.subcarpetas.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
+          final sub = controller.subcarpetas[index];
           return SubcarpetaCard(
-            subcarpeta: controller.subcarpetas[index],
-            onTap: () => controller.abrirCarpeta(controller.subcarpetas[index]),
+            subcarpeta: sub,
+            onTap: () => controller.abrirCarpeta(sub),
             theme: theme,
+            onDelete: () =>
+                _confirmarEliminarSubcarpeta(context, controller, sub),
           );
         },
       ),
     );
+  }
+
+  Future<void> _confirmarEliminarCarpeta(
+    BuildContext context,
+    DocumentosController controller,
+    Carpeta carpeta,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar carpeta'),
+        content: Text(
+          '¿Estás seguro de eliminar la carpeta "${carpeta.nombre}"?\n\nEsta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Sí, Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await controller.eliminarCarpeta(carpeta);
+    }
+  }
+
+  Future<void> _confirmarEliminarSubcarpeta(
+    BuildContext context,
+    DocumentosController controller,
+    Carpeta subcarpeta,
+  ) async {
+    await _confirmarEliminarCarpeta(context, controller, subcarpeta);
   }
 
   Widget _buildViewToggle(

@@ -102,7 +102,9 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
       
       if (mounted) {
         setState(() {
-          _usuarios = results[0] as List<Usuario>;
+          _usuarios = (results[0] as List<Usuario>)
+              .where((u) => u.activo)
+              .toList();
           _carpetas = results[1] as List<Carpeta>;
           _areas = (results[2] as List<Map<String, dynamic>>);
           _tiposDocumento = (results[3] as List<Map<String, dynamic>>);
@@ -268,7 +270,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
               if (nombreController.text.isEmpty) return;
               try {
                 final carpetaService = Provider.of<CarpetaService>(context, listen: false);
-                final nuevaCarpeta = await carpetaService.create(CreateCarpetaDTO(
+                await carpetaService.create(CreateCarpetaDTO(
                   nombre: nombreController.text,
                   codigo: codigoController.text.isEmpty ? null : codigoController.text,
                   gestion: _gestionController.text,

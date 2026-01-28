@@ -179,6 +179,16 @@ class DocumentosController extends ChangeNotifier {
     }
   }
 
+  /// Eliminar una carpeta (o subcarpeta)
+  Future<void> eliminarCarpeta(Carpeta carpeta) async {
+    await _carpetaService.delete(carpeta.id, hard: false);
+    await cargarCarpetas();
+    if (_carpetaSeleccionada != null &&
+        _carpetaSeleccionada!.id == carpeta.id) {
+      cerrarCarpeta();
+    }
+  }
+
   /// Cambiar vista (grid/lista)
   void cambiarVista(bool esGrid) {
     _vistaGrid = esGrid;

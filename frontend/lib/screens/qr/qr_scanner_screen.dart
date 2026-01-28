@@ -64,11 +64,17 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 12),
-                Text('Documento no encontrado'),
+                const Icon(Icons.info_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'El código QR no corresponde a un documento del sistema.\nContenido leído: $codigoQr',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
             backgroundColor: Colors.red.shade600,

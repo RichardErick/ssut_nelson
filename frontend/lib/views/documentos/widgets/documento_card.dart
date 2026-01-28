@@ -39,80 +39,99 @@ class DocumentoCard extends StatelessWidget {
           child: Opacity(opacity: value, child: child),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.08),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.08),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(22),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(22),
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 40,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.blue.shade100),
-                        ),
-                        child: const Icon(
-                          Icons.description_rounded,
-                          color: Colors.blue,
-                          size: 22,
+                      Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.blue.shade100),
+                            ),
+                            child: const Icon(
+                              Icons.description_rounded,
+                              color: Colors.blue,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildCardHeader()),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        documento.codigo,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildCardHeader()),
+                      const SizedBox(height: 4),
+                      Text(
+                        documento.descripcion ?? 'Sin descripción',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                      const Spacer(),
+                      const Divider(height: 1),
+                      const SizedBox(height: 10),
+                      _buildCardFooter(),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    documento.codigo,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    documento.descripcion ?? 'Sin descripción',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                    ),
-                  ),
-                  const Spacer(),
-                  const Divider(height: 1),
-                  const SizedBox(height: 10),
-                  _buildCardFooter(),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton(
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                size: 20,
+                color: Colors.red.shade600,
+              ),
+              onPressed: onDelete,
+              tooltip: 'Eliminar documento',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ),
+        ],
       ),
     );
   }

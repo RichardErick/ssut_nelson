@@ -137,6 +137,12 @@ public class AuthController : ControllerBase
         if (usuario == null)
             return Unauthorized(new { message = "Credenciales inválidas" });
 
+        // Bloquear usuarios que aún no fueron aprobados por un administrador
+        if (!usuario.Activo)
+        {
+            return Unauthorized(new { message = "Su cuenta está pendiente de aprobación por un administrador." });
+        }
+
         if (usuario.BloqueadoHasta.HasValue && usuario.BloqueadoHasta.Value > DateTime.UtcNow)
         {
             var remaining = (int)Math.Ceiling((usuario.BloqueadoHasta.Value - DateTime.UtcNow).TotalSeconds);
@@ -147,10 +153,19 @@ public class AuthController : ControllerBase
         {
             usuario.IntentosFallidos += 1;
 
-            const int maxIntentos = 5;
-            if (usuario.IntentosFallidos >= maxIntentos)
+            // Política de bloqueo escalonado:
+            // - A partir de 3 intentos fallidos: bloqueo de 30 segundos
+            // - Si se sigue equivocando y llega a 10 intentos o más: bloqueo de 1 hora
+            const int softThreshold = 3;
+            const int hardThreshold = 10;
+
+            if (usuario.IntentosFallidos >= hardThreshold)
             {
-                usuario.BloqueadoHasta = DateTime.UtcNow.AddMinutes(30);
+                usuario.BloqueadoHasta = DateTime.UtcNow.AddHours(1);
+            }
+            else if (usuario.IntentosFallidos >= softThreshold)
+            {
+                usuario.BloqueadoHasta = DateTime.UtcNow.AddSeconds(30);
             }
 
             usuario.FechaActualizacion = DateTime.UtcNow;
