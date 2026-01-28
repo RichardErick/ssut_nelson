@@ -64,8 +64,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
     ];
 
-    if (role == UserRole.administradorSistema ||
-        role == UserRole.administradorDocumentos) {
+    // Acceso a reportes si tiene permiso de ver documentos (todos) o gestionar seguridad
+    if (authProvider.hasPermission('ver_documento') || authProvider.hasPermission('gestionar_seguridad')) {
       _navItems.add(
         NavigationItem(
           label: 'Reportes',
@@ -76,7 +76,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    if (role == UserRole.administradorSistema) {
+    // Verificación de permiso para módulos de administración
+    if (authProvider.hasPermission('gestionar_seguridad')) {
       _navItems.add(
         NavigationItem(
           label: 'Roles y Permisos',
@@ -97,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         NavigationItem(
           label: 'Sincronización',
           icon:
-              Icons.sync_problem_outlined, // Using similar icon as placeholder
+              Icons.sync_problem_outlined,
           selectedIcon: Icons.sync,
           screen: const UsersSyncScreen(),
         ),

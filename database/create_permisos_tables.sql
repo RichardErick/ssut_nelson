@@ -34,22 +34,23 @@ INSERT INTO permisos (codigo, nombre, descripcion, modulo) VALUES
 ('ver_documento', 'Ver Documento', 'Permite visualizar documentos', 'Documentos'),
 ('subir_documento', 'Subir Documento', 'Permite subir/crear nuevos documentos', 'Documentos'),
 ('editar_metadatos', 'Editar Metadatos', 'Permite editar información de documentos', 'Documentos'),
-('borrar_documento', 'Borrar Documento', 'Permite eliminar documentos', 'Documentos')
+('borrar_documento', 'Borrar Documento', 'Permite eliminar documentos', 'Documentos'),
+('gestionar_seguridad', 'Gestionar Seguridad', 'Permite administrar usuarios, roles y permisos', 'Seguridad')
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Asignar permisos según la matriz:
--- Administrador de Sistema: solo ver_documento
--- Administrador de Documentos: todos los permisos
+-- Administrador de Sistema: ver_documento + gestionar_seguridad
+-- Administrador de Documentos: todos los permisos de Documentos
 -- Contador: ver_documento, subir_documento
 -- Gerente: solo ver_documento
 
--- Administrador de Sistema: solo ver_documento
+-- Administrador de Sistema: solo ver_documento y gestionar seguridad
 INSERT INTO rol_permisos (rol, permiso_id, activo)
 SELECT 'AdministradorSistema', id, true
-FROM permisos WHERE codigo = 'ver_documento'
+FROM permisos WHERE codigo IN ('ver_documento', 'gestionar_seguridad')
 ON CONFLICT (rol, permiso_id) DO UPDATE SET activo = true;
 
--- Administrador de Documentos: todos los permisos
+-- Administrador de Documentos: todos los permisos de Documentos
 INSERT INTO rol_permisos (rol, permiso_id, activo)
 SELECT 'AdministradorDocumentos', id, true
 FROM permisos WHERE codigo IN ('ver_documento', 'subir_documento', 'editar_metadatos', 'borrar_documento')

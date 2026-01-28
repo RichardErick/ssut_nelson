@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../models/area.dart';
 import '../../models/usuario.dart';
 import '../../services/api_service.dart';
@@ -48,6 +49,17 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   @override
   void initState() {
     super.initState();
+    // Validar permiso al entrar (defensa en profundidad)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (!authProvider.hasPermission('gestionar_seguridad')) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text('Acceso denegado: Requiere permiso de seguridad')),
+        );
+      }
+    });
+
     _loadData();
     _searchController.addListener(_onSearchChanged);
   }
