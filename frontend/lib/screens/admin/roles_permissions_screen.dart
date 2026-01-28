@@ -955,9 +955,11 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                              ),
+                            ),
                           ],
                         ),
-                      ),
+                      ).toList(),
                     ],
                     onChanged: (value) {
                       setState(() => _selectedRolFilter = value);
