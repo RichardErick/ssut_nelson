@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS anexos (
     documento_id INTEGER NOT NULL REFERENCES documentos(id),
     nombre_archivo VARCHAR(255) NOT NULL,
     extension VARCHAR(10),
-    tamano INTEGER,
+    tamano_bytes BIGINT,
     url_archivo VARCHAR(500),
     tipo_contenido VARCHAR(100),
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

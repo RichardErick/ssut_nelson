@@ -206,58 +206,39 @@ public class CarpetasController : ControllerBase
             return BadRequest(new { message = "El nombre es obligatorio" });
 
         if (string.IsNullOrWhiteSpace(dto.Gestion) || dto.Gestion.Length != 4)
-            return BadRequest(new { message = "La gesti??n debe tener 4 d??gitos" });
+            return BadRequest(new { message = "La gestión debe tener 4 dígitos" });
 
-        if (!string.Equals(dto.Nombre.Trim(), NombreCarpetaPermitida, StringComparison.OrdinalIgnoreCase))
-            return BadRequest(new { message = $"Solo se permite crear la carpeta {NombreCarpetaPermitida}" });
-
+        // Validar que si hay padre, existe
         if (dto.CarpetaPadreId.HasValue)
-            return BadRequest(new { message = $"No se permiten subcarpetas en {NombreCarpetaPermitida}" });
+        {
+            var padreExists = await _context.Carpetas.AnyAsync(c => c.Id == dto.CarpetaPadreId.Value);
+            if (!padreExists)
+                return BadRequest(new { message = "La carpeta padre no existe" });
+        }
 
-        var exists = await _context.Carpetas.AnyAsync(c =>
-            c.Nombre == NombreCarpetaPermitida &&
-            c.Gestion == dto.Gestion &&
-            c.CarpetaPadreId == null);
-
-        if (exists)
-            return BadRequest(new { message = $"Ya existe una carpeta {NombreCarpetaPermitida} para la gesti??n {dto.Gestion}" });
-
+        // Calcular número de carpeta automáticamente
         var numeroCarpeta = await _context.Carpetas
-            .Where(c => c.Gestion == dto.Gestion && c.CarpetaPadreId == null)
+            .Where(c => c.Gestion == dto.Gestion && c.CarpetaPadreId == dto.CarpetaPadreId)
             .CountAsync() + 1;
-        var codigoRomano = ToRoman(numeroCarpeta);
+
+        // Usar el código romano proporcionado o generar uno automáticamente
+        var codigoRomano = !string.IsNullOrWhiteSpace(dto.Codigo) 
+            ? dto.Codigo 
+            : ToRoman(numeroCarpeta);
 
         var carpeta = new Carpeta
         {
-            Nombre = NombreCarpetaPermitida,
+            Nombre = dto.Nombre.Trim(),
             Codigo = codigoRomano,
             Gestion = dto.Gestion,
             Descripcion = dto.Descripcion,
-            CarpetaPadreId = null,
+            CarpetaPadreId = dto.CarpetaPadreId,
             Activo = true,
             FechaCreacion = DateTime.UtcNow
-            // TODO: UsuarioCreacionId = obtener del contexto de autenticaci??n
+            // TODO: UsuarioCreacionId = obtener del contexto de autenticación
         };
 
         _context.Carpetas.Add(carpeta);
-        await _context.SaveChangesAsync();
-
-        // Pre-crear algunos rangos para que el usuario pueda elegirlos desde el inicio
-        for (var i = 1; i <= RangosIniciales; i++)
-        {
-            var rangoInicio = ((i - 1) * TamanoRango) + 1;
-            var rangoFin = rangoInicio + TamanoRango - 1;
-            var subcarpeta = new Carpeta
-            {
-                Nombre = $"{rangoInicio} - {rangoFin}",
-                Codigo = ToRoman(i),
-                Gestion = dto.Gestion,
-                CarpetaPadreId = carpeta.Id,
-                Activo = true,
-                FechaCreacion = DateTime.UtcNow
-            };
-            _context.Carpetas.Add(subcarpeta);
-        }
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetById), new { id = carpeta.Id }, new
@@ -268,7 +249,9 @@ public class CarpetasController : ControllerBase
             carpeta.Gestion,
             carpeta.FechaCreacion,
             NumeroCarpeta = numeroCarpeta,
-            CodigoRomano = codigoRomano
+            CodigoRomano = codigoRomano,
+            RangoInicio = dto.RangoInicio,
+            RangoFin = dto.RangoFin
         });
     }
 
@@ -435,6 +418,8 @@ public class CreateCarpetaDTO
     public string Gestion { get; set; } = string.Empty;
     public string? Descripcion { get; set; }
     public int? CarpetaPadreId { get; set; }
+    public int? RangoInicio { get; set; }
+    public int? RangoFin { get; set; }
 }
 
 public class UpdateCarpetaDTO

@@ -237,8 +237,8 @@ public class DocumentosController : ControllerBase
             ? string.Empty
             : Regex.Replace(numeroCorrelativo, @"\D", "");
 
-        if (!string.IsNullOrWhiteSpace(correlativoDigits) && correlativoDigits.Length > 6)
-            return BadRequest(new { message = "El número correlativo debe tener entre 1 y 6 dígitos numéricos" });
+        if (!string.IsNullOrWhiteSpace(correlativoDigits) && correlativoDigits.Length > 20)
+            return BadRequest(new { message = "El número correlativo debe tener entre 1 y 20 dígitos numéricos" });
 
         if (string.IsNullOrWhiteSpace(gestion) || !Regex.IsMatch(gestion, @"^[0-9]{4}$"))
             return BadRequest(new { message = "La gestión debe tener 4 dígitos numéricos" });
