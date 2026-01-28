@@ -105,6 +105,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
           _usuarios = results[0] as List<Usuario>;
           _carpetas = results[1] as List<Carpeta>;
           _areas = (results[2] as List<Map<String, dynamic>>);
+          _tiposDocumento = (results[3] as List<Map<String, dynamic>>);
           
           // Filtrar solo Contabilidad
           final contabilidad = _areas.where((a) => a['nombre'].toString().toLowerCase().contains('contabilidad')).toList();
@@ -117,6 +118,11 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
           if (_areaOrigenId != null &&
               !_areas.any((a) => a['id'] == _areaOrigenId)) {
             _areaOrigenId = null;
+          }
+
+          // Asignar tipo de documento por defecto si no hay uno seleccionado
+          if (_tiposDocumento.isNotEmpty && _tipoDocumentoId == null) {
+            _tipoDocumentoId = _tiposDocumento.first['id'];
           }
         });
       }
