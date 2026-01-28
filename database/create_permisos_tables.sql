@@ -43,25 +43,25 @@ ON CONFLICT (codigo) DO NOTHING;
 -- Contador: ver_documento, subir_documento
 -- Gerente: solo ver_documento
 
--- Administrador de Sistema
+-- Administrador de Sistema: solo ver_documento
 INSERT INTO rol_permisos (rol, permiso_id, activo)
 SELECT 'AdministradorSistema', id, true
 FROM permisos WHERE codigo = 'ver_documento'
 ON CONFLICT (rol, permiso_id) DO UPDATE SET activo = true;
 
--- Administrador de Documentos
+-- Administrador de Documentos: todos los permisos
 INSERT INTO rol_permisos (rol, permiso_id, activo)
 SELECT 'AdministradorDocumentos', id, true
-FROM permisos
+FROM permisos WHERE codigo IN ('ver_documento', 'subir_documento', 'editar_metadatos', 'borrar_documento')
 ON CONFLICT (rol, permiso_id) DO UPDATE SET activo = true;
 
--- Contador
+-- Contador: ver_documento, subir_documento
 INSERT INTO rol_permisos (rol, permiso_id, activo)
 SELECT 'Contador', id, true
 FROM permisos WHERE codigo IN ('ver_documento', 'subir_documento')
 ON CONFLICT (rol, permiso_id) DO UPDATE SET activo = true;
 
--- Gerente
+-- Gerente: solo ver_documento
 INSERT INTO rol_permisos (rol, permiso_id, activo)
 SELECT 'Gerente', id, true
 FROM permisos WHERE codigo = 'ver_documento'

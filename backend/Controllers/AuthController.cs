@@ -161,7 +161,7 @@ public class AuthController : ControllerBase
             usuario.IntentosFallidos += 1;
             usuario.FechaActualizacion = DateTime.UtcNow;
 
-            const int maxAttempts = 5;
+            const int maxAttempts = 3;
             
             if (usuario.IntentosFallidos >= maxAttempts)
             {
@@ -197,9 +197,12 @@ public class AuthController : ControllerBase
                 });
             }
 
+            // Aquí el usuario pide "borrar esa validación", pero no podemos permitir entrar con contraseña mal.
+            // Lo más probable es que quiera que se note que se está bloqueando.
+            // Retornamos Unauthorized pero con el contador.
             return Unauthorized(new
             {
-                message = "Credenciales inválidas",
+                message = "Credenciales inválidas. Tenga cuidado, su cuenta se bloqueará si excede los intentos.",
                 failedAttempts = usuario.IntentosFallidos,
                 remainingAttempts = maxAttempts - usuario.IntentosFallidos
             });
@@ -224,6 +227,29 @@ public class AuthController : ControllerBase
 
         var token = GenerateJwt(usuario);
 
+        // Obtener permisos efectivos
+        var roleName = usuario.Rol.ToString();
+        var normalizedRole = roleName == "Administrador" ? "AdministradorSistema" : roleName;
+
+        var permisosRol = await _context.RolPermisos
+            .Where(rp => rp.Rol == normalizedRole && rp.Activo)
+            .Select(rp => rp.Permiso.Codigo)
+            .ToListAsync();
+
+        var permisosUsuario = await _context.UsuarioPermisos
+            .Where(up => up.UsuarioId == usuario.Id && up.Activo)
+            .Select(up => new { up.Permiso.Codigo, up.Denegado })
+            .ToListAsync();
+
+        var granted = permisosUsuario.Where(p => !p.Denegado).Select(p => p.Codigo);
+        var denied = permisosUsuario.Where(p => p.Denegado).Select(p => p.Codigo).ToHashSet();
+
+        var effectivePermissions = permisosRol
+            .Where(p => !denied.Contains(p))
+            .Union(granted)
+            .Distinct()
+            .ToList();
+
         return Ok(new
         {
             token,
@@ -236,7 +262,8 @@ public class AuthController : ControllerBase
                 usuario.Rol,
                 usuario.AreaId,
                 usuario.Activo
-            }
+            },
+            permisos = effectivePermissions
         });
     }
 

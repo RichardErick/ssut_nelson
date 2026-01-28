@@ -50,6 +50,14 @@ class AuthProvider extends ChangeNotifier {
     return _lockoutEndTime!.difference(DateTime.now());
   }
 
+  List<String> _permissions = [];
+  List<String> get permissions => _permissions;
+
+  bool hasPermission(String permissionCode) {
+    // ESTRICTO: Solo si tienen el permiso en la lista
+    return _permissions.contains(permissionCode);
+  }
+
   AuthProvider() {
     _loadAuthState();
   }
@@ -63,6 +71,7 @@ class AuthProvider extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         final roleString = prefs.getString('user_role');
         final userDataString = prefs.getString('user_data');
+        final permissionsString = prefs.getString('user_permissions');
 
         if (roleString != null) {
           _role = _parseRole(roleString);
@@ -85,6 +94,15 @@ class AuthProvider extends ChangeNotifier {
             _user = {'nombreUsuario': username};
           }
         }
+
+        if (permissionsString != null) {
+           try {
+             _permissions = List<String>.from(jsonDecode(permissionsString));
+           } catch (_) {
+             _permissions = [];
+           }
+        }
+
         _isAuthenticated = true;
 
         // Configurar header Authorization si ya hay contexto
@@ -127,6 +145,7 @@ class AuthProvider extends ChangeNotifier {
       final data = response.data as Map<String, dynamic>;
       final token = data['token'] as String?;
       final user = data['user'] as Map<String, dynamic>?;
+      final permisosList = data['permisos'] as List?;
 
       if (token == null || user == null) {
         throw Exception('Respuesta inválida del servidor');
@@ -136,6 +155,12 @@ class AuthProvider extends ChangeNotifier {
       _token = token;
       _isAuthenticated = true;
       _user = user;
+      
+      if (permisosList != null) {
+        _permissions = permisosList.map((e) => e.toString()).toList();
+      } else {
+        _permissions = [];
+      }
 
       final roleString = (user['rol'] as String?) ?? 'Invitado';
       _role = _parseRole(roleString);
@@ -146,6 +171,7 @@ class AuthProvider extends ChangeNotifier {
       await prefs.setString('user_data', jsonEncode(_user));
       await prefs.setString('user_role', roleString);
       await prefs.setString('user_name', username);
+      await prefs.setString('user_permissions', jsonEncode(_permissions));
 
       await _secureStorage.write(key: 'auth_token', value: _token!);
 
@@ -219,6 +245,7 @@ class AuthProvider extends ChangeNotifier {
     _isAuthenticated = false;
     _token = null;
     _user = null;
+    _permissions = [];
 
     try {
       final apiService = Provider.of<ApiService>(
@@ -232,6 +259,7 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('user_data');
     await prefs.remove('user_role');
     await prefs.remove('user_name');
+    await prefs.remove('user_permissions');
 
     // Eliminar token del almacenamiento seguro
     await _secureStorage.delete(key: 'auth_token');

@@ -200,7 +200,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final authProvider = Provider.of<AuthProvider>(context);
-    final canCreate = authProvider.role != UserRole.gerente;
+    final canCreate = authProvider.hasPermission('subir_documento');
 
     int crossAxisCount = 1;
     if (size.width > 1200) {
@@ -969,6 +969,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Widget _buildCardFooter(Documento doc, ThemeData theme) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final canDelete = authProvider.hasPermission('borrar_documento');
+
     return Row(
       children: [
         Icon(
@@ -998,20 +1001,21 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           ),
         ),
         const SizedBox(width: 8),
-        IconButton(
-          icon: Icon(
-            Icons.delete_outline_rounded,
-            size: 20,
-            color: Colors.red.shade600,
+        if (canDelete)
+          IconButton(
+            icon: Icon(
+              Icons.delete_outline_rounded,
+              size: 20,
+              color: Colors.red.shade600,
+            ),
+            onPressed: () => _confirmarEliminarDocumento(doc),
+            tooltip: 'Eliminar documento',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            style: IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
           ),
-          onPressed: () => _confirmarEliminarDocumento(doc),
-          tooltip: 'Eliminar documento',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          style: IconButton.styleFrom(
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
       ],
     );
   }
@@ -1245,6 +1249,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   bool _canCreateDocument() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    return authProvider.role != UserRole.gerente;
+    return authProvider.hasPermission('subir_documento');
   }
 }

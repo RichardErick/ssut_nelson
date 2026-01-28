@@ -456,8 +456,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildFAB(ThemeData theme) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final canCreate = authProvider.role != UserRole.gerente;
+    final authProvider = Provider.of<AuthProvider>(context);
+    final canCreate = authProvider.hasPermission('subir_documento');
 
     return ScaleTransition(
       scale: _fabAnimation,

@@ -146,15 +146,16 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 18),
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.delete_outline_rounded),
-          onPressed: () => _confirmarEliminarDocumento(doc),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.red.shade50,
-            foregroundColor: Colors.red.shade700,
+        if (Provider.of<AuthProvider>(context).hasPermission('borrar_documento'))
+          IconButton(
+            icon: const Icon(Icons.delete_outline_rounded),
+            onPressed: () => _confirmarEliminarDocumento(doc),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.red.shade50,
+              foregroundColor: Colors.red.shade700,
+            ),
+            tooltip: 'Eliminar documento',
           ),
-          tooltip: 'Eliminar documento',
-        ),
         const SizedBox(width: 8),
         IconButton(
           icon: const Icon(Icons.print_rounded),
@@ -164,13 +165,14 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        IconButton(
-          icon: const Icon(Icons.edit_rounded),
-          onPressed: () {},
-          style: IconButton.styleFrom(
-            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+        if (Provider.of<AuthProvider>(context).hasPermission('editar_metadatos'))
+          IconButton(
+            icon: const Icon(Icons.edit_rounded),
+            onPressed: () {},
+            style: IconButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+            ),
           ),
-        ),
         const SizedBox(width: 8),
         IconButton(
           icon: const Icon(Icons.share_rounded),
