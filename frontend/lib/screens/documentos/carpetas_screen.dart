@@ -211,11 +211,15 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
       child: ExpansionTile(
-        leading: CircleAvatar(
-          radius: 22,
-          backgroundColor: Colors.amber.shade100,
-          child: Icon(Icons.folder_rounded, color: Colors.amber.shade800, size: 26),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.amber.shade100,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(Icons.folder_rounded, color: Colors.amber.shade800, size: 28),
         ),
         title: Text(
           carpeta.nombre,
@@ -223,29 +227,51 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
         ),
         subtitle: _buildCarpetaSubtitle(carpeta),
         trailing: _buildCarpetaActions(carpeta),
+        childrenPadding: const EdgeInsets.only(bottom: 8),
         children: [
           if (carpeta.subcarpetas.isNotEmpty)
-            ...carpeta.subcarpetas.map((sub) => ListTile(
-                  contentPadding: const EdgeInsets.only(left: 32, right: 8),
-                  leading: Icon(Icons.folder_open_rounded, color: Colors.amber.shade400),
-                  title: Text(sub.nombre),
-                  subtitle: Text('${sub.numeroDocumentos} documentos'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade700, size: 20),
-                        tooltip: 'Eliminar Subcarpeta',
-                        onPressed: () => _confirmarEliminarCarpeta(sub),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
-                    ],
+            ...carpeta.subcarpetas.map((sub) => Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
                   ),
-                  onTap: () {
-                    // TODO: Navegar a detalles de carpeta o lista de documentos filtrada
-                  },
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.only(left: 24, right: 8),
+                    leading: Icon(Icons.folder_open_rounded, color: Colors.amber.shade700),
+                    title: Text(
+                      sub.nombre,
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                    ),
+                    subtitle: Text(
+                      '${sub.numeroDocumentos} documentos',
+                      style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade700, size: 22),
+                          tooltip: 'Eliminar Subcarpeta',
+                          onPressed: () => _confirmarEliminarCarpeta(sub),
+                        ),
+                        // Un icono visual para indicar que se puede entrar (aunque onTap está pendiente)
+                        const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                      ],
+                    ),
+                    onTap: () {
+                      // TODO: Navegar a detalles de carpeta o lista de documentos filtrada
+                      // Por ahora mostramos un snackbar para feedback
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Abrir subcarpeta ${sub.nombre} (Pendiente)')),
+                      );
+                    },
+                  ),
                 )),
+          if (carpeta.subcarpetas.isEmpty)
+             Padding(
+               padding: const EdgeInsets.all(16.0),
+               child: Text('Esta carpeta está vacía', style: TextStyle(color: Colors.grey.shade500)),
+             ),
         ],
       ),
     );
@@ -256,14 +282,19 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(Icons.create_new_folder_rounded, color: Colors.amber.shade800),
+          icon: Icon(Icons.create_new_folder_outlined, color: Colors.blue.shade700),
           tooltip: 'Nueva Subcarpeta',
           onPressed: () => _crearCarpeta(padreId: carpeta.id),
         ),
         IconButton(
-          icon: Icon(Icons.delete_rounded, color: Colors.red.shade700),
+          icon: Icon(Icons.delete_outline, color: Colors.red.shade700),
           tooltip: 'Eliminar Carpeta',
           onPressed: () => _confirmarEliminarCarpeta(carpeta),
+        ),
+        // Icono para indicar expansión manualmente ya que overrideamos trailing
+        const Padding(
+          padding: EdgeInsets.only(left: 4),
+          child: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
         ),
       ],
     );

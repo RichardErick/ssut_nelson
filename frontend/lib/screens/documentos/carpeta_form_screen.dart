@@ -19,11 +19,12 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
   static const String _nombreCarpetaPermitida = 'Comprobante de Egreso';
   
   // Controladores
-  final _nombreController = TextEditingController(); // Para nombre o rango
+  final _nombreController = TextEditingController();
   final _gestionController = TextEditingController();
   final _descripcionController = TextEditingController();
+  final _codigoRomanoController = TextEditingController();
   
-  // Rangos (solo para subcarpetas)
+  // Rangos
   final _rangoInicioController = TextEditingController();
   final _rangoFinController = TextEditingController();
 
@@ -48,6 +49,7 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
     _nombreController.dispose();
     _gestionController.dispose();
     _descripcionController.dispose();
+    _codigoRomanoController.dispose();
     _rangoInicioController.dispose();
     _rangoFinController.dispose();
     super.dispose();
@@ -65,27 +67,32 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
       if (widget.padreId == null) {
         // Verificar si ya existe carpeta principal del año
         final carpetas = await carpetaService.getAll(gestion: _gestionController.text);
-        if (carpetas.any((c) => c.nombre == _nombreCarpetaPermitida && c.carpetaPadreId == null)) {
-           throw Exception('Ya existe una carpeta "$_nombreCarpetaPermitida" para la gestión ${_gestionController.text}.');
+        if (carpetas.any((c) => c.nombre == _nombreController.text && c.carpetaPadreId == null)) {
+           throw Exception('Ya existe una carpeta "${_nombreController.text}" para la gestión ${_gestionController.text}.');
         }
       }
 
-      int? rInicio = int.tryParse(_rangoInicioController.text);
-      int? rFin = int.tryParse(_rangoFinController.text);
-      String nombreFinal = _nombreController.text;
+      int? rInicio = _rangoInicioController.text.isNotEmpty 
+          ? int.tryParse(_rangoInicioController.text) 
+          : null;
+      int? rFin = _rangoFinController.text.isNotEmpty 
+          ? int.tryParse(_rangoFinController.text) 
+          : null;
 
-      if (widget.padreId != null) {
-        if (rInicio == null || rFin == null) {
-           throw Exception('Debe especificar Rango Inicio y Fin para subcarpetas.');
-        }
-        nombreFinal = 'Rango $rInicio - $rFin';
+      // Validar que si se ingresa rango, ambos campos estén completos
+      if ((rInicio != null && rFin == null) || (rInicio == null && rFin != null)) {
+        throw Exception('Debe especificar tanto Rango Inicio como Rango Fin, o dejar ambos vacíos.');
+      }
+
+      if (rInicio != null && rFin != null && rInicio > rFin) {
+        throw Exception('El Rango Inicio no puede ser mayor que el Rango Fin.');
       }
 
       final dto = CreateCarpetaDTO(
-        nombre: nombreFinal,
-        codigo: null,
+        nombre: _nombreController.text,
+        codigo: _codigoRomanoController.text.isNotEmpty ? _codigoRomanoController.text : null,
         gestion: _gestionController.text,
-        descripcion: _descripcionController.text,
+        descripcion: _descripcionController.text.isNotEmpty ? _descripcionController.text : null,
         carpetaPadreId: widget.padreId,
         rangoInicio: rInicio,
         rangoFin: rFin,
@@ -136,59 +143,89 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
                   _buildInfoCard(theme, esPrincipal),
                   const SizedBox(height: 24),
 
-                  if (esPrincipal) ...[
-                    TextFormField(
-                      controller: _nombreController,
-                      readOnly: true,
-                      decoration: _inputDecoration('Nombre de Carpeta', icon: Icons.folder),
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Solo se permite crear carpetas de tipo "Comprobante de Egreso".',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                    ),
-                  ] else ...[
-                     TextFormField(
-                      controller: _nombreController,
-                      decoration: _inputDecoration('Nombre Referencial', icon: Icons.folder_open),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _rangoInicioController,
-                            keyboardType: TextInputType.number,
-                            decoration: _inputDecoration('Rango Inicio', icon: Icons.start),
-                            validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _rangoFinController,
-                            keyboardType: TextInputType.number,
-                            decoration: _inputDecoration('Rango Fin', icon: Icons.last_page),
-                            validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-
-                  const SizedBox(height: 16),
+                  // Nombre de la carpeta (siempre editable)
+                  TextFormField(
+                    controller: _nombreController,
+                    decoration: _inputDecoration('Nombre de Carpeta', icon: Icons.folder),
+                    validator: (v) => v == null || v.isEmpty ? 'El nombre es requerido' : null,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    esPrincipal 
+                      ? 'Ej: Comprobante de Egreso, Comprobante de Ingreso, etc.'
+                      : 'Ej: Rango 1-50, Subcarpeta A, etc.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                  ),
                   
+                  const SizedBox(height: 20),
+
+                  // Gestión (Año)
                   TextFormField(
                     controller: _gestionController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 4,
+                    readOnly: true,
                     decoration: _inputDecoration('Gestión (Año)', icon: Icons.calendar_today),
-                    validator: (v) => v!.length != 4 ? 'Año inválido' : null,
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.grey.shade700),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'La gestión se asigna automáticamente al año actual',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
                   ),
                   
                   const SizedBox(height: 16),
 
+                  // Rango de subcarpetas
+                  Text(
+                    'Rango de Documentos',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Define el rango numérico de documentos que contendrá esta carpeta (opcional)',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _rangoInicioController,
+                          keyboardType: TextInputType.number,
+                          decoration: _inputDecoration('Límite Inicio', icon: Icons.first_page),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _rangoFinController,
+                          keyboardType: TextInputType.number,
+                          decoration: _inputDecoration('Límite Fin', icon: Icons.last_page),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 20),
+
+                  // Código Romano
+                  TextFormField(
+                    controller: _codigoRomanoController,
+                    decoration: _inputDecoration('Código Romano', icon: Icons.format_list_numbered_rtl),
+                    textCapitalization: TextCapitalization.characters,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Ej: I, II, III, IV, V, etc. (opcional)',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Descripción
                   TextFormField(
                     controller: _descripcionController,
                     maxLines: 3,
@@ -197,20 +234,22 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
 
                   const SizedBox(height: 32),
 
+                  // Botón de guardar
                   SizedBox(
                     width: double.infinity,
                     height: 50,
-                    child: ElevatedButton(
+                    child: ElevatedButton.icon(
                       onPressed: _guardar,
+                      icon: const Icon(Icons.save_rounded, size: 22),
+                      label: Text(
+                        'Crear Carpeta',
+                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: esPrincipal ? Colors.amber.shade800 : theme.colorScheme.primary,
+                        backgroundColor: esPrincipal ? Colors.amber.shade800 : Colors.blue.shade700,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 2,
-                      ),
-                      child: Text(
-                        'Crear Carpeta',
-                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
