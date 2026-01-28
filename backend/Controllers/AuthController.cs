@@ -140,8 +140,7 @@ public class AuthController : ControllerBase
         // Bloquear usuarios que aún no fueron aprobados por un administrador,
         // EXCEPTO el Administrador del sistema (puede entrar siempre)
         if (!usuario.Activo &&
-            usuario.Rol != UsuarioRol.Administrador &&
-            usuario.Rol != UsuarioRol.AdministradorSistema)
+            usuario.Rol != UsuarioRol.Administrador)
         {
             return Unauthorized(new { message = "Su cuenta está pendiente de aprobación por un administrador." });
         }
