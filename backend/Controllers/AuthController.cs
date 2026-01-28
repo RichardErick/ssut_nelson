@@ -145,16 +145,45 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Su cuenta está pendiente de aprobación por un administrador." });
         }
 
-        // Nota: El sistema NO bloquea por intentos fallidos.
-        // Se mantiene el conteo para auditoría/advertencia, pero sin lockout.
+        // Verificar si el usuario está bloqueado
+        if (usuario.BloqueadoHasta.HasValue && usuario.BloqueadoHasta.Value > DateTime.UtcNow)
+        {
+            var tiempoRestante = usuario.BloqueadoHasta.Value - DateTime.UtcNow;
+            return StatusCode(423, new 
+            { 
+                message = $"Su cuenta está bloqueada. Intente de nuevo en {Math.Ceiling(tiempoRestante.TotalMinutes)} minutos.",
+                remainingSeconds = (int)tiempoRestante.TotalSeconds
+            });
+        }
 
         if (!VerifyPassword(dto.Password, usuario.PasswordHash))
         {
             usuario.IntentosFallidos += 1;
-            // Nunca bloquear: asegurar que no quede un lockout viejo en BD
-            usuario.BloqueadoHasta = null;
-
             usuario.FechaActualizacion = DateTime.UtcNow;
+
+            const int maxAttempts = 5;
+            
+            if (usuario.IntentosFallidos >= maxAttempts)
+            {
+                // Bloquear por 30 minutos
+                usuario.BloqueadoHasta = DateTime.UtcNow.AddMinutes(30);
+                
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error actualizando estado de bloqueo.", error = ex.Message });
+                }
+
+                return StatusCode(423, new 
+                { 
+                    message = "Se ha excedido el número máximo de intentos. Su cuenta ha sido bloqueada temporalmente por 30 minutos.",
+                    remainingSeconds = 30 * 60
+                });
+            }
+
             try
             {
                 await _context.SaveChangesAsync();
@@ -163,23 +192,16 @@ public class AuthController : ControllerBase
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new
                 {
-                    message = "Error actualizando intentos fallidos en BD. Verifica que la tabla 'usuarios' tenga columnas: intentos_fallidos, bloqueado_hasta, fecha_actualizacion.",
+                    message = "Error actualizando intentos fallidos en BD.",
                     error = ex.Message
                 });
             }
 
-            const int warningThreshold = 5;
-            var intentos = usuario.IntentosFallidos;
-            var advertencia = intentos >= warningThreshold
-                ? $"Advertencia: {intentos} intentos fallidos. Verifique sus credenciales."
-                : $"Intento fallido {intentos}/{warningThreshold}.";
-
             return Unauthorized(new
             {
                 message = "Credenciales inválidas",
-                warning = advertencia,
-                failedAttempts = intentos,
-                warningThreshold
+                failedAttempts = usuario.IntentosFallidos,
+                remainingAttempts = maxAttempts - usuario.IntentosFallidos
             });
         }
 

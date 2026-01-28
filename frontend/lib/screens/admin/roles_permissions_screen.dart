@@ -937,9 +937,13 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                                 color: _getRolColor(rol),
                               ),
                               const SizedBox(width: 8),
-                              Text(_getRolDisplayName(rol)),
-                            ],
-                          ),
+                              Expanded(
+                              child: Text(
+                                _getRolDisplayName(rol),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -968,7 +972,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                       ..._areas.map(
                         (area) => DropdownMenuItem(
                           value: area.id.toString(),
-                          child: Text(area.nombre),
+                          child: Text(
+                            area.nombre,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
                     ],
@@ -1051,7 +1058,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
           crossAxisCount: isDesktop ? 3 : 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 1.1,
+          childAspectRatio: isDesktop ? 1.0 : 0.85, 
         ),
         itemCount: _usuariosFiltrados.length,
         itemBuilder: (context, index) {
