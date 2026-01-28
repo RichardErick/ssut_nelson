@@ -195,12 +195,6 @@ public class PermisosController : ControllerBase
                 rol = "AdministradorSistema";
             }
 
-            var permisos = await _context.Permisos
-                .Where(p => p.Activo)
-                .OrderBy(p => p.Modulo)
-                .ThenBy(p => p.Nombre)
-                .ToListAsync();
-
             var permisosRolIds = await _context.RolPermisos
                 .Where(rp => rp.Rol == rol && rp.Activo)
                 .Select(rp => rp.PermisoId)
@@ -218,6 +212,22 @@ public class PermisosController : ControllerBase
             var rolSet = new HashSet<int>(permisosRolIds);
             var usuarioGrantedSet = new HashSet<int>(permisosUsuarioGrantedIds);
             var usuarioDeniedSet = new HashSet<int>(permisosUsuarioDeniedIds);
+
+            // Solo mostrar permisos "relevantes" al rol del usuario:
+            // - Los heredados por el rol (roleHas)
+            // - Los asignados explícitamente al usuario
+            // - Los denegados explícitamente (para que el admin vea el override)
+            var relevantIds = permisosRolIds
+                .Union(permisosUsuarioGrantedIds)
+                .Union(permisosUsuarioDeniedIds)
+                .Distinct()
+                .ToList();
+
+            var permisos = await _context.Permisos
+                .Where(p => p.Activo && relevantIds.Contains(p.Id))
+                .OrderBy(p => p.Modulo)
+                .ThenBy(p => p.Nombre)
+                .ToListAsync();
 
             var response = permisos.Select(p => new
             {

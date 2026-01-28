@@ -148,7 +148,12 @@ public class AuthController : ControllerBase
         if (usuario.BloqueadoHasta.HasValue && usuario.BloqueadoHasta.Value > DateTime.UtcNow)
         {
             var remaining = (int)Math.Ceiling((usuario.BloqueadoHasta.Value - DateTime.UtcNow).TotalSeconds);
-            return StatusCode(StatusCodes.Status423Locked, new { message = $"Cuenta bloqueada temporalmente. Intente en {remaining} segundos." });
+            return StatusCode(StatusCodes.Status423Locked, new
+            {
+                message = $"Cuenta bloqueada temporalmente. Intente en {remaining} segundos.",
+                remainingSeconds = remaining,
+                bloqueadoHasta = usuario.BloqueadoHasta.Value
+            });
         }
 
         if (!VerifyPassword(dto.Password, usuario.PasswordHash))
@@ -156,9 +161,9 @@ public class AuthController : ControllerBase
             usuario.IntentosFallidos += 1;
 
             // Política de bloqueo escalonado:
-            // - A partir de 3 intentos fallidos: bloqueo de 30 segundos
+            // - A partir de 5 intentos fallidos: bloqueo temporal (30 segundos)
             // - Si se sigue equivocando y llega a 10 intentos o más: bloqueo de 1 hora
-            const int softThreshold = 3;
+            const int softThreshold = 5;
             const int hardThreshold = 10;
 
             if (usuario.IntentosFallidos >= hardThreshold)

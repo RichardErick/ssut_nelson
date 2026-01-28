@@ -2,21 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../../models/documento.dart';
 import '../../models/carpeta.dart';
-import '../../services/documento_service.dart';
+import '../../models/documento.dart';
+import '../../models/user_role.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/carpeta_service.dart';
+import '../../services/documento_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_shimmer.dart';
-
+import 'carpeta_form_screen.dart';
+import 'carpetas_screen.dart';
 import 'documento_detail_screen.dart';
 import 'documento_form_screen.dart';
-import 'carpetas_screen.dart';
-import 'carpeta_form_screen.dart';
-import '../../providers/auth_provider.dart';
-import '../../models/user_role.dart';
 
 class DocumentosListScreen extends StatefulWidget {
   const DocumentosListScreen({super.key});
@@ -138,12 +137,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     setState(() => _estaCargandoSubcarpetas = true);
     try {
       final service = Provider.of<CarpetaService>(context, listen: false);
-      final subcarpetas = await service.getAll(gestion: DateTime.now().year.toString());
+      final subcarpetas = await service.getAll(
+        gestion: DateTime.now().year.toString(),
+      );
       // Filtrar manualmente si el backend no soporta filtro por padreId en getAll
       // Asumimos que getAll trae todo o filtramos en memoria por ahora
       if (mounted) {
         setState(() {
-          _subcarpetas = subcarpetas.where((c) => c.carpetaPadreId == padreId).toList();
+          _subcarpetas =
+              subcarpetas.where((c) => c.carpetaPadreId == padreId).toList();
           _estaCargandoSubcarpetas = false;
         });
       }
@@ -416,38 +418,29 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   ],
                 ),
               ),
-              // Botón de Acción Condicional
-              if (carpeta.carpetaPadreId == null)
-                ElevatedButton.icon(
-                  onPressed: () => _crearSubcarpeta(carpeta.id), // Nueva función
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber.shade800,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                    elevation: 0,
+              // Acción: Nueva Carpeta (subcarpeta) siempre
+              ElevatedButton.icon(
+                onPressed: () => _crearSubcarpeta(carpeta.id),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber.shade800,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  icon: const Icon(Icons.create_new_folder_outlined, size: 18),
-                  label: const Text('Crear Subcarpeta'),
-                )
-              else
-                ElevatedButton.icon(
-                  onPressed: () => _abrirDocumentoEnCarpeta(carpeta),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                    elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 0,
                   ),
-                  icon: const Icon(Icons.note_add_outlined, size: 18),
-                  label: const Text('Nuevo Documento'),
+                  elevation: 0,
                 ),
+                icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+                label: const Text('Nueva Carpeta'),
+              ),
               const SizedBox(width: 8),
             ],
           ),
         ),
-        
+
         // Vista de Subcarpetas (si existen)
         if (_estaCargandoSubcarpetas)
           const LinearProgressIndicator(minHeight: 2)
@@ -897,9 +890,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildCardHeader(doc, theme),
-                      ),
+                      Expanded(child: _buildCardHeader(doc, theme)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -1062,7 +1053,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         builder: (context) => DocumentoDetailScreen(documento: doc),
       ),
     );
-    
+
     // Si se eliminó el documento desde el detalle, recargar la lista
     if (result == true) {
       cargarDocumentos();
@@ -1075,26 +1066,27 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _confirmarEliminarDocumento(Documento doc) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar documento'),
-        content: Text(
-          '¿Estás seguro de eliminar el documento "${doc.codigo}"?\n\nEsta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Eliminar documento'),
+            content: Text(
+              '¿Estás seguro de eliminar el documento "${doc.codigo}"?\n\nEsta acción no se puede deshacer.',
             ),
-            child: const Text('Sí, Eliminar'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Sí, Eliminar'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (confirm == true) {
@@ -1106,9 +1098,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
       await service.delete(doc.id);
-      
+
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -1121,7 +1113,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           backgroundColor: AppTheme.colorExito,
         ),
       );
-      
+
       // Recargar la lista de documentos
       cargarDocumentos();
       if (_carpetaSeleccionada != null) {
@@ -1129,8 +1121,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       }
     } catch (e) {
       if (!mounted) return;
-      
-      _mostrarSnackBarError('Error al eliminar: ${ErrorHelper.getErrorMessage(e)}');
+
+      _mostrarSnackBarError(
+        'Error al eliminar: ${ErrorHelper.getErrorMessage(e)}',
+      );
     }
   }
 
@@ -1222,16 +1216,20 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.folder_shared_rounded, color: Colors.blue, size: 32),
+            const Icon(
+              Icons.folder_shared_rounded,
+              color: Colors.blue,
+              size: 32,
+            ),
             const Spacer(),
             Text(
               sub.nombre,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.poppins(
-                fontSize: 14, 
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.blue.shade900
+                color: Colors.blue.shade900,
               ),
             ),
             if (sub.rangoInicio != null && sub.rangoFin != null)

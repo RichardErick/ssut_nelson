@@ -3,9 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/permiso.dart';
+import '../../models/user_role.dart';
 import '../../models/usuario.dart';
 import '../../providers/auth_provider.dart';
-import '../../models/user_role.dart';
 import '../../services/api_service.dart';
 import '../../services/usuario_service.dart';
 import '../../theme/app_theme.dart';
@@ -38,11 +38,11 @@ class _PermisosScreenState extends State<PermisosScreen> {
   List<Usuario> _usuariosFiltrados = [];
   List<_PermisoUsuarioEntry> _permisosUsuario = [];
   Map<String, List<_PermisoUsuarioEntry>> _permisosPorModulo = {};
-  
+
   // State
   final Map<int, bool> _cambiosLocales = {};
   final Map<int, bool> _userPermOriginal = {};
-  
+
   Usuario? _usuarioSeleccionado;
   bool _isLoading = true;
   bool _isLoadingPermisos = false;
@@ -68,11 +68,12 @@ class _PermisosScreenState extends State<PermisosScreen> {
       if (query.isEmpty) {
         _usuariosFiltrados = List.from(_usuarios);
       } else {
-        _usuariosFiltrados = _usuarios.where((u) {
-          return u.nombreCompleto.toLowerCase().contains(query) ||
-                 u.nombreUsuario.toLowerCase().contains(query) ||
-                 u.rol.toLowerCase().contains(query);
-        }).toList();
+        _usuariosFiltrados =
+            _usuarios.where((u) {
+              return u.nombreCompleto.toLowerCase().contains(query) ||
+                  u.nombreUsuario.toLowerCase().contains(query) ||
+                  u.rol.toLowerCase().contains(query);
+            }).toList();
       }
     });
   }
@@ -80,14 +81,20 @@ class _PermisosScreenState extends State<PermisosScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      final usuarioService = Provider.of<UsuarioService>(
+        context,
+        listen: false,
+      );
 
       // Fetch Users
       final usuariosList = await usuarioService.getAll();
       Usuario? selected = _usuarioSeleccionado;
       if (selected != null) {
         final idx = usuariosList.indexWhere((u) => u.id == selected!.id);
-        selected = idx == -1 && usuariosList.isNotEmpty ? usuariosList.first : (idx == -1 ? null : usuariosList[idx]);
+        selected =
+            idx == -1 && usuariosList.isNotEmpty
+                ? usuariosList.first
+                : (idx == -1 ? null : usuariosList[idx]);
       } else if (usuariosList.isNotEmpty) {
         selected = usuariosList.first;
       }
@@ -118,7 +125,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al cargar datos: ${ErrorHelper.getErrorMessage(e)}'),
+            content: Text(
+              'Error al cargar datos: ${ErrorHelper.getErrorMessage(e)}',
+            ),
             backgroundColor: Colors.red.shade600,
           ),
         );
@@ -133,8 +142,8 @@ class _PermisosScreenState extends State<PermisosScreen> {
       final response = await apiService.get('/permisos/usuarios/${usuario.id}');
       final data = response.data as Map<String, dynamic>;
 
-      final permisosList = (data['permisos'] as List)
-          .map((p) {
+      final permisosList =
+          (data['permisos'] as List).map((p) {
             final permiso = Permiso.fromJson(p as Map<String, dynamic>);
             final roleHas = p['roleHas'] as bool? ?? false;
             final userHas = p['userHas'] as bool? ?? false;
@@ -145,8 +154,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
               userHas: userHas,
               isDenied: isDenied,
             );
-          })
-          .toList();
+          }).toList();
 
       final grouped = <String, List<_PermisoUsuarioEntry>>{};
       final originales = <int, bool>{};
@@ -174,7 +182,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
         setState(() => _isLoadingPermisos = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al cargar permisos: ${ErrorHelper.getErrorMessage(e)}'),
+            content: Text(
+              'Error al cargar permisos: ${ErrorHelper.getErrorMessage(e)}',
+            ),
             backgroundColor: Colors.red.shade600,
           ),
         );
@@ -193,9 +203,14 @@ class _PermisosScreenState extends State<PermisosScreen> {
 
   void _onPermisoChanged(_PermisoUsuarioEntry entry, bool value) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    if (auth.role != UserRole.administradorSistema) {
+    final canEdit =
+        auth.role == UserRole.administradorSistema ||
+        auth.role == UserRole.administradorDocumentos;
+    if (!canEdit) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solo el Administrador de Sistema puede modificar permisos.')),
+        const SnackBar(
+          content: Text('Solo un Administrador puede modificar permisos.'),
+        ),
       );
       return;
     }
@@ -220,7 +235,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
   }
 
   bool _isModified(_PermisoUsuarioEntry entry) {
-     return _cambiosLocales.containsKey(entry.permiso.id);
+    return _cambiosLocales.containsKey(entry.permiso.id);
   }
 
   int _countChanges() {
@@ -234,9 +249,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
       _cambiosLocales.clear();
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cambios descartados')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cambios descartados')));
     }
   }
 
@@ -244,9 +259,16 @@ class _PermisosScreenState extends State<PermisosScreen> {
     if (_isSaving) return;
     if (_usuarioSeleccionado == null) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    if (auth.role != UserRole.administradorSistema) {
+    final canEdit =
+        auth.role == UserRole.administradorSistema ||
+        auth.role == UserRole.administradorDocumentos;
+    if (!canEdit) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solo el Administrador de Sistema puede guardar cambios de permisos.')),
+        const SnackBar(
+          content: Text(
+            'Solo un Administrador puede guardar cambios de permisos.',
+          ),
+        ),
       );
       return;
     }
@@ -277,11 +299,11 @@ class _PermisosScreenState extends State<PermisosScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Row(
-               children: [
-                 Icon(Icons.check_circle, color: Colors.white),
-                 SizedBox(width: 12),
-                 Text('Permisos guardados correctamente'),
-               ],
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Permisos guardados correctamente'),
+              ],
             ),
             backgroundColor: AppTheme.colorExito,
             behavior: SnackBarBehavior.floating,
@@ -289,10 +311,12 @@ class _PermisosScreenState extends State<PermisosScreen> {
         );
       }
     } catch (e) {
-       if (mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar: ${ErrorHelper.getErrorMessage(e)}'),
+            content: Text(
+              'Error al guardar: ${ErrorHelper.getErrorMessage(e)}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -304,27 +328,40 @@ class _PermisosScreenState extends State<PermisosScreen> {
 
   String _getRolDisplayName(String rol) {
     switch (rol) {
-      case 'AdministradorSistema': return 'Administrador de Sistema';
-      case 'AdministradorDocumentos': return 'Admin. Documentos';
-      case 'Contador': return 'Contador';
-      case 'Gerente': return 'Gerente';
-      case 'Administrador': return 'Administrador';
-      case 'ArchivoCentral': return 'Archivo Central';
-      case 'TramiteDocumentario': return 'Trámite Documentario';
-      case 'Usuario': return 'Usuario';
-      case 'Supervisor': return 'Supervisor';
-      default: return rol;
+      case 'AdministradorSistema':
+        return 'Administrador de Sistema';
+      case 'AdministradorDocumentos':
+        return 'Admin. Documentos';
+      case 'Contador':
+        return 'Contador';
+      case 'Gerente':
+        return 'Gerente';
+      case 'Administrador':
+        return 'Administrador';
+      case 'ArchivoCentral':
+        return 'Archivo Central';
+      case 'TramiteDocumentario':
+        return 'Trámite Documentario';
+      case 'Usuario':
+        return 'Usuario';
+      case 'Supervisor':
+        return 'Supervisor';
+      default:
+        return rol;
     }
   }
 
   Color _getRolColor(String rol) {
     switch (rol) {
       case 'AdministradorSistema':
-      case 'Administrador': 
+      case 'Administrador':
         return Colors.red.shade700;
-      case 'Gerente': return Colors.purple;
-      case 'Usuario': return Colors.blue;     
-      default: return Colors.teal;
+      case 'Gerente':
+        return Colors.purple;
+      case 'Usuario':
+        return Colors.blue;
+      default:
+        return Colors.teal;
     }
   }
 
@@ -335,7 +372,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
     final isDesktop = size.width > 900;
     final changesCount = _countChanges();
     final auth = Provider.of<AuthProvider>(context);
-    final bool canEdit = auth.role == UserRole.administradorSistema;
+    final bool canEdit =
+        auth.role == UserRole.administradorSistema ||
+        auth.role == UserRole.administradorDocumentos;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
@@ -356,113 +395,136 @@ class _PermisosScreenState extends State<PermisosScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : !canEdit
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : !canEdit
               ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.lock_outline, size: 72, color: theme.colorScheme.error),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Solo el Administrador de Sistema puede modificar los permisos.',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.lock_outline,
+                        size: 72,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Solo un Administrador puede modificar los permisos.',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Puede consultar qué permisos tiene cada usuario, pero no editarlos.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Puede consultar qué permisos tiene cada usuario, pero no editarlos.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                )
+                ),
+              )
               : Stack(
-                  children: [
-                    isDesktop
-                        ? _buildDesktopLayout(theme)
-                        : _buildMobileLayout(theme),
-                    
-                    // Floating Action Bar for Changes
-                    if (changesCount > 0)
-                      Positioned(
-                        bottom: 24,
-                        left: 24,
-                        right: 24,
-                        child: Center(
-                          child: Container(
-                            constraints: const BoxConstraints(maxWidth: 500),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.inverseSurface,
-                              borderRadius: BorderRadius.circular(50),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 8),
-                                )
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.colorExito,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '$changesCount',
-                                    style: const TextStyle(
-                                      color: Colors.white, 
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                children: [
+                  isDesktop
+                      ? _buildDesktopLayout(theme)
+                      : _buildMobileLayout(theme),
+
+                  // Floating Action Bar for Changes
+                  if (changesCount > 0)
+                    Positioned(
+                      bottom: 24,
+                      left: 24,
+                      right: 24,
+                      child: Center(
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 500),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.inverseSurface,
+                            borderRadius: BorderRadius.circular(50),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
                                 ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Cambios pendientes',
-                                  style: TextStyle(
-                                    color: theme.colorScheme.onInverseSurface,
-                                    fontWeight: FontWeight.w500,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.colorExito,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '$changesCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
                                   ),
                                 ),
-                                const Spacer(),
-                                TextButton(
-                                  onPressed: _isSaving ? null : _restaurarCambios,
-                                  child: const Text('Descartar'),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Cambios pendientes',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onInverseSurface,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                const SizedBox(width: 8),
-                                FilledButton.icon(
-                                  onPressed: _isSaving ? null : _guardarCambios,
-                                  icon: _isSaving 
-                                    ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black)) 
-                                    : const Icon(Icons.check, size: 16),
-                                  label: const Text('Guardar'),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: AppTheme.colorExito,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                              ),
+                              const Spacer(),
+                              TextButton(
+                                onPressed: _isSaving ? null : _restaurarCambios,
+                                child: const Text('Descartar'),
+                              ),
+                              const SizedBox(width: 8),
+                              FilledButton.icon(
+                                onPressed: _isSaving ? null : _guardarCambios,
+                                icon:
+                                    _isSaving
+                                        ? const SizedBox(
+                                          width: 12,
+                                          height: 12,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.black,
+                                          ),
+                                        )
+                                        : const Icon(Icons.check, size: 16),
+                                label: const Text('Guardar'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppTheme.colorExito,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                ],
+              ),
     );
   }
 
@@ -479,7 +541,11 @@ class _PermisosScreenState extends State<PermisosScreen> {
               Expanded(
                 child: ListView.separated(
                   itemCount: _usuariosFiltrados.length,
-                  separatorBuilder: (c, i) => Divider(height: 1, color: theme.colorScheme.outline.withOpacity(0.05)),
+                  separatorBuilder:
+                      (c, i) => Divider(
+                        height: 1,
+                        color: theme.colorScheme.outline.withOpacity(0.05),
+                      ),
                   itemBuilder: (context, index) {
                     final usuario = _usuariosFiltrados[index];
                     return _buildUserTile(usuario, theme);
@@ -489,14 +555,18 @@ class _PermisosScreenState extends State<PermisosScreen> {
             ],
           ),
         ),
-        VerticalDivider(width: 1, color: theme.colorScheme.outline.withOpacity(0.1)),
+        VerticalDivider(
+          width: 1,
+          color: theme.colorScheme.outline.withOpacity(0.1),
+        ),
         // Main Content
         Expanded(
-          child: _usuarioSeleccionado != null
-              ? (_isLoadingPermisos
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildPermissionsContent(theme))
-              : _buildEmptyState(theme),
+          child:
+              _usuarioSeleccionado != null
+                  ? (_isLoadingPermisos
+                      ? const Center(child: CircularProgressIndicator())
+                      : _buildPermissionsContent(theme))
+                  : _buildEmptyState(theme),
         ),
       ],
     );
@@ -509,40 +579,50 @@ class _PermisosScreenState extends State<PermisosScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           color: theme.colorScheme.surface,
           child: Column(
-             children: [
-               _buildUserSearchHeader(theme),
-               const SizedBox(height: 8),
-               DropdownButtonFormField<Usuario>(
-                  value: _usuarioSeleccionado,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    filled: true,
-                    fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+            children: [
+              _buildUserSearchHeader(theme),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<Usuario>(
+                value: _usuarioSeleccionado,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                  hint: const Text('Seleccionar Usuario'),
-                  items: _usuariosFiltrados.map((u) {
-                    return DropdownMenuItem(
-                      value: u,
-                      child: Text(u.nombreCompleto, overflow: TextOverflow.ellipsis),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      _selectUsuario(val);
-                    }
-                  },
-               ),
-             ],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                ),
+                hint: const Text('Seleccionar Usuario'),
+                items:
+                    _usuariosFiltrados.map((u) {
+                      return DropdownMenuItem(
+                        value: u,
+                        child: Text(
+                          u.nombreCompleto,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    _selectUsuario(val);
+                  }
+                },
+              ),
+            ],
           ),
         ),
         Expanded(
-          child: _usuarioSeleccionado != null
-              ? (_isLoadingPermisos
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildPermissionsContent(theme))
-              : _buildEmptyState(theme),
+          child:
+              _usuarioSeleccionado != null
+                  ? (_isLoadingPermisos
+                      ? const Center(child: CircularProgressIndicator())
+                      : _buildPermissionsContent(theme))
+                  : _buildEmptyState(theme),
         ),
       ],
     );
@@ -559,10 +639,17 @@ class _PermisosScreenState extends State<PermisosScreen> {
             decoration: InputDecoration(
               hintText: 'Buscar usuario...',
               prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: _searchController.text.isNotEmpty 
-                ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () => _searchController.clear())
-                : null,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+              suffixIcon:
+                  _searchController.text.isNotEmpty
+                      ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => _searchController.clear(),
+                      )
+                      : null,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 0,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
@@ -580,7 +667,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
   Widget _buildUserTile(Usuario usuario, ThemeData theme) {
     final isSelected = _usuarioSeleccionado?.id == usuario.id;
     final rolColor = _getRolColor(usuario.rol);
-    
+
     return ListTile(
       onTap: () => _selectUsuario(usuario),
       selected: isSelected,
@@ -590,7 +677,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
         radius: 20,
         backgroundColor: rolColor.withOpacity(0.1),
         child: Text(
-          usuario.nombreUsuario.isNotEmpty ? usuario.nombreUsuario[0].toUpperCase() : '?',
+          usuario.nombreUsuario.isNotEmpty
+              ? usuario.nombreUsuario[0].toUpperCase()
+              : '?',
           style: TextStyle(
             color: rolColor,
             fontWeight: FontWeight.bold,
@@ -602,7 +691,10 @@ class _PermisosScreenState extends State<PermisosScreen> {
         usuario.nombreCompleto,
         style: GoogleFonts.inter(
           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-          color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+          color:
+              isSelected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface,
           fontSize: 14,
         ),
         maxLines: 1,
@@ -619,9 +711,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
             child: Text(
               _getRolDisplayName(usuario.rol),
               style: TextStyle(
-                fontSize: 10, 
+                fontSize: 10,
                 color: rolColor,
-                fontWeight: FontWeight.w600
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -660,19 +752,34 @@ class _PermisosScreenState extends State<PermisosScreen> {
                       children: [
                         Text(
                           'Rol asignado: ',
-                          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                         Container(
-                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                           decoration: BoxDecoration(
-                              color: _getRolColor(_usuarioSeleccionado!.rol).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: _getRolColor(_usuarioSeleccionado!.rol).withOpacity(0.3)),
-                           ),
-                           child: Text(
-                             _getRolDisplayName(_usuarioSeleccionado!.rol),
-                             style: TextStyle(color: _getRolColor(_usuarioSeleccionado!.rol), fontWeight: FontWeight.bold, fontSize: 12),
-                           ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getRolColor(
+                              _usuarioSeleccionado!.rol,
+                            ).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _getRolColor(
+                                _usuarioSeleccionado!.rol,
+                              ).withOpacity(0.3),
+                            ),
+                          ),
+                          child: Text(
+                            _getRolDisplayName(_usuarioSeleccionado!.rol),
+                            style: TextStyle(
+                              color: _getRolColor(_usuarioSeleccionado!.rol),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -682,18 +789,25 @@ class _PermisosScreenState extends State<PermisosScreen> {
             ],
           ),
         ),
-        
+
         // Modules and Permissions
         Expanded(
           child: Container(
-            color: theme.colorScheme.surfaceVariant.withOpacity(0.3), // Slight gray bg
+            color: theme.colorScheme.surfaceVariant.withOpacity(
+              0.3,
+            ), // Slight gray bg
             child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(32, 24, 32, 100), // Bottom padding for FAB
+              padding: const EdgeInsets.fromLTRB(
+                32,
+                24,
+                32,
+                100,
+              ), // Bottom padding for FAB
               itemCount: modules.length,
               itemBuilder: (context, index) {
                 final module = modules[index];
                 final permisos = _permisosPorModulo[module] ?? [];
-                
+
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -701,32 +815,41 @@ class _PermisosScreenState extends State<PermisosScreen> {
                       padding: const EdgeInsets.only(bottom: 12, top: 8),
                       child: Row(
                         children: [
-                          Icon(Icons.layers_outlined, size: 18, color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.layers_outlined,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             module.toUpperCase(),
                             style: GoogleFonts.inter(
                               fontWeight: FontWeight.bold,
                               color: theme.colorScheme.primary,
-                              fontSize: 12, 
-                              letterSpacing: 1.1
+                              fontSize: 12,
+                              letterSpacing: 1.1,
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Expanded(child: Divider(color: theme.colorScheme.outline.withOpacity(0.2))),
+                          Expanded(
+                            child: Divider(
+                              color: theme.colorScheme.outline.withOpacity(0.2),
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    
+
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 400,
-                        mainAxisExtent: 90, // Fixed height for cards
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 12,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 400,
+                            mainAxisExtent: 90, // Fixed height for cards
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 12,
+                          ),
                       itemCount: permisos.length,
                       itemBuilder: (context, pIndex) {
                         final entry = permisos[pIndex];
@@ -749,7 +872,11 @@ class _PermisosScreenState extends State<PermisosScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.security_outlined, size: 64, color: theme.colorScheme.outline.withOpacity(0.3)),
+          Icon(
+            Icons.security_outlined,
+            size: 64,
+            color: theme.colorScheme.outline.withOpacity(0.3),
+          ),
           const SizedBox(height: 16),
           Text(
             'Sin permisos disponibles',
@@ -768,48 +895,63 @@ class _PermisosScreenState extends State<PermisosScreen> {
     final tienePermiso = _tienePermiso(entry);
     final isModified = _isModified(entry);
     final isLockedByRole = entry.roleHas;
-    
+
     // Logic: If user explicitely DENIED a role permission
     final isExplicitlyDenied = isLockedByRole && !tienePermiso;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
-        color: isExplicitlyDenied ? Colors.red.withOpacity(0.05) : theme.colorScheme.surface,
+        color:
+            isExplicitlyDenied
+                ? Colors.red.withOpacity(0.05)
+                : theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isModified 
-            ? Colors.orange 
-            : (tienePermiso ? theme.colorScheme.primary.withOpacity(0.5) : 
-               isExplicitlyDenied ? Colors.red.withOpacity(0.3) : theme.colorScheme.outline.withOpacity(0.1)),
+          color:
+              isModified
+                  ? Colors.orange
+                  : (tienePermiso
+                      ? theme.colorScheme.primary.withOpacity(0.5)
+                      : isExplicitlyDenied
+                      ? Colors.red.withOpacity(0.3)
+                      : theme.colorScheme.outline.withOpacity(0.1)),
           width: isModified || tienePermiso || isExplicitlyDenied ? 1.5 : 1,
         ),
-        boxShadow: tienePermiso ? [
-          BoxShadow(
-             color: theme.colorScheme.shadow.withOpacity(0.05),
-             blurRadius: 8,
-             offset: const Offset(0, 2),
-          )
-        ] : [],
+        boxShadow:
+            tienePermiso
+                ? [
+                  BoxShadow(
+                    color: theme.colorScheme.shadow.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+                : [],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _onPermisoChanged(entry, !tienePermiso), // Allow tap always
+          onTap:
+              () => _onPermisoChanged(entry, !tienePermiso), // Allow tap always
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
                 Switch(
                   value: tienePermiso,
-                  onChanged: (val) => _onPermisoChanged(entry, val), // Allow toggle always
+                  onChanged:
+                      (val) =>
+                          _onPermisoChanged(entry, val), // Allow toggle always
                   activeColor: AppTheme.colorExito,
                   activeTrackColor: AppTheme.colorExito.withOpacity(0.5),
-                  inactiveTrackColor: isExplicitlyDenied 
-                    ? Colors.red.withOpacity(0.3) 
-                    : Colors.grey.withOpacity(0.3),
-                  inactiveThumbColor: isExplicitlyDenied ? Colors.red.shade400 : null,
+                  inactiveTrackColor:
+                      isExplicitlyDenied
+                          ? Colors.red.withOpacity(0.3)
+                          : Colors.grey.withOpacity(0.3),
+                  inactiveThumbColor:
+                      isExplicitlyDenied ? Colors.red.shade400 : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -817,64 +959,82 @@ class _PermisosScreenState extends State<PermisosScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                       Text(
-                         entry.permiso.nombre,
-                         style: GoogleFonts.inter(
-                           fontWeight: FontWeight.w600,
-                           fontSize: 13,
-                           decoration: isExplicitlyDenied ? TextDecoration.lineThrough : null,
-                           color: isExplicitlyDenied ? Colors.red : null,
-                         ),
-                         maxLines: 2,
-                         overflow: TextOverflow.ellipsis,
-                       ),
-                       if (entry.permiso.descripcion?.isNotEmpty == true) ...[
-                         const SizedBox(height: 2),
-                         Text(
-                           entry.permiso.descripcion!,
-                           style: TextStyle(
-                             fontSize: 11,
-                             color: theme.colorScheme.onSurfaceVariant,
-                           ),
-                           maxLines: 1,
-                           overflow: TextOverflow.ellipsis,
-                         ),
-                       ],
-                       if (isLockedByRole) ...[
-                         const SizedBox(height: 4),
-                         Row(
-                           children: [
-                             Icon(
-                               isExplicitlyDenied ? Icons.block : Icons.lock_outline, 
-                               size: 12, 
-                               color: isExplicitlyDenied ? Colors.red : theme.colorScheme.onSurfaceVariant
-                             ),
-                             const SizedBox(width: 4),
-                             Expanded(
-                               child: Text(
-                                 isExplicitlyDenied 
-                                   ? 'DENEGADO (Sobreescribe Rol)' 
-                                   : 'Heredado del Rol: ${_getRolDisplayName(_usuarioSeleccionado!.rol)}',
-                                 style: TextStyle(
-                                   fontSize: 10, 
-                                   color: isExplicitlyDenied ? Colors.red : theme.colorScheme.onSurfaceVariant,
-                                   fontWeight: isExplicitlyDenied ? FontWeight.bold : FontWeight.normal
-                                 ),
-                                 maxLines: 1,
-                                 overflow: TextOverflow.ellipsis,
-                               ),
-                             ),
-                           ],
-                         ),
-                       ],
-                       if (isModified)
-                         Padding(
-                           padding: const EdgeInsets.only(top: 4),
-                           child: Text(
-                             'Modificado',
-                             style: TextStyle(fontSize: 10, color: Colors.orange.shade700, fontWeight: FontWeight.bold),
-                           ),
-                         ),
+                      Text(
+                        entry.permiso.nombre,
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          decoration:
+                              isExplicitlyDenied
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                          color: isExplicitlyDenied ? Colors.red : null,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (entry.permiso.descripcion?.isNotEmpty == true) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          entry.permiso.descripcion!,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      if (isLockedByRole) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              isExplicitlyDenied
+                                  ? Icons.block
+                                  : Icons.lock_outline,
+                              size: 12,
+                              color:
+                                  isExplicitlyDenied
+                                      ? Colors.red
+                                      : theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                isExplicitlyDenied
+                                    ? 'DENEGADO (Sobreescribe Rol)'
+                                    : 'Heredado del Rol: ${_getRolDisplayName(_usuarioSeleccionado!.rol)}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color:
+                                      isExplicitlyDenied
+                                          ? Colors.red
+                                          : theme.colorScheme.onSurfaceVariant,
+                                  fontWeight:
+                                      isExplicitlyDenied
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      if (isModified)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Modificado',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.orange.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -891,22 +1051,24 @@ class _PermisosScreenState extends State<PermisosScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.touch_app_outlined, size: 64, color: theme.colorScheme.outline.withOpacity(0.3)),
+          Icon(
+            Icons.touch_app_outlined,
+            size: 64,
+            color: theme.colorScheme.outline.withOpacity(0.3),
+          ),
           const SizedBox(height: 16),
           Text(
             'Selecciona un usuario',
             style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onSurface.withOpacity(0.5)
+              color: theme.colorScheme.onSurface.withOpacity(0.5),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Podrás gestionar los permisos asociados a su rol.',
-            style: TextStyle(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
         ],
       ),

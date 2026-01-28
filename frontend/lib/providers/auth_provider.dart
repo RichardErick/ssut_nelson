@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:dio/dio.dart';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
@@ -162,17 +162,33 @@ class AuthProvider extends ChangeNotifier {
 
       // Handle server-side lockout (HTTP 423)
       if (e is DioException && e.response?.statusCode == 423) {
-        // Intentar leer los segundos de bloqueo desde el mensaje del backend
+        // Intentar leer los segundos de bloqueo desde el backend (preferir campo numérico)
         try {
           final data = e.response?.data;
-          final message = data is Map<String, dynamic> ? data['message']?.toString() ?? '' : '';
-          final regex = RegExp(r'(\d+)\s*segundos');
-          final match = regex.firstMatch(message);
-          if (match != null) {
-            final seconds = int.parse(match.group(1)!);
-            _lockoutEndTime = DateTime.now().add(Duration(seconds: seconds));
+          if (data is Map<String, dynamic>) {
+            final seconds = data['remainingSeconds'];
+            if (seconds is int) {
+              _lockoutEndTime = DateTime.now().add(Duration(seconds: seconds));
+            } else if (seconds is num) {
+              _lockoutEndTime = DateTime.now().add(
+                Duration(seconds: seconds.toInt()),
+              );
+            } else {
+              final message = data['message']?.toString() ?? '';
+              final regex = RegExp(r'(\d+)\s*segundos');
+              final match = regex.firstMatch(message);
+              if (match != null) {
+                final parsedSeconds = int.parse(match.group(1)!);
+                _lockoutEndTime = DateTime.now().add(
+                  Duration(seconds: parsedSeconds),
+                );
+              } else {
+                _lockoutEndTime = DateTime.now().add(
+                  const Duration(seconds: 30),
+                );
+              }
+            }
           } else {
-            // Fallback genérico si no se puede parsear
             _lockoutEndTime = DateTime.now().add(const Duration(seconds: 30));
           }
         } catch (_) {

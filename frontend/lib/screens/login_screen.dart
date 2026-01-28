@@ -8,8 +8,8 @@ import '../utils/error_helper.dart';
 import '../widgets/animated_background.dart';
 import '../widgets/glass_container.dart';
 import 'forgot_password_screen.dart';
-import 'register_screen.dart';
 import 'login/widgets/lockout_timer.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -147,265 +147,273 @@ class _LoginScreenState extends State<LoginScreen>
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
 
-   return Scaffold(
-  body: isDesktop
-      ? Row(
-          children: [
-            // Left Side - Hero Section
-            Expanded(
-              flex: 5,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue.shade900, Colors.blue.shade700],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: -100,
-                      right: -100,
-                      child: Container(
-                        width: 400,
-                        height: 400,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.05),
+    return Scaffold(
+      body:
+          isDesktop
+              ? Row(
+                children: [
+                  // Left Side - Hero Section
+                  Expanded(
+                    flex: 5,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade900, Colors.blue.shade700],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
                       ),
-                    ),
-                    Positioned(
-                      bottom: 50,
-                      left: 50,
-                      child: Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.05),
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Stack(
                         children: [
-                          _buildLogo(size: 80),
-                          const SizedBox(height: 32),
-                          Text(
-                            'SSUT',
-                            style: GoogleFonts.poppins(
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 4,
+                          Positioned(
+                            top: -100,
+                            right: -100,
+                            child: Container(
+                              width: 400,
+                              height: 400,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.05),
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Sistema de Gestion Documental',
-                            style: GoogleFonts.inter(
-                              fontSize: 18,
-                              color: Colors.white70,
-                              letterSpacing: 1.2,
+                          Positioned(
+                            bottom: 50,
+                            left: 50,
+                            child: Container(
+                              width: 200,
+                              height: 200,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.05),
+                              ),
+                            ),
+                          ),
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _buildLogo(size: 80),
+                                const SizedBox(height: 32),
+                                Text(
+                                  'SSUT',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 4,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Sistema de Gestion Documental',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 18,
+                                    color: Colors.white70,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            // Right Side - Login Form
-            Expanded(
-              flex: 4,
-              child: Container(
-                color: Colors.white,
-                child: Center(
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 450),
-                    padding: const EdgeInsets.all(48),
-                    child: Consumer<AuthProvider>(
-                      builder: (context, authProvider, _) {
-                        if (authProvider.isLocked) {
-                          return LockoutTimer(
-                            lockoutEndTime: authProvider.lockoutEndTime!,
-                            onTimerEnd: () {
-                              setState(() {});
-                            },
-                          );
-                        }
-                        
-                        return Form(
-                          key: _formKey,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'Bienvenido de nuevo',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue.shade900,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Ingrese sus credenciales para acceder',
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                              const SizedBox(height: 48),
-                              _buildTextField(
-                                controller: _usernameController,
-                                label: 'Usuario',
-                                hint: 'ej. juan.perez',
-                                icon: Icons.person_outline_rounded,
-                                isDark: true,
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) {
-                                    return 'Ingrese su usuario';
-                                  }
-                                  if (v.length < 4 || v.length > 20) {
-                                    return 'Debe tener entre 4 y 20 caracteres';
-                                  }
-                                  if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v)) {
-                                    return 'Solo letras, numeros y guion bajo';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 24),
-                              _buildTextField(
-                                controller: _passwordController,
-                                label: 'Contrasena',
-                                hint: '********',
-                                icon: Icons.lock_outline_rounded,
-                                isPassword: true,
-                                isDark: true,
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) {
-                                    return 'Ingrese su contrasena';
-                                  }
-                                  if (v.length < 8) {
-                                    return 'Minimo 8 caracteres';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Checkbox(
-                                        value: _rememberMe,
-                                        activeColor: Colors.blue.shade900,
-                                        checkColor: Colors.white,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            _rememberMe = val ?? false;
-                                          });
-                                        },
-                                      ),
-                                      Text(
-                                        'Recordarme',
-                                        style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const ForgotPasswordScreen(),
-                                        ),
-                                      );
-                                    },
-                                    child: Text(
-                                      'Olvido su contrasena',
-                                      style: TextStyle(
-                                        color: Colors.blue.shade700,
-                                        fontWeight: FontWeight.w600,
+                  ),
+                  // Right Side - Login Form
+                  Expanded(
+                    flex: 4,
+                    child: Container(
+                      color: Colors.white,
+                      child: Center(
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 450),
+                          padding: const EdgeInsets.all(48),
+                          child: Consumer<AuthProvider>(
+                            builder: (context, authProvider, _) {
+                              if (authProvider.isLocked) {
+                                return LockoutTimer(
+                                  lockoutEndTime: authProvider.lockoutEndTime!,
+                                  onTimerEnd: () {
+                                    setState(() {});
+                                  },
+                                );
+                              }
+
+                              return Form(
+                                key: _formKey,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      'Bienvenido de nuevo',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade900,
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 40),
-                              _buildLoginButton(isDark: true),
-                              const SizedBox(height: 24),
-                              Center(
-                                child: TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const RegisterScreen(),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Ingrese sus credenciales para acceder',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade600,
                                       ),
-                                    );
-                                  },
-                                  child: RichText(
-                                    text: TextSpan(
-                                      text: 'No tienes cuenta? ',
-                                      style: TextStyle(
-                                        color: isDesktop
-                                            ? Colors.grey.shade600
-                                            : Colors.white70,
-                                      ),
+                                    ),
+                                    const SizedBox(height: 48),
+                                    _buildTextField(
+                                      controller: _usernameController,
+                                      label: 'Usuario',
+                                      hint: 'ej. juan.perez',
+                                      icon: Icons.person_outline_rounded,
+                                      isDark: true,
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty) {
+                                          return 'Ingrese su usuario';
+                                        }
+                                        if (v.length < 4 || v.length > 20) {
+                                          return 'Debe tener entre 4 y 20 caracteres';
+                                        }
+                                        if (!RegExp(
+                                          r'^[a-zA-Z0-9_]+$',
+                                        ).hasMatch(v)) {
+                                          return 'Solo letras, numeros y guion bajo';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 24),
+                                    _buildTextField(
+                                      controller: _passwordController,
+                                      label: 'Contrasena',
+                                      hint: '********',
+                                      icon: Icons.lock_outline_rounded,
+                                      isPassword: true,
+                                      isDark: true,
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty) {
+                                          return 'Ingrese su contrasena';
+                                        }
+                                        if (v.length < 8) {
+                                          return 'Minimo 8 caracteres';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        TextSpan(
-                                          text: 'Registrarse',
-                                          style: TextStyle(
-                                            color: isDesktop
-                                                ? Colors.blue.shade900
-                                                : Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            decoration: TextDecoration.underline,
+                                        Row(
+                                          children: [
+                                            Checkbox(
+                                              value: _rememberMe,
+                                              activeColor: Colors.blue.shade900,
+                                              checkColor: Colors.white,
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  _rememberMe = val ?? false;
+                                                });
+                                              },
+                                            ),
+                                            Text(
+                                              'Recordarme',
+                                              style: TextStyle(
+                                                color: Colors.grey.shade700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder:
+                                                    (_) =>
+                                                        const ForgotPasswordScreen(),
+                                              ),
+                                            );
+                                          },
+                                          child: Text(
+                                            'Olvido su contrasena',
+                                            style: TextStyle(
+                                              color: Colors.blue.shade700,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              if (isDesktop)
-                                Center(
-                                  child: Text(
-                                    'SSUT - Gestion Documental v1.0',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade400,
-                                      fontSize: 12,
+                                    const SizedBox(height: 40),
+                                    _buildLoginButton(isDark: true),
+                                    const SizedBox(height: 24),
+                                    Center(
+                                      child: TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (_) => const RegisterScreen(),
+                                            ),
+                                          );
+                                        },
+                                        child: RichText(
+                                          text: TextSpan(
+                                            text: 'No tienes cuenta? ',
+                                            style: TextStyle(
+                                              color:
+                                                  isDesktop
+                                                      ? Colors.grey.shade600
+                                                      : Colors.white70,
+                                            ),
+                                            children: [
+                                              TextSpan(
+                                                text: 'Registrarse',
+                                                style: TextStyle(
+                                                  color:
+                                                      isDesktop
+                                                          ? Colors.blue.shade900
+                                                          : Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                )
-                              else
-                                _buildFooter(),
-                            ],
+                                    const SizedBox(height: 24),
+                                    if (isDesktop)
+                                      Center(
+                                        child: Text(
+                                          'SSUT - Gestion Documental v1.0',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade400,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      _buildFooter(),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ),
-          ],
-        )
-      : _buildMobileLayout(),
-);
-
+                ],
+              )
+              : _buildMobileLayout(),
+    );
   }
 
   Widget _buildLogo({double size = 50}) {
@@ -475,122 +483,146 @@ class _LoginScreenState extends State<LoginScreen>
       child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: GlassContainer(
-            blur: 20,
-            opacity: 0.12,
-            borderRadius: 24,
-            padding: const EdgeInsets.all(28),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildLogo(size: 60),
-                  const SizedBox(height: 20),
-                  _buildTitle(),
-                  const SizedBox(height: 32),
-                  _buildTextField(
-                    controller: _usernameController,
-                    label: 'Usuario',
-                    hint: 'ej. juan.perez',
-                    icon: Icons.person_outline_rounded,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Ingrese su usuario';
-                      if (v.length < 4 || v.length > 20) {
-                        return 'Debe tener entre 4 y 20 caracteres';
-                      }
-                      if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v)) {
-                        return 'Solo letras, numeros y guion bajo';
-                      }
-                      return null;
-                    },
+          child: Consumer<AuthProvider>(
+            builder: (context, authProvider, _) {
+              if (authProvider.isLocked &&
+                  authProvider.lockoutEndTime != null) {
+                return GlassContainer(
+                  blur: 20,
+                  opacity: 0.12,
+                  borderRadius: 24,
+                  padding: const EdgeInsets.all(28),
+                  child: LockoutTimer(
+                    lockoutEndTime: authProvider.lockoutEndTime!,
+                    onTimerEnd: () => setState(() {}),
                   ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    controller: _passwordController,
-                    label: 'Contrasena',
-                                  hint: '********',
-                    icon: Icons.lock_outline_rounded,
-                    isPassword: true,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Ingrese su contrasena';
-                      if (v.length < 8) return 'Minimo 8 caracteres';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                );
+              }
+
+              return GlassContainer(
+                blur: 20,
+                opacity: 0.12,
+                borderRadius: 24,
+                padding: const EdgeInsets.all(28),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      _buildLogo(size: 60),
+                      const SizedBox(height: 20),
+                      _buildTitle(),
+                      const SizedBox(height: 32),
+                      _buildTextField(
+                        controller: _usernameController,
+                        label: 'Usuario',
+                        hint: 'ej. juan.perez',
+                        icon: Icons.person_outline_rounded,
+                        validator: (v) {
+                          if (v == null || v.isEmpty)
+                            return 'Ingrese su usuario';
+                          if (v.length < 4 || v.length > 20) {
+                            return 'Debe tener entre 4 y 20 caracteres';
+                          }
+                          if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v)) {
+                            return 'Solo letras, numeros y guion bajo';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _passwordController,
+                        label: 'Contrasena',
+                        hint: '********',
+                        icon: Icons.lock_outline_rounded,
+                        isPassword: true,
+                        validator: (v) {
+                          if (v == null || v.isEmpty)
+                            return 'Ingrese su contrasena';
+                          if (v.length < 8) return 'Minimo 8 caracteres';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Checkbox(
-                            value: _rememberMe,
-                            activeColor: Colors.white,
-                            checkColor: Colors.blue.shade900,
-                            onChanged: (val) {
-                              setState(() {
-                                _rememberMe = val ?? false;
-                              });
-                            },
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _rememberMe,
+                                activeColor: Colors.white,
+                                checkColor: Colors.blue.shade900,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _rememberMe = val ?? false;
+                                  });
+                                },
+                              ),
+                              Text(
+                                'Recordarme',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            'Recordarme',
-                            style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ForgotPasswordScreen(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'Olvide mi contrasena',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 28),
+                      _buildLoginButton(),
+                      const SizedBox(height: 16),
                       TextButton(
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const ForgotPasswordScreen(),
+                              builder: (_) => const RegisterScreen(),
                             ),
                           );
                         },
-                        child: Text(
-                          'Olvide mi contrasena',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontWeight: FontWeight.w600,
+                        child: RichText(
+                          text: TextSpan(
+                            text: 'No tienes cuenta ',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                            ),
+                            children: const [
+                              TextSpan(
+                                text: 'Registrarse',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      _buildFooter(),
                     ],
                   ),
-                  const SizedBox(height: 28),
-                  _buildLoginButton(),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const RegisterScreen(),
-                        ),
-                      );
-                    },
-                    child: RichText(
-                      text: TextSpan(
-                        text: 'No tienes cuenta ',
-                        style: TextStyle(color: Colors.white.withOpacity(0.8)),
-                        children: const [
-                          TextSpan(
-                            text: 'Registrarse',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildFooter(),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),
