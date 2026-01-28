@@ -62,7 +62,7 @@ builder.Services.AddCors(options =>
 
 // Configuramos Postgres
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-            ?? "Host=localhost;Database=ssut_gestion_documental;Username=postgres;Password=admin";
+            ?? "Host=localhost;Database=ssut_gestion_documental;Username=postgres;Password=nel7243159";
 
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         // MapEnum eliminado ya que guardamos el estado como string
