@@ -27,7 +27,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
   static const String _nombreCarpetaPermitida = 'Comprobante de Egreso';
   final _formKey = GlobalKey<FormState>();
   AutovalidateMode _autoValidateMode = AutovalidateMode.disabled;
-  bool _isLoading = false;
+  bool _isLoading = true;
   
   // Controladores
   final _numeroCorrelativoController = TextEditingController();
@@ -124,10 +124,14 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
           if (_tiposDocumento.isNotEmpty && _tipoDocumentoId == null) {
             _tipoDocumentoId = _tiposDocumento.first['id'];
           }
+          _isLoading = false;
         });
       }
     } catch (e) {
-      print('Error cargando datos auxiliares: $e');
+      if (mounted) {
+        print('Error cargando datos auxiliares: $e');
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -312,6 +316,25 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSectionTitle('Información General'),
+                  if (_tiposDocumento.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0, top: 8.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text('Advertencia: No hay tipos de documento disponibles. No podrá guardar.', style: TextStyle(color: Colors.orange.shade900))),
+                          ],
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   
                   TextFormField(
