@@ -152,40 +152,64 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
   }
 
   Widget _buildGestionSection(String gestion, List<Carpeta> carpetas) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.shade100),
-            ),
-            child: Text(
-              'GESTIÓN $gestion',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.blue.shade800,
-              ),
-            ),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ExpansionTile(
+        initiallyExpanded: false,
+        shape: const Border(), // Remove default borders
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade100,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.2),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              )
+            ],
           ),
-          const SizedBox(height: 12),
+          child: Icon(
+            Icons.folder_special_rounded,
+            color: Colors.blue.shade800,
+            size: 28,
+          ),
+        ),
+        title: Text(
+          'GESTIÓN $gestion',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue.shade900,
+          ),
+        ),
+        subtitle: Text(
+          '${carpetas.length} Carpetas principales',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            color: Colors.blue.shade700,
+          ),
+        ),
+        childrenPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        children: [
           if (carpetas.isEmpty)
              Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Center(
-                child: Text(
-                  'No hay carpetas para esta gestión',
-                  style: GoogleFonts.poppins(
-                    color: Colors.grey.shade500,
-                    fontSize: 14,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                   Icon(Icons.folder_off_outlined, size: 48, color: Colors.grey.shade300),
+                   const SizedBox(height: 8),
+                   Text(
+                    'No hay carpetas para esta gestión',
+                    style: GoogleFonts.poppins(
+                      color: Colors.grey.shade500,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
+                ],
               ),
             )
           else
@@ -376,6 +400,21 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        IconButton(
+          icon: Icon(
+            Icons.snippet_folder_rounded,
+            color: Colors.indigo.shade600,
+          ),
+          tooltip: 'Ver Documentos',
+          onPressed: () {
+             Navigator.push(
+               context,
+               MaterialPageRoute(
+                 builder: (context) => DocumentosListScreen(initialCarpetaId: carpeta.id),
+               ),
+              ).then((value) => _loadCarpetas());
+          },
+        ),
         IconButton(
           icon: Icon(
             Icons.create_new_folder_outlined,
