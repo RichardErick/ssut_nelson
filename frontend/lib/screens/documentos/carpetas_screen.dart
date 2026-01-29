@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../models/carpeta.dart';
 import '../../services/carpeta_service.dart';
 import 'carpeta_form_screen.dart';
-import 'documento_form_screen.dart';
 import 'documentos_list_screen.dart';
 
 class CarpetasScreen extends StatefulWidget {
@@ -16,19 +15,23 @@ class CarpetasScreen extends StatefulWidget {
 }
 
 class _CarpetasScreenState extends State<CarpetasScreen> {
-  static const String _nombreCarpetaPermitida = 'Comprobante de Egreso';
   Map<String, List<Carpeta>> _carpetasPorGestion = {};
   final List<String> _gestionesVisibles = ['2025', '2026'];
+  String _gestionSeleccionada = '2025'; // Filtro de gestión
   bool _isLoading = false;
 
+  // Módulos (tipos de carpetas principales)
+  static const String _moduloEgresos = 'Comprobante de Egreso';
+  static const String _moduloIngresos = 'Comprobante de Ingreso';
+
   bool get hasMainFolder {
-      for (final gestion in _gestionesVisibles) {
-          final carpetas = _carpetasPorGestion[gestion];
-          if (carpetas != null && carpetas.any((c) => c.nombre == _nombreCarpetaPermitida)) {
-              return true;
-          }
+    for (final gestion in _gestionesVisibles) {
+      final carpetas = _carpetasPorGestion[gestion];
+      if (carpetas != null && carpetas.any((c) => c.nombre == _moduloEgresos || c.nombre == _moduloIngresos)) {
+        return true;
       }
-      return false;
+    }
+    return false;
   }
 
   @override
@@ -51,7 +54,7 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
       await Future.wait(_gestionesVisibles.map((gestion) async {
         try {
           final carpetas = await carpetaService.getArbol(gestion);
-          tempMap[gestion] = _ordenarCarpetas(carpetas);
+          tempMap[gestion] = carpetas;
         } catch (e) {
           print('Error loading gestion $gestion: $e');
           tempMap[gestion] = [];
@@ -75,15 +78,6 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
     }
   }
 
-  List<Carpeta> _ordenarCarpetas(List<Carpeta> lista) {
-    return [...lista]..sort((a, b) {
-      final aIsMain = a.nombre == _nombreCarpetaPermitida;
-      final bIsMain = b.nombre == _nombreCarpetaPermitida;
-      if (aIsMain == bIsMain) return a.id.compareTo(b.id);
-      return aIsMain ? -1 : 1;
-    });
-  }
-
   Future<void> _crearCarpeta({int? padreId}) async {
     final result = await Navigator.push(
       context,
@@ -93,7 +87,6 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
     );
 
     if (result == true) {
-      // Pequeño delay para asegurar consistencia en backend antes de recargar
       await Future.delayed(const Duration(milliseconds: 300));
       await _loadCarpetas();
     }
@@ -102,13 +95,32 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
   @override
   Widget build(BuildContext context) {
     final hasCarpetas = _carpetasPorGestion.values.any((l) => l.isNotEmpty);
-    // Para simplificar, asumimos que se puede crear carpeta si existe al menos una carga exitosa
-    // o permitimos crear siempre seleccionando gestión.
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Carpetas', style: GoogleFonts.poppins()),
+        title: Text('Gestión Documental', style: GoogleFonts.poppins()),
         actions: [
+          // Filtro de gestión
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: DropdownButton<String>(
+              value: _gestionSeleccionada,
+              dropdownColor: Colors.white,
+              style: GoogleFonts.poppins(color: Colors.blue.shade900, fontWeight: FontWeight.bold),
+              underline: Container(),
+              items: _gestionesVisibles.map((gestion) {
+                return DropdownMenuItem(
+                  value: gestion,
+                  child: Text('Gestión $gestion'),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _gestionSeleccionada = value);
+                }
+              },
+            ),
+          ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadCarpetas),
         ],
       ),
@@ -117,7 +129,7 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
               ? FloatingActionButton.extended(
                 onPressed: () => _crearCarpeta(),
                 icon: const Icon(Icons.create_new_folder),
-                label: const Text('Crear Comprobante Principal'),
+                label: const Text('Crear Módulo'),
                 backgroundColor: Colors.amber.shade800,
               )
               : null,
@@ -126,121 +138,226 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
               ? const Center(child: CircularProgressIndicator())
               : RefreshIndicator(
                   onRefresh: _loadCarpetas,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(
-                          'CARPETAS GENERALES',
-                          style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade900,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      ..._gestionesVisibles.map((gestion) {
-                        final carpetas = _carpetasPorGestion[gestion] ?? [];
-                        return _buildGestionSection(gestion, carpetas);
-                      }),
-                    ],
-                  ),
+                  child: _buildModularView(),
                 ),
     );
   }
 
-  Widget _buildGestionSection(String gestion, List<Carpeta> carpetas) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ExpansionTile(
-        initiallyExpanded: false,
-        shape: const Border(), // Remove default borders
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade100,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blue.withOpacity(0.2),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              )
+  Widget _buildModularView() {
+    final carpetas = _carpetasPorGestion[_gestionSeleccionada] ?? [];
+    
+    // Separar por módulos
+    final carpetaEgresos = carpetas.where((c) => c.nombre == _moduloEgresos).firstOrNull;
+    final carpetaIngresos = carpetas.where((c) => c.nombre == _moduloIngresos).firstOrNull;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Título principal
+        Padding(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(
+            children: [
+              Text(
+                'GESTIÓN $_gestionSeleccionada',
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade900,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Organizado por Módulos',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
             ],
           ),
-          child: Icon(
-            Icons.folder_special_rounded,
-            color: Colors.blue.shade800,
-            size: 28,
-          ),
         ),
-        title: Text(
-          'GESTIÓN $gestion',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.blue.shade900,
-          ),
-        ),
-        subtitle: Text(
-          '${carpetas.length} Carpetas principales',
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            color: Colors.blue.shade700,
-          ),
-        ),
-        childrenPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        children: [
-          if (carpetas.isEmpty)
-             Padding(
-              padding: const EdgeInsets.all(24),
+        
+        // Módulo de Egresos
+        if (carpetaEgresos != null)
+          _buildModuloCard(_moduloEgresos, carpetaEgresos, Colors.red, Icons.arrow_upward),
+        
+        const SizedBox(height: 16),
+        
+        // Módulo de Ingresos
+        if (carpetaIngresos != null)
+          _buildModuloCard(_moduloIngresos, carpetaIngresos, Colors.green, Icons.arrow_downward),
+        
+        // Si no hay carpetas
+        if (carpetaEgresos == null && carpetaIngresos == null)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(48),
               child: Column(
                 children: [
-                   Icon(Icons.folder_off_outlined, size: 48, color: Colors.grey.shade300),
-                   const SizedBox(height: 8),
-                   Text(
-                    'No hay carpetas para esta gestión',
+                  Icon(Icons.folder_off_outlined, size: 64, color: Colors.grey.shade300),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No hay módulos para esta gestión',
                     style: GoogleFonts.poppins(
                       color: Colors.grey.shade500,
-                      fontSize: 14,
+                      fontSize: 16,
                     ),
                   ),
                 ],
               ),
-            )
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildModuloCard(String nombre, Carpeta carpeta, Color color, IconData icon) {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        children: [
+          // Cabecera del módulo
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 32),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        nombre.toUpperCase(),
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: color.shade700,
+                        ),
+                      ),
+                      Text(
+                        '${carpeta.subcarpetas.length} subcarpetas',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // BOTÓN DE ELIMINAR MÓDULO - MUY VISIBLE
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.shade200, width: 2),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_forever, color: Colors.red, size: 28),
+                    tooltip: 'Eliminar Módulo Completo',
+                    onPressed: () => _confirmarEliminarCarpeta(carpeta),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Subcarpetas
+          if (carpeta.subcarpetas.isNotEmpty)
+            ...carpeta.subcarpetas.map((sub) => _buildSubcarpetaItem(sub, color))
           else
-            ...carpetas.map((c) => _buildCarpetaItem(c)),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'No hay subcarpetas en este módulo',
+                style: GoogleFonts.poppins(color: Colors.grey.shade500),
+              ),
+            ),
         ],
       ),
     );
   }
 
-
-  Widget _buildCarpetaSubtitle(Carpeta carpeta) {
-    final gestionLine =
-        carpeta.gestion.isNotEmpty ? 'Gestion ${carpeta.gestion}' : null;
-    final nroLine =
-        carpeta.numeroCarpeta != null ? 'Nro ${carpeta.numeroCarpeta}' : null;
-    final romano =
-        (carpeta.codigoRomano ?? '').isNotEmpty
-            ? carpeta.codigoRomano
-            : carpeta.codigo;
-    final romanoLine = (romano ?? '').isNotEmpty ? 'Romano $romano' : null;
-    final rango = _formatRango(carpeta);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (gestionLine != null) Text(gestionLine),
-        if (nroLine != null) Text(nroLine),
-        if (romanoLine != null) Text(romanoLine),
-        const SizedBox(height: 4),
-        Text('Documentos: ${carpeta.numeroDocumentos} - Rango: $rango'),
-      ],
+  Widget _buildSubcarpetaItem(Carpeta subcarpeta, Color moduleColor) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: moduleColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(Icons.folder_open, color: moduleColor, size: 24),
+        ),
+        title: Text(
+          subcarpeta.nombre,
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Documentos: ${subcarpeta.numeroDocumentos}',
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
+            ),
+            if (subcarpeta.rangoInicio != null && subcarpeta.rangoFin != null)
+              Text(
+                'Rango: ${subcarpeta.rangoInicio} - ${subcarpeta.rangoFin}',
+                style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500),
+              ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // BOTÓN DE ELIMINAR SUBCARPETA - MUY VISIBLE
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.shade200, width: 1.5),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
+                tooltip: 'Eliminar Subcarpeta',
+                onPressed: () => _confirmarEliminarCarpeta(subcarpeta),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DocumentosListScreen(initialCarpetaId: subcarpeta.id),
+            ),
+          ).then((_) => _loadCarpetas());
+        },
+      ),
     );
   }
 
@@ -293,206 +410,6 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('No se pudo eliminar: $e')));
-    }
-  }
-
-  Widget _buildCarpetaItem(Carpeta carpeta) {
-    return Card(
-      key: ValueKey(carpeta.id),
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: ExpansionTile(
-        key: PageStorageKey('carpeta_${carpeta.id}'),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.amber.shade100,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            Icons.folder_rounded,
-            color: Colors.amber.shade800,
-            size: 28,
-          ),
-        ),
-        title: Text(
-          carpeta.nombre,
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16),
-        ),
-        subtitle: _buildCarpetaSubtitle(carpeta),
-        trailing: _buildCarpetaActions(carpeta),
-        childrenPadding: const EdgeInsets.only(bottom: 8),
-        children: [
-          if (carpeta.subcarpetas.isNotEmpty)
-            ...carpeta.subcarpetas.map(
-              (sub) => Container(
-                key: ValueKey(sub.id),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade200),
-                  ),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.only(left: 24, right: 8),
-                  leading: Icon(
-                    Icons.folder_open_rounded,
-                    color: Colors.amber.shade700,
-                  ),
-                  title: Text(
-                    sub.nombre,
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: Text(
-                    '${sub.numeroDocumentos} documentos',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                       IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline_rounded,
-                          color: Colors.red, // Rojo puro para visibilidad
-                          size: 24,
-                        ),
-                        tooltip: 'Eliminar Subcarpeta',
-                        onPressed: () => _confirmarEliminarCarpeta(sub),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 14,
-                        color: Colors.grey,
-                      ),
-                    ],
-                  ),
-                onTap: () {
-                   Navigator.push(
-                     context,
-                     MaterialPageRoute(
-                       builder: (context) => DocumentosListScreen(initialCarpetaId: sub.id),
-                     ),
-                    ).then((value) {
-                         _loadCarpetas();
-                     });
-                },
-                ),
-              ),
-            ),
-          if (carpeta.subcarpetas.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Esta carpeta está vacía',
-                style: TextStyle(color: Colors.grey.shade500),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCarpetaActions(Carpeta carpeta) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Botón de eliminar - SIEMPRE VISIBLE
-        Container(
-          margin: const EdgeInsets.only(right: 4),
-          decoration: BoxDecoration(
-            color: Colors.red.shade50,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.delete_forever, color: Colors.red, size: 22),
-            tooltip: 'Eliminar Carpeta',
-            onPressed: () => _confirmarEliminarCarpeta(carpeta),
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-            padding: EdgeInsets.zero,
-          ),
-        ),
-        // Menú de opciones adicionales
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: Colors.grey, size: 20),
-          tooltip: 'Más opciones',
-          padding: EdgeInsets.zero,
-          onSelected: (value) {
-            if (value == 'view') {
-                 Navigator.push(
-                   context,
-                   MaterialPageRoute(
-                     builder: (context) => DocumentosListScreen(initialCarpetaId: carpeta.id),
-                   ),
-                  ).then((_) => _loadCarpetas());
-            } else if (value == 'add') {
-                _crearCarpeta(padreId: carpeta.id);
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'view',
-              child: ListTile(
-                leading: Icon(Icons.snippet_folder_rounded, color: Colors.indigo, size: 20),
-                title: Text('Ver Documentos', style: TextStyle(fontSize: 14)),
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-              ),
-            ),
-             const PopupMenuItem(
-              value: 'add',
-               child: ListTile(
-                leading: Icon(Icons.create_new_folder_outlined, color: Colors.blue, size: 20),
-                title: Text('Nueva Subcarpeta', style: TextStyle(fontSize: 14)),
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  int _nextNumeroSubcarpeta(int padreId) {
-    // Buscar en todas las gestiones
-    for (final lista in _carpetasPorGestion.values) {
-       try {
-         final padre = lista.firstWhere((c) => c.id == padreId);
-         if (padre.subcarpetas.isEmpty) return 1;
-         return padre.subcarpetas.length + 1;
-       } catch (_) {
-         continue; 
-       }
-    }
-    return 1;
-  }
-
-  int _nextNumeroCarpeta() {
-     // Logica simplificada o pendiente de cambiar si es necesario globalmente
-    // Para simplificar, retornamos 1 o calculamos basado en todo lo cargado
-    return 1; 
-  }
-
-  String _formatRango(Carpeta carpeta) {
-    if (carpeta.rangoInicio == null || carpeta.rangoFin == null) {
-      return 'sin documentos';
-    }
-    return '${carpeta.rangoInicio} - ${carpeta.rangoFin}';
-  }
-
-  void _agregarDocumentoACarpeta(Carpeta carpeta) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DocumentoFormScreen(initialCarpetaId: carpeta.id),
-      ),
-    );
-    if (result == true) {
-      _loadCarpetas();
     }
   }
 }
