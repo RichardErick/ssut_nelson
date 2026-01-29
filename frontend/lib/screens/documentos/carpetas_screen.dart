@@ -400,14 +400,26 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          icon: const Icon(Icons.delete_forever, color: Colors.red),
-          tooltip: 'Eliminar Carpeta',
-          onPressed: () => _confirmarEliminarCarpeta(carpeta),
+        // Botón de eliminar - SIEMPRE VISIBLE
+        Container(
+          margin: const EdgeInsets.only(right: 4),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.delete_forever, color: Colors.red, size: 22),
+            tooltip: 'Eliminar Carpeta',
+            onPressed: () => _confirmarEliminarCarpeta(carpeta),
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            padding: EdgeInsets.zero,
+          ),
         ),
+        // Menú de opciones adicionales
         PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: Colors.grey),
+          icon: const Icon(Icons.more_vert, color: Colors.grey, size: 20),
           tooltip: 'Más opciones',
+          padding: EdgeInsets.zero,
           onSelected: (value) {
             if (value == 'view') {
                  Navigator.push(
@@ -424,8 +436,8 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
             const PopupMenuItem(
               value: 'view',
               child: ListTile(
-                leading: Icon(Icons.snippet_folder_rounded, color: Colors.indigo),
-                title: Text('Ver Documentos'),
+                leading: Icon(Icons.snippet_folder_rounded, color: Colors.indigo, size: 20),
+                title: Text('Ver Documentos', style: TextStyle(fontSize: 14)),
                 contentPadding: EdgeInsets.zero,
                 dense: true,
               ),
@@ -433,19 +445,14 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
              const PopupMenuItem(
               value: 'add',
                child: ListTile(
-                leading: Icon(Icons.create_new_folder_outlined, color: Colors.blue),
-                title: Text('Nueva Subcarpeta'),
+                leading: Icon(Icons.create_new_folder_outlined, color: Colors.blue, size: 20),
+                title: Text('Nueva Subcarpeta', style: TextStyle(fontSize: 14)),
                 contentPadding: EdgeInsets.zero,
                 dense: true,
               ),
             ),
           ],
         ),
-        // Arrow is handled by ExpansionTile if we don't suppress it, 
-        // but since we provide trailing, we lose the default rotation. 
-        // We can add a static one or just leave the more_vert as indication.
-        // Let's add the arrow back for clarity, but small.
-        const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey, size: 20),
       ],
     );
   }
