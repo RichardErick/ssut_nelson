@@ -293,15 +293,12 @@ class _LoginScreenState extends State<LoginScreen>
                                       icon: Icons.lock_outline_rounded,
                                       isPassword: true,
                                       isDark: true,
-                                      validator: (v) {
-                                        if (v == null || v.isEmpty) {
-                                          return 'Ingrese su contrasena';
-                                        }
-                                        if (v.length < 8) {
-                                          return 'Minimo 8 caracteres';
-                                        }
-                                        return null;
-                                      },
+                                        validator: (v) {
+                                          if (v == null || v.isEmpty) {
+                                            return 'Ingrese su contraseña';
+                                          }
+                                          return null;
+                                        },
                                     ),
                                     const SizedBox(height: 16),
                                     Row(
@@ -539,8 +536,7 @@ class _LoginScreenState extends State<LoginScreen>
                         isPassword: true,
                         validator: (v) {
                           if (v == null || v.isEmpty)
-                            return 'Ingrese su contrasena';
-                          if (v.length < 8) return 'Minimo 8 caracteres';
+                            return 'Ingrese su contraseña';
                           return null;
                         },
                       ),
