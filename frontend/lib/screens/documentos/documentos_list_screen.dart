@@ -18,7 +18,8 @@ import 'documento_detail_screen.dart';
 import 'documento_form_screen.dart';
 
 class DocumentosListScreen extends StatefulWidget {
-  const DocumentosListScreen({super.key});
+  final int? initialCarpetaId;
+  const DocumentosListScreen({super.key, this.initialCarpetaId});
 
   @override
   State<DocumentosListScreen> createState() => DocumentosListScreenState();
@@ -50,9 +51,53 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   @override
   void initState() {
     super.initState();
-    cargarDocumentos();
-    _cargarCarpetas();
+    if (widget.initialCarpetaId != null) {
+      // Si venimos con un ID, cargamos directamente esa carpeta y sus cosas
+      _cargarCarpetaInicial(widget.initialCarpetaId!);
+    } else {
+      cargarDocumentos();
+      _cargarCarpetas();
+    }
     _searchController.addListener(_alCambiarBusqueda);
+  }
+
+  Future<void> _cargarCarpetaInicial(int id) async {
+      setState(() {
+          _estaCargando = true;
+          _estaCargandoCarpetas = true;
+      });
+      // Necesitamos cargar la info de la carpeta para mostrarl
+      // O podemos intentar _cargarCarpetas() y luego seleccionar?
+      // Mejor cargamos carpetas generales y luego seleccionamos
+      await _cargarCarpetas();
+      
+      // Encontrar la carpeta en la lista (esto asume que está en root, pero subcarpetas no están en _carpetas root)
+      // Si es subcarpeta, necesitamos buscarla. 
+      // Por ahora intentemos buscar en lo cargado.
+      // Si es una subcarpeta, _carpetas contiene solo ROOT folders de 2024 (current year default).
+      // Esto es problematico si venimos de 2025.
+      
+      // HACK: Forzamos la carga de la carpeta por ID usando el servicio si es necesario, 
+      // pero DocumentosListScreen usa `_carpetas` para el GridView root.
+      // Si entramos con un ID, queremos ver la *vista de detalles* de esa carpeta.
+      
+      // Vamos a simular que seleccionamos una carpeta manual
+      // Fetch carpeta details first?
+      // CarpetaService no tiene getById publico expuesto aqui facil? Check service.
+      try {
+         final service = Provider.of<CarpetaService>(context, listen: false);
+         final carpeta = await service.getById(id);
+         if(mounted) {
+             _abrirCarpeta(carpeta);
+         }
+      } catch(e) {
+          print('Error cargando carpeta inicial: $e');
+      }
+      
+      setState(() {
+          _estaCargando = false;
+          _estaCargandoCarpetas = false;
+      });
   }
 
   @override
