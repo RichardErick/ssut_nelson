@@ -401,37 +401,51 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          icon: Icon(
-            Icons.snippet_folder_rounded,
-            color: Colors.indigo.shade600,
-          ),
-          tooltip: 'Ver Documentos',
-          onPressed: () {
-             Navigator.push(
-               context,
-               MaterialPageRoute(
-                 builder: (context) => DocumentosListScreen(initialCarpetaId: carpeta.id),
-               ),
-              ).then((value) => _loadCarpetas());
-          },
-        ),
-        IconButton(
-          icon: Icon(
-            Icons.create_new_folder_outlined,
-            color: Colors.blue.shade700,
-          ),
-          tooltip: 'Nueva Subcarpeta',
-          onPressed: () => _crearCarpeta(padreId: carpeta.id),
-        ),
-        IconButton(
-          icon: const Icon(Icons.delete_forever, color: Colors.red), // Icono más visible
+          icon: const Icon(Icons.delete_forever, color: Colors.red),
           tooltip: 'Eliminar Carpeta',
           onPressed: () => _confirmarEliminarCarpeta(carpeta),
         ),
-        const Padding(
-          padding: EdgeInsets.only(left: 4),
-          child: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: Colors.grey),
+          tooltip: 'Más opciones',
+          onSelected: (value) {
+            if (value == 'view') {
+                 Navigator.push(
+                   context,
+                   MaterialPageRoute(
+                     builder: (context) => DocumentosListScreen(initialCarpetaId: carpeta.id),
+                   ),
+                  ).then((_) => _loadCarpetas());
+            } else if (value == 'add') {
+                _crearCarpeta(padreId: carpeta.id);
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'view',
+              child: ListTile(
+                leading: Icon(Icons.snippet_folder_rounded, color: Colors.indigo),
+                title: Text('Ver Documentos'),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+              ),
+            ),
+             const PopupMenuItem(
+              value: 'add',
+               child: ListTile(
+                leading: Icon(Icons.create_new_folder_outlined, color: Colors.blue),
+                title: Text('Nueva Subcarpeta'),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+              ),
+            ),
+          ],
         ),
+        // Arrow is handled by ExpansionTile if we don't suppress it, 
+        // but since we provide trailing, we lose the default rotation. 
+        // We can add a static one or just leave the more_vert as indication.
+        // Let's add the arrow back for clarity, but small.
+        const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey, size: 20),
       ],
     );
   }
