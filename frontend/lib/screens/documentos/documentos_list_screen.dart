@@ -38,7 +38,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   List<Carpeta> _subcarpetas = [];
   Carpeta? _carpetaSeleccionada;
   bool _estaCargandoSubcarpetas = false;
-  bool _estaCargandoSubcarpetas = false;
   bool _vistaGrid = true;
   String _consultaBusqueda = '';
   String _filtroSeleccionado = 'todos';

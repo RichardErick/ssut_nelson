@@ -19,6 +19,17 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
   static const String _nombreCarpetaPermitida = 'Comprobante de Egreso';
   Map<String, List<Carpeta>> _carpetasPorGestion = {};
   final List<String> _gestionesVisibles = ['2025', '2026'];
+  bool _isLoading = false;
+
+  bool get hasMainFolder {
+      for (final gestion in _gestionesVisibles) {
+          final carpetas = _carpetasPorGestion[gestion];
+          if (carpetas != null && carpetas.any((c) => c.nombre == _nombreCarpetaPermitida)) {
+              return true;
+          }
+      }
+      return false;
+  }
 
   @override
   void initState() {
@@ -184,56 +195,6 @@ class _CarpetasScreenState extends State<CarpetasScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.folder_off_rounded,
-              size: 80,
-              color: Colors.amber.shade700,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No hay carpetas para $_gestion',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Crea la primera carpeta para empezar a organizar documentos.',
-              style: GoogleFonts.poppins(color: Colors.grey.shade700),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: 260,
-              height: 48,
-              child: ElevatedButton.icon(
-                onPressed: () => _crearCarpeta(),
-                icon: const Icon(Icons.add_box_rounded, size: 22),
-                label: const Text('Crear carpeta'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber.shade800,
-                  foregroundColor: Colors.white,
-                  textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildCarpetaSubtitle(Carpeta carpeta) {
     final gestionLine =
