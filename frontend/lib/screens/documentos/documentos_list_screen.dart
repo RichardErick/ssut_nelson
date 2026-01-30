@@ -6,6 +6,7 @@ import '../../models/carpeta.dart';
 import '../../models/documento.dart';
 import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/data_provider.dart';
 import '../../services/carpeta_service.dart';
 import '../../services/documento_service.dart';
 import '../../theme/app_theme.dart';
@@ -234,7 +235,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final authProvider = Provider.of<AuthProvider>(context);
-    final canCreate = authProvider.hasPermission('subir_documento');
+    final canCreate = authProvider.hasPermission('crear_documento');
 
     int crossAxisCount = 1;
     if (size.width > 1200) {
@@ -243,27 +244,31 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       crossAxisCount = 2;
     }
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      floatingActionButton: _carpetaSeleccionada != null && canCreate 
-        ? FloatingActionButton.extended(
-            onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
-            icon: const Icon(Icons.add_circle_outline_rounded),
-            label: const Text('Nuevo Documento'),
-            backgroundColor: Colors.blue.shade700,
-          )
-        : null,
-      body: Column(
-        children: [
-          _construirFiltrosSuperior(theme, canCreate),
-          Expanded(
-            child:
-                _carpetaSeleccionada != null
-                    ? _construirVistaDocumentosCarpeta(theme)
-                    : _construirVistaCarpetas(theme),
+    return Consumer<DataProvider>(
+      builder: (context, dataProvider, child) {
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          floatingActionButton: _carpetaSeleccionada != null && canCreate 
+            ? FloatingActionButton.extended(
+                onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
+                icon: const Icon(Icons.add_circle_outline_rounded),
+                label: const Text('Nuevo Documento'),
+                backgroundColor: Colors.blue.shade700,
+              )
+            : null,
+          body: Column(
+            children: [
+              _construirFiltrosSuperior(theme, canCreate),
+              Expanded(
+                child:
+                    _carpetaSeleccionada != null
+                        ? _construirVistaDocumentosCarpeta(theme)
+                        : _construirVistaCarpetas(theme),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -275,7 +280,13 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         ),
       );
       if (result == true) {
-        _cargarDocumentosCarpeta(carpeta.id);
+        await _cargarDocumentosCarpeta(carpeta.id);
+        
+        // Notificar al DataProvider
+        if (mounted) {
+          final dataProvider = Provider.of<DataProvider>(context, listen: false);
+          dataProvider.refresh();
+        }
       }
   }
 
@@ -295,8 +306,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
     
     if (result == true && mounted) {
-      // Reload subcarpetas and show success message
+      // Reload subcarpetas
       await _cargarSubcarpetas(padreId);
+      
+      // Notificar al DataProvider
+      final dataProvider = Provider.of<DataProvider>(context, listen: false);
+      dataProvider.refresh();
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -338,8 +353,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   Widget _buildCarpetaCard(Carpeta carpeta, ThemeData theme) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final canDelete = authProvider.hasPermission('borrar_documento') || 
-                      authProvider.role == UserRole.administradorSistema;
+    final canDelete = authProvider.hasPermission('borrar_documento');
 
     final gestionLine =
         carpeta.gestion.isNotEmpty ? 'Gestion ${carpeta.gestion}' : null;
@@ -784,8 +798,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   Widget _buildModernSubcarpetaCard(Carpeta sub, ThemeData theme) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final canDelete = authProvider.hasPermission('borrar_documento') || 
-                      authProvider.role == UserRole.administradorSistema;
+    final canDelete = authProvider.hasPermission('borrar_documento');
+    final canCreate = authProvider.hasPermission('crear_documento');
 
     return Container(
       width: 180,
@@ -869,6 +883,33 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    // Botón para crear documento
+                    if (canCreate)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 32,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _agregarDocumento(sub),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 2,
+                          ),
+                          icon: const Icon(Icons.add, size: 16),
+                          label: Text(
+                            'Nuevo Doc',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -887,6 +928,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                       iconSize: 16,
                       padding: const EdgeInsets.all(4),
                       constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                      tooltip: 'Eliminar subcarpeta',
                     ),
                   ),
                 ),
@@ -1840,6 +1882,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
       if (!mounted) return;
 
+      // Notificar al DataProvider
+      final dataProvider = Provider.of<DataProvider>(context, listen: false);
+      dataProvider.notifyDocumentoDeleted(doc.id);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -1854,9 +1900,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       );
 
       // Recargar la lista de documentos
-      cargarDocumentos();
+      await cargarDocumentos();
       if (_carpetaSeleccionada != null) {
-        _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+        await _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
       }
     } catch (e) {
       if (!mounted) return;
@@ -1972,15 +2018,20 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       
       if (!mounted) return;
       
+      // Notificar al DataProvider
+      final dataProvider = Provider.of<DataProvider>(context, listen: false);
+      dataProvider.notifyCarpetaDeleted(carpeta.id);
+      
       // Actualizar listas
       if (carpeta.carpetaPadreId != null) {
-          _cargarSubcarpetas(carpeta.carpetaPadreId!);
+          await _cargarSubcarpetas(carpeta.carpetaPadreId!);
       } else {
           setState(() {
               _carpetaSeleccionada = null; // Regresar si estábamos viendo esta carpeta
           });
       }
-      _cargarCarpetas();
+      await _cargarCarpetas();
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Carpeta eliminada correctamente'), backgroundColor: Colors.green),
       );
@@ -1992,8 +2043,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   Widget _buildSubcarpetaCard(Carpeta sub, ThemeData theme) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final canDelete = authProvider.hasPermission('borrar_documento') || 
-                      authProvider.role == UserRole.administradorSistema;
+    final canDelete = authProvider.hasPermission('borrar_documento');
 
     return InkWell(
       onTap: () => _abrirCarpeta(sub),

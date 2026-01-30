@@ -5,10 +5,10 @@ import 'package:provider/provider.dart';
 import '../../../models/carpeta.dart';
 import '../../../models/user_role.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/data_provider.dart';
 import '../../../services/carpeta_service.dart';
 import '../../../controllers/carpetas/carpetas_controller.dart';
 import '../carpeta_form_screen.dart';
-import '../documentos_list_screen.dart';
 import '../documentos_list_screen.dart';
 
 /// View for displaying Carpetas (Folders) organized by modules
@@ -72,9 +72,10 @@ class _CarpetasViewState extends State<CarpetasView> {
       // Reload data
       await _controller.cargarCarpetas();
       
-      // Force UI refresh
+      // Notificar al DataProvider para actualizaciones en tiempo real
       if (mounted) {
-        setState(() {});
+        final dataProvider = Provider.of<DataProvider>(context, listen: false);
+        dataProvider.refresh();
       }
       
       // Show success message
@@ -92,57 +93,67 @@ class _CarpetasViewState extends State<CarpetasView> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Scaffold(
-          appBar: AppBar(
-            title: Text('Gestión Documental', style: GoogleFonts.poppins()),
-            actions: [
-              // Filter by gestion
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: DropdownButton<String>(
-                  value: _gestionSeleccionada,
-                  dropdownColor: Colors.white,
-                  style: GoogleFonts.poppins(
-                    color: Colors.blue.shade900,
-                    fontWeight: FontWeight.bold,
+    return Consumer<DataProvider>(
+      builder: (context, dataProvider, child) {
+        return AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Scaffold(
+              appBar: AppBar(
+                title: Text('Gestión Documental', style: GoogleFonts.poppins()),
+                actions: [
+                  // Filter by gestion
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: DropdownButton<String>(
+                      value: _gestionSeleccionada,
+                      dropdownColor: Colors.white,
+                      style: GoogleFonts.poppins(
+                        color: Colors.blue.shade900,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      underline: Container(),
+                      items: _gestionesVisibles.map((gestion) {
+                        return DropdownMenuItem(
+                          value: gestion,
+                          child: Text('Gestión $gestion'),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _gestionSeleccionada = value);
+                        }
+                      },
+                    ),
                   ),
-                  underline: Container(),
-                  items: _gestionesVisibles.map((gestion) {
-                    return DropdownMenuItem(
-                      value: gestion,
-                      child: Text('Gestión $gestion'),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _gestionSeleccionada = value);
-                    }
-                  },
-                ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () {
+                      _controller.cargarCarpetas();
+                      dataProvider.refresh();
+                    },
+                  ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: _controller.cargarCarpetas,
-              ),
-            ],
-          ),
-          floatingActionButton: _controller.carpetas.isEmpty || !_hasMainFolder
-              ? FloatingActionButton.extended(
-                  onPressed: () => _crearCarpeta(),
-                  icon: const Icon(Icons.create_new_folder),
-                  label: const Text('Crear Módulo'),
-                  backgroundColor: Colors.amber.shade800,
-                )
-              : null,
-          body: _controller.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: _controller.cargarCarpetas,
-                  child: _buildModularView(),
-                ),
+              floatingActionButton: _controller.carpetas.isEmpty || !_hasMainFolder
+                  ? FloatingActionButton.extended(
+                      onPressed: () => _crearCarpeta(),
+                      icon: const Icon(Icons.create_new_folder),
+                      label: const Text('Crear Módulo'),
+                      backgroundColor: Colors.amber.shade800,
+                    )
+                  : null,
+              body: _controller.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        await _controller.cargarCarpetas();
+                        dataProvider.refresh();
+                      },
+                      child: _buildModularView(),
+                    ),
+            );
+          },
         );
       },
     );
@@ -214,7 +225,7 @@ class _CarpetasViewState extends State<CarpetasView> {
             crossAxisCount: MediaQuery.of(context).size.width > 800 ? 2 : 1,
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
-            childAspectRatio: MediaQuery.of(context).size.width > 800 ? 1.8 : 1.2,
+            childAspectRatio: MediaQuery.of(context).size.width > 800 ? 2.2 : 1.4,
             children: [
               // Módulo Egresos
               if (carpetaEgresos != null)
@@ -348,8 +359,7 @@ class _CarpetasViewState extends State<CarpetasView> {
     String descripcion,
   ) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final canDelete = authProvider.hasPermission('borrar_documento') || 
-                      authProvider.role == UserRole.administradorSistema;
+    final canDelete = authProvider.hasPermission('borrar_documento');
 
     return Container(
       decoration: BoxDecoration(
@@ -372,7 +382,7 @@ class _CarpetasViewState extends State<CarpetasView> {
             children: [
               // Header del módulo
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -390,23 +400,23 @@ class _CarpetasViewState extends State<CarpetasView> {
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [color, color.withOpacity(0.8)],
                         ),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                         boxShadow: [
                           BoxShadow(
                             color: color.withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
-                      child: Icon(icon, color: Colors.white, size: 32),
+                      child: Icon(icon, color: Colors.white, size: 28),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,18 +424,22 @@ class _CarpetasViewState extends State<CarpetasView> {
                           Text(
                             nombre.toUpperCase(),
                             style: GoogleFonts.poppins(
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: color.withOpacity(0.9),
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           Text(
                             descripcion,
                             style: GoogleFonts.inter(
-                              fontSize: 13,
+                              fontSize: 12,
                               color: Colors.grey.shade600,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -434,12 +448,14 @@ class _CarpetasViewState extends State<CarpetasView> {
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: IconButton(
                           onPressed: () => _confirmarEliminarCarpeta(carpeta),
-                          icon: Icon(Icons.delete_outline, color: Colors.red.shade600, size: 20),
+                          icon: Icon(Icons.delete_outline, color: Colors.red.shade600, size: 18),
                           tooltip: 'Eliminar módulo',
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                         ),
                       ),
                   ],
@@ -449,7 +465,7 @@ class _CarpetasViewState extends State<CarpetasView> {
               // Contenido del módulo
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
                       // Estadísticas del módulo
@@ -463,7 +479,7 @@ class _CarpetasViewState extends State<CarpetasView> {
                               Colors.blue,
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: _buildModuleStatItem(
                               'Documentos',
@@ -480,17 +496,17 @@ class _CarpetasViewState extends State<CarpetasView> {
                       // Botón de acción
                       Container(
                         width: double.infinity,
-                        height: 48,
+                        height: 44,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [color.withOpacity(0.8), color],
                           ),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
                               color: color.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
                             ),
                           ],
                         ),
@@ -498,19 +514,19 @@ class _CarpetasViewState extends State<CarpetasView> {
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: () => _abrirCarpeta(carpeta),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(14),
                             child: Center(
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.folder_open, color: Colors.white, size: 20),
-                                  const SizedBox(width: 8),
+                                  const Icon(Icons.folder_open, color: Colors.white, size: 18),
+                                  const SizedBox(width: 6),
                                   Text(
                                     'Abrir Módulo',
                                     style: GoogleFonts.poppins(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 16,
+                                      fontSize: 14,
                                     ),
                                   ),
                                 ],
@@ -532,20 +548,20 @@ class _CarpetasViewState extends State<CarpetasView> {
 
   Widget _buildModuleStatItem(String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withOpacity(0.1)),
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 8),
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 6),
           Text(
             value,
             style: GoogleFonts.poppins(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.grey.shade800,
             ),
@@ -553,9 +569,11 @@ class _CarpetasViewState extends State<CarpetasView> {
           Text(
             label,
             style: GoogleFonts.inter(
-              fontSize: 11,
+              fontSize: 10,
               color: Colors.grey.shade600,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -644,8 +662,9 @@ class _CarpetasViewState extends State<CarpetasView> {
       await _controller.eliminarCarpeta(carpeta);
       if (!mounted) return;
       
-      // Force UI refresh
-      setState(() {});
+      // Notificar al DataProvider para actualizaciones en tiempo real
+      final dataProvider = Provider.of<DataProvider>(context, listen: false);
+      dataProvider.notifyCarpetaDeleted(carpeta.id);
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

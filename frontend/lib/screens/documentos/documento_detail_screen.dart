@@ -13,6 +13,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../models/anexo.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/data_provider.dart';
 import '../../models/documento.dart';
 import '../../services/anexo_service.dart';
 import '../../services/documento_service.dart';
@@ -164,6 +165,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           style: IconButton.styleFrom(
             backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
           ),
+          tooltip: 'Imprimir documento',
         ),
         const SizedBox(width: 8),
         if (Provider.of<AuthProvider>(context).hasPermission('editar_metadatos'))
@@ -173,6 +175,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
             style: IconButton.styleFrom(
               backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
             ),
+            tooltip: 'Editar documento',
           ),
         const SizedBox(width: 8),
         IconButton(
@@ -181,6 +184,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           style: IconButton.styleFrom(
             backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
           ),
+          tooltip: 'Compartir documento',
         ),
         const SizedBox(width: 16),
       ],
@@ -614,6 +618,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       await service.delete(doc.id);
       
       if (!mounted) return;
+      
+      // Notificar al DataProvider
+      final dataProvider = Provider.of<DataProvider>(context, listen: false);
+      dataProvider.notifyDocumentoDeleted(doc.id);
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1166,7 +1174,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Arrastra tu PDF aquí o haz clic',
+                      'Arrastra tu PDF aquí o haz clic para seleccionar',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         fontSize: constraints.maxWidth < 400 ? 12 : 14,
@@ -1202,7 +1210,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                         ),
                         icon: const Icon(Icons.folder_open_rounded, size: 18),
                         label: Text(
-                          'Examinar',
+                          'Seleccionar Archivo',
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
