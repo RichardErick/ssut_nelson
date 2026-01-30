@@ -28,6 +28,8 @@ class _PermisosScreenState extends State<PermisosScreen> {
     'subir_documento': 'Subir Documento',
     'editar_metadatos': 'Editar Metadatos',
     'borrar_documento': 'Borrar Documento',
+    'crear_carpeta': 'Crear Carpeta',
+    'borrar_carpeta': 'Borrar Carpeta',
   };
 
   // Permisos por rol según la matriz definida
@@ -38,7 +40,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
       'crear_documento',
       'subir_documento',
       'editar_metadatos',
-      'borrar_documento'
+      'borrar_documento',
+      'crear_carpeta',
+      'borrar_carpeta'
     ],
     UserRole.contador: [
       'ver_documento',
@@ -49,7 +53,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
   };
 
   // State
-  final Map<String, Map<String, bool>> _permisosPersonalizados = {};
+  final Map<String, Map<String, bool>> _permisosActivos = {};
 
   Usuario? _usuarioSeleccionado;
   bool _isLoading = true;
@@ -115,17 +119,16 @@ class _PermisosScreenState extends State<PermisosScreen> {
       _usuarioSeleccionado = usuario;
     });
     
-    // Inicializar permisos personalizados si no existen
-    if (!_permisosPersonalizados.containsKey(usuario.nombreUsuario)) {
-      _permisosPersonalizados[usuario.nombreUsuario] = {};
+    // Inicializar permisos activos si no existen
+    if (!_permisosActivos.containsKey(usuario.nombreUsuario)) {
+      _permisosActivos[usuario.nombreUsuario] = {};
       
-      // Inicializar con permisos por defecto del rol
+      // Inicializar todos los permisos del rol como ACTIVOS por defecto
       final role = _parseRole(usuario.rol);
       final permisosRol = _permisosPorRol[role] ?? [];
       
-      for (final permiso in _permisosDisponibles.keys) {
-        _permisosPersonalizados[usuario.nombreUsuario]![permiso] = 
-            permisosRol.contains(permiso);
+      for (final permiso in permisosRol) {
+        _permisosActivos[usuario.nombreUsuario]![permiso] = true; // ACTIVO por defecto
       }
     }
   }
@@ -151,8 +154,8 @@ class _PermisosScreenState extends State<PermisosScreen> {
     
     setState(() {
       final username = _usuarioSeleccionado!.nombreUsuario;
-      _permisosPersonalizados[username]![permiso] = 
-          !(_permisosPersonalizados[username]![permiso] ?? false);
+      _permisosActivos[username]![permiso] = 
+          !(_permisosActivos[username]![permiso] ?? false);
     });
   }
 
@@ -336,7 +339,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
     final usuario = _usuarioSeleccionado!;
     final role = _parseRole(usuario.rol);
     final permisosRol = _permisosPorRol[role] ?? [];
-    final permisosUsuario = _permisosPersonalizados[usuario.nombreUsuario] ?? {};
+    final permisosUsuario = _permisosActivos[usuario.nombreUsuario] ?? {};
 
     return Container(
       color: Colors.white,
@@ -418,7 +421,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Permisos de Documentos',
+                    'Control de Permisos por Usuario',
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -426,7 +429,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Personaliza los permisos específicos para este usuario',
+                    'Activa o desactiva los permisos asignados al rol de este usuario',
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -434,86 +437,117 @@ class _PermisosScreenState extends State<PermisosScreen> {
                   ),
                   const SizedBox(height: 24),
                   
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _permisosDisponibles.length,
-                      itemBuilder: (context, index) {
-                        final permiso = _permisosDisponibles.keys.elementAt(index);
-                        final nombre = _permisosDisponibles[permiso]!;
-                        final tienePermisoRol = permisosRol.contains(permiso);
-                        final tienePermisoUsuario = permisosUsuario[permiso] ?? tienePermisoRol;
-                        
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          elevation: 2,
-                          child: ListTile(
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: tienePermisoUsuario 
-                                    ? Colors.green.withOpacity(0.1)
-                                    : Colors.grey.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                _getPermisoIcon(permiso),
-                                color: tienePermisoUsuario ? Colors.green : Colors.grey,
-                              ),
-                            ),
-                            title: Text(
-                              nombre,
-                              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Text(
-                              tienePermisoRol 
-                                  ? 'Incluido por rol' 
-                                  : 'Permiso personalizado',
+                  // Mostrar solo los permisos que tiene el rol
+                  if (permisosRol.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.orange.shade700),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Este rol no tiene permisos de documentos asignados',
                               style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: Colors.orange.shade700,
+                                fontWeight: FontWeight.w500,
                               ),
-                            ),
-                            trailing: Switch(
-                              value: tienePermisoUsuario,
-                              onChanged: (value) => _togglePermiso(permiso),
-                              activeColor: Colors.green,
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  
-                  // Botón guardar
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _isSaving ? null : _guardarCambios,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.colorPrimario,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        ],
                       ),
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
+                    )
+                  else
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: permisosRol.length,
+                        itemBuilder: (context, index) {
+                          final permiso = permisosRol[index];
+                          final nombre = _permisosDisponibles[permiso] ?? permiso;
+                          final estaActivo = permisosUsuario[permiso] ?? true;
+                          
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            elevation: 2,
+                            child: ListTile(
+                              leading: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: estaActivo 
+                                      ? Colors.green.withOpacity(0.1)
+                                      : Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  _getPermisoIcon(permiso),
+                                  color: estaActivo ? Colors.green : Colors.red,
+                                ),
                               ),
-                            )
-                          : Text(
-                              'Guardar Cambios',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
+                              title: Text(
+                                nombre,
+                                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Text(
+                                estaActivo 
+                                    ? 'Permiso ACTIVO' 
+                                    : 'Permiso DESACTIVADO',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: estaActivo ? Colors.green.shade600 : Colors.red.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              trailing: Switch(
+                                value: estaActivo,
+                                onChanged: (value) => _togglePermiso(permiso),
+                                activeColor: Colors.green,
+                                inactiveThumbColor: Colors.red.shade300,
+                                inactiveTrackColor: Colors.red.shade100,
                               ),
                             ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
+                  
+                  if (permisosRol.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    // Botón guardar
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _guardarCambios,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.colorPrimario,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Guardar Cambios',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -565,6 +599,10 @@ class _PermisosScreenState extends State<PermisosScreen> {
         return Icons.edit;
       case 'borrar_documento':
         return Icons.delete;
+      case 'crear_carpeta':
+        return Icons.create_new_folder;
+      case 'borrar_carpeta':
+        return Icons.folder_delete;
       default:
         return Icons.security;
     }

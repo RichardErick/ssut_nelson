@@ -65,13 +65,15 @@ class AuthProvider extends ChangeNotifier {
         return permissionCode == 'ver_documento';
         
       case UserRole.administradorDocumentos:
-        // Puede ver, subir, editar y borrar documentos
+        // Puede ver, crear, subir, editar y borrar documentos + crear carpetas
         return [
           'ver_documento',
           'crear_documento',
           'subir_documento', 
           'editar_metadatos',
-          'borrar_documento'
+          'borrar_documento',
+          'crear_carpeta',
+          'borrar_carpeta'
         ].contains(permissionCode);
         
       case UserRole.contador:
