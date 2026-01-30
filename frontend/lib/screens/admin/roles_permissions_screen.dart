@@ -30,21 +30,17 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     'Gerente',
   ];
 
-  // Permisos por rol según la matriz definida
+  // Permisos por rol según la matriz SIMPLIFICADA
   final Map<String, List<String>> _permisosPorRol = {
     'AdministradorSistema': ['Ver Documento'],
     'AdministradorDocumentos': [
       'Ver Documento',
-      'Crear Documento', 
       'Subir Documento',
-      'Editar Metadatos',
-      'Borrar Documento',
-      'Crear Carpeta',
-      'Borrar Carpeta'
+      'Editar Documento',
+      'Borrar Documento'
     ],
     'Contador': [
       'Ver Documento',
-      'Crear Documento',
       'Subir Documento'
     ],
     'Gerente': ['Ver Documento'],

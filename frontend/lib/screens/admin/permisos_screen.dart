@@ -21,32 +21,25 @@ class _PermisosScreenState extends State<PermisosScreen> {
   List<Usuario> _usuarios = [];
   List<Usuario> _usuariosFiltrados = [];
   
-  // Permisos disponibles según la matriz
+  // Permisos disponibles según la matriz SIMPLIFICADA
   final Map<String, String> _permisosDisponibles = {
     'ver_documento': 'Ver Documento',
-    'crear_documento': 'Crear Documento',
     'subir_documento': 'Subir Documento',
-    'editar_metadatos': 'Editar Metadatos',
+    'editar_documento': 'Editar Documento',
     'borrar_documento': 'Borrar Documento',
-    'crear_carpeta': 'Crear Carpeta',
-    'borrar_carpeta': 'Borrar Carpeta',
   };
 
-  // Permisos por rol según la matriz definida
+  // Permisos por rol según la matriz SIMPLIFICADA
   final Map<UserRole, List<String>> _permisosPorRol = {
     UserRole.administradorSistema: ['ver_documento'],
     UserRole.administradorDocumentos: [
       'ver_documento',
-      'crear_documento',
       'subir_documento',
-      'editar_metadatos',
-      'borrar_documento',
-      'crear_carpeta',
-      'borrar_carpeta'
+      'editar_documento',
+      'borrar_documento'
     ],
     UserRole.contador: [
       'ver_documento',
-      'crear_documento',
       'subir_documento'
     ],
     UserRole.gerente: ['ver_documento'],
@@ -649,18 +642,12 @@ class _PermisosScreenState extends State<PermisosScreen> {
     switch (permiso) {
       case 'ver_documento':
         return Icons.visibility;
-      case 'crear_documento':
-        return Icons.add_circle;
       case 'subir_documento':
         return Icons.upload;
-      case 'editar_metadatos':
+      case 'editar_documento':
         return Icons.edit;
       case 'borrar_documento':
         return Icons.delete;
-      case 'crear_carpeta':
-        return Icons.create_new_folder;
-      case 'borrar_carpeta':
-        return Icons.folder_delete;
       default:
         return Icons.security;
     }

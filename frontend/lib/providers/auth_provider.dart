@@ -68,15 +68,12 @@ class AuthProvider extends ChangeNotifier {
         return hasPermission;
         
       case UserRole.administradorDocumentos:
-        // Puede ver, crear, subir, editar y borrar documentos + crear carpetas
+        // Puede ver, subir, editar y borrar documentos
         final allowedPermissions = [
           'ver_documento',
-          'crear_documento',
           'subir_documento', 
-          'editar_metadatos',
-          'borrar_documento',
-          'crear_carpeta',
-          'borrar_carpeta'
+          'editar_documento',
+          'borrar_documento'
         ];
         final hasPermission = allowedPermissions.contains(permissionCode);
         print('DEBUG: AdministradorDocumentos - Permiso "$permissionCode": $hasPermission');
@@ -86,7 +83,6 @@ class AuthProvider extends ChangeNotifier {
         // Puede ver y subir documentos
         final allowedPermissions = [
           'ver_documento',
-          'crear_documento',
           'subir_documento'
         ];
         final hasPermission = allowedPermissions.contains(permissionCode);
