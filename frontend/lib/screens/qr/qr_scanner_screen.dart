@@ -50,14 +50,28 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
       
+      // Limpiar el código QR si viene como URL
+      String codigoLimpio = codigoQr.trim();
+      
+      // Si es una URL, extraer solo el código del documento
+      if (codigoLimpio.startsWith('http')) {
+        // Extraer el código del final de la URL
+        final partes = codigoLimpio.split('/');
+        if (partes.isNotEmpty) {
+          codigoLimpio = partes.last;
+        }
+      }
+      
       // Verificar si es un link compartible
-      if (codigoQr.startsWith('DOC-SHARE:')) {
-        await _procesarLinkCompartible(codigoQr);
+      if (codigoLimpio.startsWith('DOC-SHARE:')) {
+        await _procesarLinkCompartible(codigoLimpio);
         return;
       }
       
+      print('DEBUG: Buscando documento con código: $codigoLimpio');
+      
       // Búsqueda normal por QR
-      final documento = await service.getByQRCode(codigoQr);
+      final documento = await service.getByQRCode(codigoLimpio);
 
       if (!mounted) return;
 
@@ -78,7 +92,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'El código QR no corresponde a un documento del sistema.\nContenido leído: $codigoQr',
+                    'El código QR no corresponde a un documento del sistema.\nCódigo procesado: $codigoLimpio',
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -103,7 +117,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    ErrorHelper.getErrorMessage(e),
+                    'Error en búsqueda: ${ErrorHelper.getErrorMessage(e)}',
                     style: const TextStyle(fontSize: 14),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,

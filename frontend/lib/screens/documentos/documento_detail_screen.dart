@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
+import 'dart:ui' as ui;
 import 'dart:html' as html;
 
 import 'package:file_picker/file_picker.dart';
@@ -1078,11 +1079,12 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           ? qrData 
           : widget.documento.codigo;
       
-      final qrImageBytes = await _generarImagenPNGReal(qrDataSafe, doc);
+      // Generar captura real del QR como se ve en pantalla
+      final qrImageBytes = await _capturarQRComoImagen(qrDataSafe, doc);
       await _descargarArchivo(qrImageBytes, 'QR_${doc.codigo}.png');
       
       _showNotification(
-        'QR descargado: QR_${doc.codigo}.png (compatible con scanner)',
+        'QR descargado: QR_${doc.codigo}.png (imagen real)',
         background: AppTheme.colorExito,
       );
       
@@ -1091,6 +1093,60 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         'Error al descargar imagen QR: ${ErrorHelper.getErrorMessage(e)}',
         background: AppTheme.colorError,
       );
+    }
+  }
+
+  Future<Uint8List> _capturarQRComoImagen(String qrData, Documento doc) async {
+    try {
+      // Crear una imagen PNG real del QR tal como se ve en pantalla
+      const int size = 400;
+      const int qrSize = 320;
+      const int padding = (size - qrSize) ~/ 2;
+      
+      // Generar el QR usando qr_flutter internamente
+      final qrPainter = QrPainter(
+        data: qrData,
+        version: QrVersions.auto,
+        eyeStyle: const QrEyeStyle(
+          eyeShape: QrEyeShape.square,
+          color: Colors.black,
+        ),
+        dataModuleStyle: const QrDataModuleStyle(
+          dataModuleShape: QrDataModuleShape.square,
+          color: Colors.black,
+        ),
+        gapless: false,
+      );
+      
+      // Crear un canvas para dibujar
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
+      
+      // Fondo blanco
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
+        Paint()..color = Colors.white,
+      );
+      
+      // Dibujar el QR centrado
+      canvas.save();
+      canvas.translate(padding.toDouble(), padding.toDouble());
+      qrPainter.paint(
+        canvas,
+        Size(qrSize.toDouble(), qrSize.toDouble()),
+      );
+      canvas.restore();
+      
+      // Convertir a imagen
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(size, size);
+      final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+      
+      return byteData!.buffer.asUint8List();
+    } catch (e) {
+      print('Error generando imagen QR real: $e');
+      // Fallback: usar PDF optimizado
+      return await _generarPDFOptimizado(qrData, doc);
     }
   }
 
