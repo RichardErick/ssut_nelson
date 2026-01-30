@@ -193,6 +193,24 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }
   }
 
+  Future<void> _navegarACarpetaPadre(int carpetaPadreId) async {
+    print('DEBUG: Navegando a carpeta padre con ID: $carpetaPadreId');
+    
+    try {
+      final carpetaService = Provider.of<CarpetaService>(context, listen: false);
+      final carpetaPadre = await carpetaService.getById(carpetaPadreId);
+      
+      print('DEBUG: Carpeta padre encontrada: "${carpetaPadre.nombre}"');
+      await _abrirCarpeta(carpetaPadre);
+    } catch (e) {
+      print('DEBUG: Error navegando a carpeta padre: $e');
+      // Si hay error, ir a vista principal
+      setState(() {
+        _carpetaSeleccionada = null;
+      });
+    }
+  }
+
   Future<void> _abrirCarpeta(Carpeta carpeta) async {
     print('DEBUG: Abriendo carpeta "${carpeta.nombre}" (ID: ${carpeta.id}, PadreID: ${carpeta.carpetaPadreId})');
     
@@ -626,18 +644,19 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         ? 'Cargando...'
         : _calcularRangoCorrelativos(docs);
 
-    return Column(
-      children: [
-        // Header mejorado de la carpeta
-        _buildCarpetaHeader(carpeta, rango, theme),
-        
-        // Vista de Subcarpetas mejorada
-        if (_estaCargandoSubcarpetas)
-          Container(
-            height: 4,
-            margin: const EdgeInsets.symmetric(horizontal: 24),
-            child: LinearProgressIndicator(
-              backgroundColor: Colors.grey.shade200,
+    return Flexible(
+      child: Column(
+        children: [
+          // Header mejorado de la carpeta
+          _buildCarpetaHeader(carpeta, rango, theme),
+          
+          // Vista de Subcarpetas mejorada
+          if (_estaCargandoSubcarpetas)
+            Container(
+              height: 4,
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              child: LinearProgressIndicator(
+                backgroundColor: Colors.grey.shade200,
               valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
             ),
           )
@@ -658,6 +677,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                       : _construirListaDocumentos(docs, theme),
         ),
       ],
+      ),
     );
   }
 
@@ -708,11 +728,19 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                       print('DEBUG: Navegando hacia atrás (pop)');
                       Navigator.pop(context);
                     } else {
-                      print('DEBUG: Regresando a vista principal - limpiando _carpetaSeleccionada');
-                      setState(() {
-                        _carpetaSeleccionada = null;
-                      });
-                      print('DEBUG: Estado actualizado - _carpetaSeleccionada: $_carpetaSeleccionada');
+                      // Navegación por niveles
+                      if (_carpetaSeleccionada?.carpetaPadreId != null) {
+                        // Estamos en una subcarpeta, ir a la carpeta padre
+                        print('DEBUG: En subcarpeta, navegando a carpeta padre');
+                        _navegarACarpetaPadre(_carpetaSeleccionada!.carpetaPadreId!);
+                      } else {
+                        // Estamos en carpeta padre, ir a vista principal
+                        print('DEBUG: En carpeta padre, regresando a vista principal');
+                        setState(() {
+                          _carpetaSeleccionada = null;
+                        });
+                        print('DEBUG: Estado actualizado - _carpetaSeleccionada: $_carpetaSeleccionada');
+                      }
                     }
                   },
                   icon: const Icon(Icons.arrow_back_rounded),

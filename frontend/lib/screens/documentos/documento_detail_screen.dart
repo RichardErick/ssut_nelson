@@ -1433,6 +1433,11 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       final anexos = await service.listarPorDocumento(widget.documento.id);
       if (mounted) {
         setState(() => _anexos = anexos);
+        
+        // Si hay anexos y no tenemos preview, cargar el primer PDF automáticamente
+        if (anexos.isNotEmpty && _previewPdfBytes == null) {
+          _loadFirstPdfPreview(anexos.first);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -1445,6 +1450,25 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       if (mounted) {
         setState(() => _isLoadingAnexos = false);
       }
+    }
+  }
+
+  Future<void> _loadFirstPdfPreview(Anexo anexo) async {
+    try {
+      print('DEBUG: Cargando preview del anexo: ${anexo.nombreArchivo}');
+      final service = Provider.of<AnexoService>(context, listen: false);
+      final pdfBytes = await service.descargarBytes(anexo.id);
+      
+      if (mounted && pdfBytes != null) {
+        setState(() {
+          _previewPdfBytes = pdfBytes;
+          _previewFileName = anexo.nombreArchivo;
+        });
+        print('DEBUG: Preview cargado exitosamente para: ${anexo.nombreArchivo}');
+      }
+    } catch (e) {
+      print('DEBUG: Error cargando preview: $e');
+      // No mostrar error al usuario, solo log para debug
     }
   }
 
