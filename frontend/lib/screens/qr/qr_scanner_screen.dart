@@ -408,14 +408,20 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     // Aumentar contraste significativamente
     processed = img.contrast(processed, contrast: 200);
     
-    // Aplicar threshold para binarizar (convertir a blanco y negro puro)
-    processed = img.threshold(processed, threshold: 128);
-    
     // Aplicar un filtro de mediana para reducir ruido
     processed = img.gaussianBlur(processed, radius: 1);
     
-    // Segundo threshold después del blur
-    processed = img.threshold(processed, threshold: 140);
+    // Binarización manual (convertir a blanco y negro)
+    for (int y = 0; y < processed.height; y++) {
+      for (int x = 0; x < processed.width; x++) {
+        final pixel = processed.getPixel(x, y);
+        final luminance = img.getLuminance(pixel);
+        final newPixel = luminance > 128 
+            ? img.ColorRgb8(255, 255, 255) // Blanco
+            : img.ColorRgb8(0, 0, 0);      // Negro
+        processed.setPixel(x, y, newPixel);
+      }
+    }
     
     return processed;
   }
