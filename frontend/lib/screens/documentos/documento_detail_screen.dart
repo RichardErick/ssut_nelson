@@ -909,7 +909,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                   qrData,
                   style: pw.TextStyle(
                     fontSize: 12,
-                    fontFamily: pw.Font.courier(),
+                    font: pw.Font.courier(),
                   ),
                   textAlign: pw.TextAlign.center,
                 ),
