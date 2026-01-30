@@ -67,6 +67,18 @@ class ApiService {
     }
   }
 
+  Future<Response> getBytes(String path, {Map<String, dynamic>? queryParameters}) async {
+    try {
+      return await _dio.get(
+        path, 
+        queryParameters: queryParameters,
+        options: Options(responseType: ResponseType.bytes),
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   void setAuthToken(String token) {
     _dio.options.headers['Authorization'] = 'Bearer $token';
   }

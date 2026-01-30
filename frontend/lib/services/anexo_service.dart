@@ -42,17 +42,10 @@ class AnexoService {
 
   Future<Uint8List> descargarBytes(int anexoId) async {
     final api = Provider.of<ApiService>(navigatorKey.currentContext!, listen: false);
-    // Nota: Esto crea un nuevo Dio sin token. Si la descarga requiere auth, fallará.
-    // Idealmente ApiService debería soportar 'getBytes' o exponer su Dio.
-    final dio = Dio(BaseOptions(
-        baseUrl: api.baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30)));
-        
-    final response = await dio.get(
-      '/documentos/anexos/$anexoId/download',
-      options: Options(responseType: ResponseType.bytes),
-    );
+    
+    // Usar el nuevo método getBytes que incluye automáticamente el token de autenticación
+    final response = await api.getBytes('/documentos/anexos/$anexoId/download');
+    
     final data = response.data;
     if (data is Uint8List) return data;
     if (data is List<int>) return Uint8List.fromList(data);
