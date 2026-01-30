@@ -354,6 +354,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Widget _buildCarpetaCard(Carpeta carpeta, ThemeData theme) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final canDelete = authProvider.hasPermission('borrar_documento');
+    final canCreateCarpeta = authProvider.hasPermission('crear_carpeta');
 
     final gestionLine =
         carpeta.gestion.isNotEmpty ? 'Gestion ${carpeta.gestion}' : null;
@@ -633,7 +634,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               ),
               
               // Botón de nueva subcarpeta
-              if (carpeta.carpetaPadreId == null)
+              if (carpeta.carpetaPadreId == null && canCreateCarpeta)
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(

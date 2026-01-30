@@ -135,7 +135,8 @@ class _CarpetasViewState extends State<CarpetasView> {
                   ),
                 ],
               ),
-              floatingActionButton: _controller.carpetas.isEmpty || !_hasMainFolder
+              floatingActionButton: (_controller.carpetas.isEmpty || !_hasMainFolder) && 
+                  Provider.of<AuthProvider>(context).hasPermission('crear_carpeta')
                   ? FloatingActionButton.extended(
                       onPressed: () => _crearCarpeta(),
                       icon: const Icon(Icons.create_new_folder),
@@ -359,7 +360,7 @@ class _CarpetasViewState extends State<CarpetasView> {
     String descripcion,
   ) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final canDelete = authProvider.hasPermission('borrar_documento');
+    final canDelete = authProvider.hasPermission('borrar_carpeta');
 
     return Container(
       decoration: BoxDecoration(
