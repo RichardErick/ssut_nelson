@@ -21,32 +21,25 @@ class _PermisosScreenState extends State<PermisosScreen> {
   List<Usuario> _usuarios = [];
   List<Usuario> _usuariosFiltrados = [];
   
-  // Permisos disponibles según la matriz
+  // Permisos disponibles según la matriz SIMPLIFICADA
   final Map<String, String> _permisosDisponibles = {
     'ver_documento': 'Ver Documento',
-    'crear_documento': 'Crear Documento',
     'subir_documento': 'Subir Documento',
-    'editar_metadatos': 'Editar Metadatos',
+    'editar_documento': 'Editar Documento',
     'borrar_documento': 'Borrar Documento',
-    'crear_carpeta': 'Crear Carpeta',
-    'borrar_carpeta': 'Borrar Carpeta',
   };
 
-  // Permisos por rol según la matriz definida
+  // Permisos por rol según la matriz SIMPLIFICADA
   final Map<UserRole, List<String>> _permisosPorRol = {
     UserRole.administradorSistema: ['ver_documento'],
     UserRole.administradorDocumentos: [
       'ver_documento',
-      'crear_documento',
       'subir_documento',
-      'editar_metadatos',
-      'borrar_documento',
-      'crear_carpeta',
-      'borrar_carpeta'
+      'editar_documento',
+      'borrar_documento'
     ],
     UserRole.contador: [
       'ver_documento',
-      'crear_documento',
       'subir_documento'
     ],
     UserRole.gerente: ['ver_documento'],
@@ -143,6 +136,8 @@ class _PermisosScreenState extends State<PermisosScreen> {
   UserRole _parseRoleWithContext(String roleName, String nombreUsuario, String nombreCompleto) {
     print('DEBUG PERMISOS: Parseando rol: "$roleName" para usuario: "$nombreUsuario" ($nombreCompleto)');
     final roleNameLower = roleName.toLowerCase().trim();
+    final usernameLower = nombreUsuario.toLowerCase().trim();
+    final fullNameLower = nombreCompleto.toLowerCase().trim();
     
     switch (roleNameLower) {
       case 'administradorsistema':
@@ -160,12 +155,22 @@ class _PermisosScreenState extends State<PermisosScreen> {
       case 'admin':
       case 'administrator':
         // Para el rol genérico "Administrador", usar contexto del usuario
-        if (nombreUsuario.toLowerCase() == 'admin' || 
-            nombreCompleto.toLowerCase().contains('sistema')) {
-          print('DEBUG PERMISOS: Rol "Administrador" mapeado a AdministradorSistema por contexto');
+        // Si el nombre completo contiene "documentos" o el username es "doc_admin", es admin de documentos
+        if (fullNameLower.contains('documentos') || 
+            fullNameLower.contains('documento') ||
+            usernameLower == 'doc_admin' ||
+            usernameLower.contains('doc')) {
+          print('DEBUG PERMISOS: Rol "Administrador" mapeado a AdministradorDocumentos por contexto (documentos)');
+          return UserRole.administradorDocumentos;
+        }
+        // Si el nombre completo contiene "sistema" o el username es "admin", es admin de sistema
+        else if (fullNameLower.contains('sistema') || 
+                 usernameLower == 'admin') {
+          print('DEBUG PERMISOS: Rol "Administrador" mapeado a AdministradorSistema por contexto (sistema)');
           return UserRole.administradorSistema;
         } else {
-          print('DEBUG PERMISOS: Rol "Administrador" mapeado a AdministradorDocumentos por contexto');
+          // Por defecto, si no hay contexto claro, asignar AdministradorDocumentos
+          print('DEBUG PERMISOS: Rol "Administrador" mapeado a AdministradorDocumentos por defecto');
           return UserRole.administradorDocumentos;
         }
       case 'contador':
@@ -175,8 +180,8 @@ class _PermisosScreenState extends State<PermisosScreen> {
         print('DEBUG PERMISOS: Mapeado a Gerente');
         return UserRole.gerente;
       default:
-        print('DEBUG PERMISOS: Rol no reconocido: "$roleName", asignando AdministradorSistema por defecto');
-        return UserRole.administradorSistema;
+        print('DEBUG PERMISOS: Rol no reconocido: "$roleName", asignando AdministradorDocumentos por defecto');
+        return UserRole.administradorDocumentos;
     }
   }
 
@@ -637,18 +642,12 @@ class _PermisosScreenState extends State<PermisosScreen> {
     switch (permiso) {
       case 'ver_documento':
         return Icons.visibility;
-      case 'crear_documento':
-        return Icons.add_circle;
       case 'subir_documento':
         return Icons.upload;
-      case 'editar_metadatos':
+      case 'editar_documento':
         return Icons.edit;
       case 'borrar_documento':
         return Icons.delete;
-      case 'crear_carpeta':
-        return Icons.create_new_folder;
-      case 'borrar_carpeta':
-        return Icons.folder_delete;
       default:
         return Icons.security;
     }
