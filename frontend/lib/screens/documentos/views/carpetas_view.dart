@@ -9,6 +9,7 @@ import '../../../services/carpeta_service.dart';
 import '../../../controllers/carpetas/carpetas_controller.dart';
 import '../carpeta_form_screen.dart';
 import '../documentos_list_screen.dart';
+import '../documentos_list_screen.dart';
 
 /// View for displaying Carpetas (Folders) organized by modules
 class CarpetasView extends StatefulWidget {
@@ -34,6 +35,15 @@ class _CarpetasViewState extends State<CarpetasView> {
 
   List<Carpeta> _getCarpetasForGestion(String gestion) {
     return _controller.carpetas.where((c) => c.gestion == gestion).toList();
+  }
+
+  void _abrirCarpeta(Carpeta carpeta) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DocumentosListScreen(initialCarpetaId: carpeta.id),
+      ),
+    ).then((_) => _controller.cargarCarpetas());
   }
 
   @override

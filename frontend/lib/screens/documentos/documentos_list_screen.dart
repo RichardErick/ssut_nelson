@@ -12,7 +12,6 @@ import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_shimmer.dart';
-import 'carpeta_form_screen.dart';
 import 'subcarpeta_form_screen.dart';
 import 'carpetas_screen.dart';
 import 'documento_detail_screen.dart';
@@ -680,7 +679,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               Expanded(
                 child: _buildCarpetaStat(
                   'Documentos',
-                  '${docs.length}',
+                  '${_documentosCarpeta.length}',
                   Icons.description,
                   Colors.green,
                 ),
