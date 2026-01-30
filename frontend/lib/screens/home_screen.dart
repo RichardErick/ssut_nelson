@@ -192,8 +192,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               extendBodyBehindAppBar: true,
               appBar: _buildAppBar(theme, isDesktop),
               body: _buildBody(theme),
-              floatingActionButton:
-                  _selectedIndex == 0 ? _buildFAB(theme) : null,
+              floatingActionButton: null, // Eliminado - cada pantalla maneja su propio FAB
               bottomNavigationBar:
                   !isDesktop && !isTablet ? _buildBottomNav(theme) : null,
             ),

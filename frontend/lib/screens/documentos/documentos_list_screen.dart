@@ -2276,9 +2276,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       return null;
     }
 
-    // Nivel 1: Vista principal de carpetas padre - Solo crear carpeta
+    // Nivel 1: Vista principal de carpetas padre - SOLO mostrar "Nueva Carpeta"
     if (_carpetaSeleccionada == null) {
-      print('DEBUG FAB: Nivel 1 - Vista principal, mostrando Nueva Carpeta');
+      print('DEBUG FAB: Nivel 1 - Vista principal, mostrando SOLO Nueva Carpeta');
       return FloatingActionButton.extended(
         onPressed: () => _abrirNuevaCarpeta(),
         icon: const Icon(Icons.create_new_folder_rounded),
@@ -2288,9 +2288,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       );
     }
 
-    // Nivel 2: Dentro de carpeta padre (carpetaPadreId == null) - Solo crear subcarpeta
+    // Nivel 2: Dentro de carpeta padre - SOLO mostrar "Nueva Subcarpeta" (ocultar "Nueva Carpeta")
     if (_carpetaSeleccionada!.carpetaPadreId == null) {
-      print('DEBUG FAB: Nivel 2 - Dentro de carpeta padre "${_carpetaSeleccionada!.nombre}", mostrando Nueva Subcarpeta');
+      print('DEBUG FAB: Nivel 2 - Dentro de carpeta padre "${_carpetaSeleccionada!.nombre}", mostrando SOLO Nueva Subcarpeta');
       return FloatingActionButton.extended(
         onPressed: () => _crearSubcarpeta(_carpetaSeleccionada!.id),
         icon: const Icon(Icons.create_new_folder_outlined),
@@ -2300,8 +2300,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       );
     }
 
-    // Nivel 3: Dentro de subcarpeta (carpetaPadreId != null) - Solo crear documento
-    print('DEBUG FAB: Nivel 3 - Dentro de subcarpeta "${_carpetaSeleccionada!.nombre}", mostrando Nuevo Documento');
+    // Nivel 3: Dentro de subcarpeta - SOLO mostrar "Nuevo Documento" (ocultar otros botones)
+    print('DEBUG FAB: Nivel 3 - Dentro de subcarpeta "${_carpetaSeleccionada!.nombre}", mostrando SOLO Nuevo Documento');
     return FloatingActionButton.extended(
       onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
       icon: const Icon(Icons.add_circle_outline_rounded),
