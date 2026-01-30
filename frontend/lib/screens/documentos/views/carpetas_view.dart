@@ -149,235 +149,451 @@ class _CarpetasViewState extends State<CarpetasView> {
         .where((c) => c.nombre == _moduloIngresos)
         .firstOrNull;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // Main title
-        Padding(
-          padding: const EdgeInsets.only(bottom: 24),
-          child: Column(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header con estadísticas
+          _buildStatsHeader(carpetas),
+          const SizedBox(height: 32),
+
+          // Título de módulos
+          Row(
             children: [
-              Text(
-                'GESTIÓN $_gestionSeleccionada',
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade900,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade600, Colors.blue.shade800],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                textAlign: TextAlign.center,
+                child: const Icon(Icons.folder_special, color: Colors.white, size: 24),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Organizado por Módulos',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Egresos Module
-        if (carpetaEgresos != null)
-          _buildModuloCard(
-            _moduloEgresos,
-            carpetaEgresos,
-            Colors.red,
-            Icons.arrow_upward,
-          ),
-
-        const SizedBox(height: 16),
-
-        // Ingresos Module
-        if (carpetaIngresos != null)
-          _buildModuloCard(
-            _moduloIngresos,
-            carpetaIngresos,
-            Colors.green,
-            Icons.arrow_downward,
-          ),
-
-        // Empty state
-        if (carpetaEgresos == null && carpetaIngresos == null)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(48),
-              child: Column(
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.folder_off_outlined,
-                      size: 64, color: Colors.grey.shade300),
-                  const SizedBox(height: 16),
                   Text(
-                    'No hay módulos para esta gestión',
+                    'Módulos de Gestión',
                     style: GoogleFonts.poppins(
-                      color: Colors.grey.shade500,
-                      fontSize: 16,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                  Text(
+                    'Organización por tipo de comprobante',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
                     ),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
-      ],
-    );
-  }
+          
+          const SizedBox(height: 24),
 
-  Widget _buildModuloCard(
-      String nombre, Carpeta carpeta, Color color, IconData icon) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final canDelete = authProvider.hasPermission('borrar_documento') || 
-                      authProvider.role == UserRole.administradorSistema;
-
-    return Card(
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        children: [
-          // Module header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: color, size: 32),
+          // Grid de módulos mejorado
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: MediaQuery.of(context).size.width > 800 ? 2 : 1,
+            crossAxisSpacing: 20,
+            mainAxisSpacing: 20,
+            childAspectRatio: MediaQuery.of(context).size.width > 800 ? 1.8 : 1.2,
+            children: [
+              // Módulo Egresos
+              if (carpetaEgresos != null)
+                _buildModernModuloCard(
+                  _moduloEgresos,
+                  carpetaEgresos,
+                  Colors.red,
+                  Icons.trending_up,
+                  'Comprobantes de salida de dinero',
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        nombre.toUpperCase(),
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: color,
-                        ),
-                      ),
-                      Text(
-                        '${carpeta.subcarpetas.length} subcarpetas',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
+              
+              // Módulo Ingresos
+              if (carpetaIngresos != null)
+                _buildModernModuloCard(
+                  _moduloIngresos,
+                  carpetaIngresos,
+                  Colors.green,
+                  Icons.trending_down,
+                  'Comprobantes de entrada de dinero',
                 ),
-                // DELETE MODULE BUTTON - MUY VISIBLE
-                if (canDelete)
-                  ElevatedButton.icon(
-                    onPressed: () => _confirmarEliminarCarpeta(carpeta),
-                    icon: const Icon(Icons.delete_forever, size: 20),
-                    label: const Text('BORRAR'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade600,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 4,
-                    ),
-                  ),
-              ],
-            ),
+            ],
           ),
-          // Subcarpetas
-          if (carpeta.subcarpetas.isNotEmpty)
-            ...carpeta.subcarpetas.map((sub) => _buildSubcarpetaItem(sub, color, canDelete))
-          else
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                'No hay subcarpetas en este módulo',
-                style: GoogleFonts.poppins(color: Colors.grey.shade500),
-              ),
-            ),
+
+          // Empty state mejorado
+          if (carpetaEgresos == null && carpetaIngresos == null)
+            _buildEmptyState(),
         ],
       ),
     );
   }
 
-  Widget _buildSubcarpetaItem(Carpeta subcarpeta, Color moduleColor, bool canDelete) {
+  Widget _buildStatsHeader(List<Carpeta> carpetas) {
+    final totalSubcarpetas = carpetas.fold<int>(0, (sum, c) => sum + c.subcarpetas.length);
+    final totalDocumentos = carpetas.fold<int>(0, (sum, c) => sum + c.numeroDocumentos);
+
     return Container(
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: moduleColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(Icons.folder_open, color: moduleColor, size: 24),
-        ),
-        title: Text(
-          subcarpeta.nombre,
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Documentos: ${subcarpeta.numeroDocumentos}',
-              style:
-                  GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
-            ),
-            if (subcarpeta.rangoInicio != null && subcarpeta.rangoFin != null)
-              Text(
-                'Rango: ${subcarpeta.rangoInicio} - ${subcarpeta.rangoFin}',
-                style: GoogleFonts.poppins(
-                    fontSize: 11, color: Colors.grey.shade500),
-              ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.blue.shade50,
+            Colors.indigo.shade50,
           ],
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // DELETE SUBCARPETA BUTTON - MUY VISIBLE
-            if (canDelete)
-              ElevatedButton.icon(
-                onPressed: () => _confirmarEliminarCarpeta(subcarpeta),
-                icon: const Icon(Icons.delete_outline, size: 18),
-                label: const Text('BORRAR'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  minimumSize: const Size(0, 36),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.blue.shade100),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics_outlined, color: Colors.blue.shade700, size: 28),
+              const SizedBox(width: 12),
+              Text(
+                'Resumen de Gestión $_gestionSeleccionada',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(child: _buildStatCard('Módulos', '${carpetas.length}', Icons.folder, Colors.blue)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildStatCard('Subcarpetas', '$totalSubcarpetas', Icons.folder_open, Colors.orange)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildStatCard('Documentos', '$totalDocumentos', Icons.description, Colors.green)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade800,
+            ),
+          ),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernModuloCard(
+    String nombre, 
+    Carpeta carpeta, 
+    Color color, 
+    IconData icon,
+    String descripcion,
+  ) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final canDelete = authProvider.hasPermission('borrar_documento') || 
+                      authProvider.role == UserRole.administradorSistema;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _abrirCarpeta(carpeta),
+          borderRadius: BorderRadius.circular(24),
+          child: Column(
+            children: [
+              // Header del módulo
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withOpacity(0.1),
+                      color.withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [color, color.withOpacity(0.8)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 32),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            nombre.toUpperCase(),
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: color.withOpacity(0.9),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            descripcion,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (canDelete)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          onPressed: () => _confirmarEliminarCarpeta(carpeta),
+                          icon: Icon(Icons.delete_outline, color: Colors.red.shade600, size: 20),
+                          tooltip: 'Eliminar módulo',
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              
+              // Contenido del módulo
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      // Estadísticas del módulo
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildModuleStatItem(
+                              'Subcarpetas',
+                              '${carpeta.subcarpetas.length}',
+                              Icons.folder_open,
+                              Colors.blue,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildModuleStatItem(
+                              'Documentos',
+                              '${carpeta.numeroDocumentos}',
+                              Icons.description,
+                              Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const Spacer(),
+                      
+                      // Botón de acción
+                      Container(
+                        width: double.infinity,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [color.withOpacity(0.8), color],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: color.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => _abrirCarpeta(carpeta),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.folder_open, color: Colors.white, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Abrir Módulo',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
-          ],
+            ],
+          ),
         ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  DocumentosListScreen(initialCarpetaId: subcarpeta.id),
+      ),
+    );
+  }
+
+  Widget _buildModuleStatItem(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.1)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade800,
             ),
-          ).then((_) => _controller.cargarCarpetas());
-        },
+          ),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(48),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              Icons.folder_off_outlined,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'No hay módulos para esta gestión',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Crea tu primer módulo para comenzar a organizar documentos',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: Colors.grey.shade500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

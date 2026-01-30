@@ -13,6 +13,7 @@ import '../../utils/error_helper.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_shimmer.dart';
 import 'carpeta_form_screen.dart';
+import 'subcarpeta_form_screen.dart';
 import 'carpetas_screen.dart';
 import 'documento_detail_screen.dart';
 import 'documento_form_screen.dart';
@@ -280,10 +281,17 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Future<void> _crearSubcarpeta(int padreId) async {
+    // Obtener información de la carpeta padre
+    final carpetaService = Provider.of<CarpetaService>(context, listen: false);
+    final carpetaPadre = await carpetaService.getById(padreId);
+    
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CarpetaFormScreen(padreId: padreId),
+        builder: (context) => SubcarpetaFormScreen(
+          carpetaPadreId: padreId,
+          carpetaPadreNombre: carpetaPadre.nombre,
+        ),
       ),
     );
     
@@ -456,60 +464,129 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Widget _construirVistaDocumentosCarpeta(ThemeData theme) {
     final carpeta = _carpetaSeleccionada!;
     final docs = _documentosCarpeta;
-    final rango =
-        _estaCargandoDocumentosCarpeta
-            ? 'Cargando...'
-            : _calcularRangoCorrelativos(docs);
-    final romano =
-        (carpeta.codigoRomano ?? '').isNotEmpty
-            ? carpeta.codigoRomano
-            : carpeta.codigo;
-    final gestionLine =
-        carpeta.gestion.isNotEmpty ? 'Gestion ${carpeta.gestion}' : null;
-    final nroLine =
-        carpeta.numeroCarpeta != null ? 'Nro ${carpeta.numeroCarpeta}' : null;
-    final romanoLine = (romano ?? '').isNotEmpty ? 'Romano $romano' : null;
-    final rangoLine = rango.isNotEmpty ? 'Rango: $rango' : null;
+    final rango = _estaCargandoDocumentosCarpeta
+        ? 'Cargando...'
+        : _calcularRangoCorrelativos(docs);
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Row(
+        // Header mejorado de la carpeta
+        _buildCarpetaHeader(carpeta, rango, theme),
+        
+        // Vista de Subcarpetas mejorada
+        if (_estaCargandoSubcarpetas)
+          Container(
+            height: 4,
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            child: LinearProgressIndicator(
+              backgroundColor: Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+            ),
+          )
+        else if (_subcarpetas.isNotEmpty)
+          _buildSubcarpetasSection(theme),
+
+        // Controles de vista
+        _buildViewControls(theme),
+
+        // Lista/Grid de documentos
+        Expanded(
+          child: _estaCargandoDocumentosCarpeta
+              ? _buildDocumentosLoading()
+              : docs.isEmpty
+                  ? _buildDocumentosEmpty()
+                  : _vistaGrid
+                      ? _construirGridDocumentosCarpeta(docs, theme)
+                      : _construirListaDocumentos(docs, theme),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCarpetaHeader(Carpeta carpeta, String rango, ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.blue.shade50,
+            Colors.indigo.shade50,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.blue.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
             children: [
-              IconButton(
-                onPressed: () { 
+              // Botón de regreso
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  onPressed: () {
                     if (widget.initialCarpetaId != null) {
-                        Navigator.pop(context); // If we came from navigation, pop
+                      Navigator.pop(context);
                     } else {
-                        setState(() => _carpetaSeleccionada = null);
+                      setState(() => _carpetaSeleccionada = null);
                     }
-                },
-                icon: const Icon(Icons.arrow_back_rounded),
+                  },
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  color: Colors.blue.shade700,
+                ),
               ),
-              const SizedBox(width: 4),
-              Hero( // Add Hero animation for fun
+              
+              const SizedBox(width: 16),
+              
+              // Icono de la carpeta
+              Hero(
                 tag: 'folder_icon_${carpeta.id}',
                 child: Container(
-                  width: 48,
-                  height: 48,
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.blue.shade400, Colors.blue.shade700],
+                      colors: [Colors.blue.shade600, Colors.blue.shade800],
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: [
-                         BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
-                    ]
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: const Icon(
                     Icons.folder_open_rounded,
                     color: Colors.white,
-                    size: 26,
+                    size: 32,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              
+              const SizedBox(width: 16),
+              
+              // Información de la carpeta
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,133 +594,483 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     Text(
                       carpeta.nombre,
                       style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.onSurface,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
                       ),
                     ),
-                    if (rangoLine != null)
-                        Container(
-                            margin: const EdgeInsets.only(top: 2),
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(4)
-                            ),
-                            child: Text(
-                                rangoLine,
-                                style: GoogleFonts.inter(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue.shade800,
-                                ),
-                            ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        rango,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue.shade800,
                         ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              // Solo mostrar botón "Nueva Carpeta" si NO es una subcarpeta asignada a un rango específico que no debería tener hijos
-              // O simplificar el flujo: NO permitir crear sub-subcarpetas infinitas si la lógica de negocio es estricta (Año > Comprobante > Rango).
-              // Si carpeta.carpetaPadreId != null, es subcarpeta. Asumimos que no hay nivel 3.
+              
+              // Botón de nueva subcarpeta
               if (carpeta.carpetaPadreId == null)
-                  ElevatedButton.icon(
-                    onPressed: () => _crearSubcarpeta(carpeta.id),
-                    // styling...
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber.shade800,
-                      foregroundColor: Colors.white
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.amber.shade600, Colors.amber.shade800],
                     ),
-                    icon: const Icon(Icons.create_new_folder_outlined, size: 18),
-                    label: const Text('Subcarpeta'),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _crearSubcarpeta(carpeta.id),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.create_new_folder_outlined, color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Nueva Subcarpeta',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
-        ),
+          
+          // Estadísticas de la carpeta
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildCarpetaStat(
+                  'Subcarpetas',
+                  '${_subcarpetas.length}',
+                  Icons.folder_copy,
+                  Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildCarpetaStat(
+                  'Documentos',
+                  '${docs.length}',
+                  Icons.description,
+                  Colors.green,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildCarpetaStat(
+                  'Gestión',
+                  carpeta.gestion,
+                  Icons.calendar_today,
+                  Colors.blue,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-        // Vista de Subcarpetas (si existen)
-        if (_estaCargandoSubcarpetas)
-          const LinearProgressIndicator(minHeight: 2)
-        else if (_subcarpetas.isNotEmpty)
-          Container(
-            height: 140, // Altura fija para scroll horizontal horizontal
-            margin: const EdgeInsets.only(bottom: 12),
+  Widget _buildCarpetaStat(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade800,
+            ),
+          ),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubcarpetasSection(ThemeData theme) {
+    return Container(
+      height: 160,
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                Icon(Icons.folder_copy, color: Colors.orange.shade600, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Subcarpetas',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${_subcarpetas.length} carpetas',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               itemCount: _subcarpetas.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, __) => const SizedBox(width: 16),
               itemBuilder: (context, index) {
                 final sub = _subcarpetas[index];
-                return _buildSubcarpetaCard(sub, theme);
+                return _buildModernSubcarpetaCard(sub, theme);
               },
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Row(
+  Widget _buildModernSubcarpetaCard(Carpeta sub, ThemeData theme) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final canDelete = authProvider.hasPermission('borrar_documento') || 
+                      authProvider.role == UserRole.administradorSistema;
+
+    return Container(
+      width: 180,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _abrirCarpeta(sub),
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
             children: [
-              Expanded(
-                child: SizedBox(
-                  height: 40,
-                  child: ElevatedButton.icon(
-                    onPressed: () => setState(() => _vistaGrid = true),
-                    icon: const Icon(Icons.grid_view_rounded, size: 18),
-                    label: const Text('Cuadricula'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          _vistaGrid
-                              ? Colors.blue.shade600
-                              : Colors.blue.shade50,
-                      foregroundColor:
-                          _vistaGrid ? Colors.white : Colors.blue.shade700,
-                      shape: RoundedRectangleBorder(
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.orange.shade400, Colors.orange.shade600],
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      child: const Icon(
+                        Icons.folder_shared_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      sub.nombre,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (sub.rangoInicio != null && sub.rangoFin != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Rango ${sub.rangoInicio}-${sub.rangoFin}',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.orange.shade700,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.description, size: 14, color: Colors.grey.shade500),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${sub.numeroDocumentos} docs',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (canDelete)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: IconButton(
+                      onPressed: () => _confirmarEliminarCarpeta(sub),
+                      icon: Icon(Icons.delete_outline, color: Colors.red.shade600, size: 16),
+                      iconSize: 16,
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 40,
-                  child: ElevatedButton.icon(
-                    onPressed: () => setState(() => _vistaGrid = false),
-                    icon: const Icon(Icons.list_rounded, size: 18),
-                    label: const Text('Lista'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          !_vistaGrid
-                              ? Colors.blue.shade600
-                              : Colors.blue.shade50,
-                      foregroundColor:
-                          !_vistaGrid ? Colors.white : Colors.blue.shade700,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
-        Expanded(
-          child:
-              _estaCargandoDocumentosCarpeta
-                  ? const Center(child: CircularProgressIndicator())
-                  : docs.isEmpty
-                  ? EmptyState(
-                    icon: Icons.description_outlined,
-                    title: 'Sin documentos',
-                    subtitle: 'Agregue el primer documento a esta carpeta',
-                  )
-                  : _vistaGrid
-                  ? _construirGridDocumentosCarpeta(docs, theme)
-                  : _construirListaDocumentos(docs, theme),
+      ),
+    );
+  }
+
+  Widget _buildViewControls(ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => setState(() => _vistaGrid = true),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          bottomLeft: Radius.circular(16),
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: _vistaGrid
+                                ? LinearGradient(
+                                    colors: [Colors.blue.shade600, Colors.blue.shade700],
+                                  )
+                                : null,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              bottomLeft: Radius.circular(16),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.grid_view_rounded,
+                                size: 18,
+                                color: _vistaGrid ? Colors.white : Colors.grey.shade600,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Cuadrícula',
+                                style: GoogleFonts.poppins(
+                                  color: _vistaGrid ? Colors.white : Colors.grey.shade600,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(width: 1, color: Colors.grey.shade200),
+                  Expanded(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => setState(() => _vistaGrid = false),
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(16),
+                          bottomRight: Radius.circular(16),
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: !_vistaGrid
+                                ? LinearGradient(
+                                    colors: [Colors.blue.shade600, Colors.blue.shade700],
+                                  )
+                                : null,
+                            borderRadius: const BorderRadius.only(
+                              topRight: Radius.circular(16),
+                              bottomRight: Radius.circular(16),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.list_rounded,
+                                size: 18,
+                                color: !_vistaGrid ? Colors.white : Colors.grey.shade600,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Lista',
+                                style: GoogleFonts.poppins(
+                                  color: !_vistaGrid ? Colors.white : Colors.grey.shade600,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentosLoading() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Cargando documentos...'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentosEmpty() {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(48),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.description_outlined,
+                size: 64,
+                color: Colors.grey.shade400,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Sin documentos',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Agregue el primer documento a esta carpeta',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: Colors.grey.shade500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -680,73 +1107,145 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       itemCount: docs.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final d = docs[index];
-        return InkWell(
-          onTap: () => _navegarAlDetalle(d),
-          borderRadius: BorderRadius.circular(14),
+        return TweenAnimationBuilder<double>(
+          duration: Duration(milliseconds: 300 + (index * 50)),
+          tween: Tween(begin: 0.0, end: 1.0),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, 20 * (1 - value)),
+              child: Opacity(opacity: value, child: child),
+            );
+          },
           child: Container(
-            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.1),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.description_rounded,
-                    color: Colors.blue,
-                    size: 18,
-                  ),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade100),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _navegarAlDetalle(d),
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
                     children: [
-                      Text(
-                        d.codigo,
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                        d.descripcion ?? 'Sin descripcion',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      // Icono del documento
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.blue.shade400, Colors.blue.shade600],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        child: Icon(
+                          _obtenerIconoTipoDocumento(d.tipoDocumentoNombre ?? ''),
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      
+                      const SizedBox(width: 16),
+                      
+                      // Información del documento
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    d.codigo,
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                      color: Colors.grey.shade800,
+                                    ),
+                                  ),
+                                ),
+                                _buildEstadoBadge(d.estado),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              d.descripcion ?? 'Sin descripción',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                                height: 1.3,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 12,
+                                  color: Colors.grey.shade500,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _formatearFecha(d.fechaRegistro),
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'Nº ${d.numeroCorrelativo}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(width: 12),
+                      
+                      // Botón de acción
+                      _buildActionButton(d),
+                      
+                      const SizedBox(width: 8),
+                      
+                      // Icono de navegación
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.grey.shade400,
+                        size: 20,
                       ),
                     ],
                   ),
                 ),
-                Text(
-                  'Nº ${d.numeroCorrelativo}',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: Colors.red,
-                    size: 20,
-                  ),
-                  tooltip: 'Eliminar',
-                  onPressed: () => _confirmarEliminarDocumento(d),
-                ),
-              ],
+              ),
             ),
           ),
         );
@@ -979,15 +1478,13 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       },
       child: Container(
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.08),
-          ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade100),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 16,
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
               offset: const Offset(0, 8),
             ),
           ],
@@ -996,33 +1493,44 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           color: Colors.transparent,
           child: InkWell(
             onTap: () => _navegarAlDetalle(doc),
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(20),
             child: Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Header con icono y estado
                   Row(
                     children: [
                       Container(
-                        width: 40,
-                        height: 52,
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.blue.shade100),
+                          gradient: LinearGradient(
+                            colors: [Colors.blue.shade400, Colors.blue.shade600],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blue.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: const Icon(
-                          Icons.description_rounded,
-                          color: Colors.blue,
-                          size: 22,
+                        child: Icon(
+                          _obtenerIconoTipoDocumento(doc.tipoDocumentoNombre ?? ''),
+                          color: Colors.white,
+                          size: 24,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildCardHeader(doc, theme)),
+                      const Spacer(),
+                      _buildEstadoBadge(doc.estado),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Código del documento
                   Text(
                     doc.codigo,
                     maxLines: 1,
@@ -1030,27 +1538,126 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
+                      color: Colors.grey.shade800,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  
+                  const SizedBox(height: 6),
+                  
+                  // Descripción
                   Text(
-                    doc.descripcion ?? 'Sin descripci??n',
+                    doc.descripcion ?? 'Sin descripción',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(
                       fontSize: 13,
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: Colors.grey.shade600,
+                      height: 1.4,
                     ),
                   ),
+                  
                   const Spacer(),
-                  const Divider(height: 1),
-                  const SizedBox(height: 10),
-                  _buildCardFooter(doc, theme),
+                  
+                  // Divider
+                  Container(
+                    height: 1,
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.grey.shade200,
+                          Colors.grey.shade100,
+                          Colors.grey.shade200,
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  // Footer con información adicional
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        size: 14,
+                        color: Colors.grey.shade500,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _formatearFecha(doc.fechaRegistro),
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Nº ${doc.numeroCorrelativo}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildActionButton(doc),
+                    ],
+                  ),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEstadoBadge(String estado) {
+    final color = _obtenerColorEstado(estado);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        estado.toUpperCase(),
+        style: GoogleFonts.inter(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: color,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton(Documento doc) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final canDelete = authProvider.hasPermission('borrar_documento');
+
+    if (!canDelete) return const SizedBox.shrink();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: IconButton(
+        onPressed: () => _confirmarEliminarDocumento(doc),
+        icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade600, size: 18),
+        iconSize: 18,
+        padding: const EdgeInsets.all(6),
+        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+        tooltip: 'Eliminar documento',
       ),
     );
   }

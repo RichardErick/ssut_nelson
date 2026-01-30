@@ -16,18 +16,12 @@ class CarpetaFormScreen extends StatefulWidget {
 
 class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  static const String _nombreCarpetaPermitida = 'Comprobante de Egreso';
   
-  // Controladores
+  // Controladores - Solo los 4 campos necesarios
   final _nombreController = TextEditingController();
   final _gestionController = TextEditingController();
   final _anoController = TextEditingController();
   final _descripcionController = TextEditingController();
-  final _codigoRomanoController = TextEditingController();
-  
-  // Rangos
-  final _rangoInicioController = TextEditingController();
-  final _rangoFinController = TextEditingController();
 
   bool _isLoading = false;
 
@@ -41,14 +35,6 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
     // Sincronizar gestión y año
     _gestionController.addListener(_syncGestionToAno);
     _anoController.addListener(_syncAnoToGestion);
-    
-    if (widget.padreId == null) {
-      // Es carpeta principal
-      _nombreController.text = _nombreCarpetaPermitida;
-    } else {
-      // Es subcarpeta
-      _nombreController.text = 'Rango Documental';
-    }
   }
 
   void _syncGestionToAno() {
@@ -76,9 +62,6 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
     _gestionController.dispose();
     _anoController.dispose();
     _descripcionController.dispose();
-    _codigoRomanoController.dispose();
-    _rangoInicioController.dispose();
-    _rangoFinController.dispose();
     super.dispose();
   }
 
@@ -99,30 +82,14 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
         }
       }
 
-      int? rInicio = _rangoInicioController.text.isNotEmpty 
-          ? int.tryParse(_rangoInicioController.text) 
-          : null;
-      int? rFin = _rangoFinController.text.isNotEmpty 
-          ? int.tryParse(_rangoFinController.text) 
-          : null;
-
-      // Validar que si se ingresa rango, ambos campos estén completos
-      if ((rInicio != null && rFin == null) || (rInicio == null && rFin != null)) {
-        throw Exception('Debe especificar tanto Rango Inicio como Rango Fin, o dejar ambos vacíos.');
-      }
-
-      if (rInicio != null && rFin != null && rInicio > rFin) {
-        throw Exception('El Rango Inicio no puede ser mayor que el Rango Fin.');
-      }
-
       final dto = CreateCarpetaDTO(
         nombre: _nombreController.text,
-        codigo: _codigoRomanoController.text.isNotEmpty ? _codigoRomanoController.text : null,
+        codigo: null, // Sin código romano
         gestion: _gestionController.text, // Usar gestión como campo principal
         descripcion: _descripcionController.text.isNotEmpty ? _descripcionController.text : null,
         carpetaPadreId: widget.padreId,
-        rangoInicio: rInicio,
-        rangoFin: rFin,
+        rangoInicio: null, // Sin rangos
+        rangoFin: null, // Sin rangos
       );
 
       await carpetaService.create(dto);
@@ -147,16 +114,16 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final esPrincipal = widget.padreId == null;
-
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: Text(
-          esPrincipal ? 'Nueva Carpeta Principal' : 'Nueva Subcarpeta',
+          'Nueva Carpeta',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
+        backgroundColor: Colors.white,
         elevation: 0,
+        foregroundColor: Colors.grey.shade800,
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
@@ -167,29 +134,80 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoCard(theme, esPrincipal),
-                  const SizedBox(height: 24),
+                  // Título del formulario
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.create_new_folder, size: 32, color: Colors.blue.shade700),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Crear Nueva Carpeta',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade900,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              Text(
+                                'Complete los siguientes campos para crear una nueva carpeta',
+                                style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 32),
 
-                  // Nombre de la carpeta
+                  // 1. Nombre de la carpeta
+                  Text(
+                    'Nombre de la Carpeta',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _nombreController,
-                    decoration: _inputDecoration('Nombre de Carpeta', icon: Icons.folder),
+                    decoration: _inputDecoration('Ingrese el nombre de la carpeta', icon: Icons.folder),
                     validator: (v) => v == null || v.isEmpty ? 'El nombre es requerido' : null,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    esPrincipal 
-                      ? 'Ej: Comprobante de Egreso, Comprobante de Ingreso, etc.'
-                      : 'Ej: Rango 1-50, Subcarpeta A, etc.',
+                    'Ej: Comprobante de Egreso, Facturas 2025, Documentos Administrativos, etc.',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
                   ),
                   
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-                  // Gestión (editable)
+                  // 2. Gestión
+                  Text(
+                    'Gestión',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _gestionController,
-                    decoration: _inputDecoration('Gestión', icon: Icons.business_center),
+                    keyboardType: TextInputType.number,
+                    decoration: _inputDecoration('Período administrativo', icon: Icons.business_center),
                     validator: (v) {
                       if (v == null || v.isEmpty) return 'La gestión es requerida';
                       final year = int.tryParse(v);
@@ -200,17 +218,26 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Ej: 2025, 2026, etc. (Período administrativo)',
+                    'Período administrativo o fiscal (2020-2030)',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
                   ),
                   
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-                  // Año (editable)
+                  // 3. Año
+                  Text(
+                    'Año',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _anoController,
                     keyboardType: TextInputType.number,
-                    decoration: _inputDecoration('Año', icon: Icons.calendar_today),
+                    decoration: _inputDecoration('Año calendario', icon: Icons.calendar_today),
                     validator: (v) {
                       if (v == null || v.isEmpty) return 'El año es requerido';
                       final year = int.tryParse(v);
@@ -224,85 +251,48 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
                     'Año fiscal o calendario (2020-2030)',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
                   ),
-                  
-                  const SizedBox(height: 16),
 
-                  // Rango de subcarpetas
+                  const SizedBox(height: 24),
+
+                  // 4. Descripción
                   Text(
-                    'Rango de Documentos',
+                    'Descripción',
                     style: GoogleFonts.poppins(
-                      fontSize: 14,
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.grey.shade700,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Define el rango numérico de documentos que contendrá esta carpeta (opcional)',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _rangoInicioController,
-                          keyboardType: TextInputType.number,
-                          decoration: _inputDecoration('Límite Inicio', icon: Icons.first_page),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _rangoFinController,
-                          keyboardType: TextInputType.number,
-                          decoration: _inputDecoration('Límite Fin', icon: Icons.last_page),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 20),
-
-                  // Código Romano
-                  TextFormField(
-                    controller: _codigoRomanoController,
-                    decoration: _inputDecoration('Código Romano', icon: Icons.format_list_numbered_rtl),
-                    textCapitalization: TextCapitalization.characters,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Ej: I, II, III, IV, V, etc. (opcional)',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Descripción
                   TextFormField(
                     controller: _descripcionController,
                     maxLines: 3,
-                    decoration: _inputDecoration('Descripción / Observaciones', icon: Icons.notes),
+                    decoration: _inputDecoration('Descripción opcional de la carpeta', icon: Icons.notes),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Información adicional sobre el contenido o propósito de la carpeta (opcional)',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 40),
 
                   // Botón de guardar
                   SizedBox(
                     width: double.infinity,
-                    height: 50,
+                    height: 56,
                     child: ElevatedButton.icon(
                       onPressed: _guardar,
-                      icon: const Icon(Icons.save_rounded, size: 22),
+                      icon: const Icon(Icons.save_rounded, size: 24),
                       label: Text(
                         'Crear Carpeta',
-                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: esPrincipal ? Colors.amber.shade800 : Colors.blue.shade700,
+                        backgroundColor: Colors.blue.shade700,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 2,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 3,
                       ),
                     ),
                   ),
@@ -313,57 +303,18 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
     );
   }
 
-  Widget _buildInfoCard(ThemeData theme, bool esPrincipal) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: esPrincipal ? Colors.amber.shade50 : Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: esPrincipal ? Colors.amber.shade200 : Colors.blue.shade200,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            esPrincipal ? Icons.folder_special : Icons.folder_copy,
-            size: 32,
-            color: esPrincipal ? Colors.amber.shade800 : Colors.blue.shade700,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  esPrincipal ? 'Carpeta Maestra' : 'Subcarpeta de Archivo',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    color: esPrincipal ? Colors.amber.shade900 : Colors.blue.shade900,
-                  ),
-                ),
-                Text(
-                  esPrincipal 
-                    ? 'Contenedor principal con nombre, gestión y año específicos.'
-                    : 'Agrupación de documentos por rango numérico.',
-                  style: GoogleFonts.inter(fontSize: 12, color: Colors.black87),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   InputDecoration _inputDecoration(String label, {IconData? icon}) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: icon != null ? Icon(icon, size: 20, color: Colors.grey.shade600) : null,
+      prefixIcon: icon != null ? Icon(icon, size: 22, color: Colors.grey.shade600) : null,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.blue.shade500, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       filled: true,
