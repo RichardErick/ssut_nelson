@@ -216,9 +216,9 @@ class AuthProvider extends ChangeNotifier {
       }
 
       final roleString = (user['rol'] as String?) ?? 'Invitado';
-      final username = (user['nombreUsuario'] as String?) ?? '';
+      final userUsername = (user['nombreUsuario'] as String?) ?? '';
       final fullName = (user['nombreCompleto'] as String?) ?? '';
-      _role = _parseRoleWithContext(roleString, username, fullName);
+      _role = _parseRoleWithContext(roleString, userUsername, fullName);
 
       apiService.setAuthToken(_token!);
 

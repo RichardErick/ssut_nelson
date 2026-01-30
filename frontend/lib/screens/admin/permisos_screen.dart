@@ -180,6 +180,11 @@ class _PermisosScreenState extends State<PermisosScreen> {
     }
   }
 
+  UserRole _parseRole(String roleName) {
+    // Función de compatibilidad que llama a la nueva función con contexto vacío
+    return _parseRoleWithContext(roleName, '', '');
+  }
+
   void _togglePermiso(String permiso) {
     if (_usuarioSeleccionado == null) return;
     
