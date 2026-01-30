@@ -67,8 +67,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
     ];
 
-    // Acceso a reportes si tiene permiso de ver documentos (todos) o gestionar seguridad
-    if (authProvider.hasPermission('ver_documento') || authProvider.hasPermission('gestionar_seguridad')) {
+    // Acceso a reportes si tiene permiso de ver documentos (todos) o es admin sistema
+    if (authProvider.hasPermission('ver_documento') || authProvider.canManageUserPermissions) {
       _navItems.add(
         NavigationItem(
           label: 'Reportes',
@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     // Verificación de permiso para módulos de administración
-    if (authProvider.hasPermission('gestionar_seguridad')) {
+    if (authProvider.canManageUserPermissions) {
       _navItems.add(
         NavigationItem(
           label: 'Roles y Permisos',

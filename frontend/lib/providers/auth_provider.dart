@@ -316,18 +316,30 @@ class AuthProvider extends ChangeNotifier {
   }
 
   UserRole _parseRole(String roleName) {
-    switch (roleName) {
-      case 'AdministradorSistema':
-      case 'Administrador':
+    final roleNameLower = roleName.toLowerCase().trim();
+    switch (roleNameLower) {
+      case 'administradorsistema':
+      case 'administrador sistema':
+      case 'admin sistema':
+      case 'administrador':
+      case 'admin':
+      case 'administrator':
+      case 'system admin':
+      case 'sysadmin':
         return UserRole.administradorSistema;
-      case 'AdministradorDocumentos':
+      case 'administradordocumentos':
+      case 'administrador documentos':
+      case 'admin documentos':
+      case 'document admin':
         return UserRole.administradorDocumentos;
-      case 'Contador':
+      case 'contador':
+      case 'accountant':
         return UserRole.contador;
-      case 'Gerente':
+      case 'gerente':
+      case 'manager':
         return UserRole.gerente;
       default:
-        // Si el rol no existe, asignar como Administrador de Sistema por defecto
+        // Si el rol no existe, asignar como Administrador de Sistema por defecto para admin users
         return UserRole.administradorSistema;
     }
   }

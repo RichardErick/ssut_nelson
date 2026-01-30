@@ -204,10 +204,20 @@ class _PermisosScreenState extends State<PermisosScreen> {
         appBar: AppBar(
           title: Text('Gestión de Permisos', style: GoogleFonts.poppins()),
         ),
-        body: const Center(
-          child: Text(
-            'No tienes permisos para acceder a esta sección',
-            style: TextStyle(fontSize: 16),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'No tienes permisos para acceder a esta sección',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Rol actual: ${authProvider.role.displayName}',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ],
           ),
         ),
       );

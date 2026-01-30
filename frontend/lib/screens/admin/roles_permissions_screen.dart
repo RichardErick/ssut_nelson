@@ -52,10 +52,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     // Validar permiso al entrar (defensa en profundidad)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      if (!authProvider.hasPermission('gestionar_seguridad')) {
+      if (!authProvider.canManageUserPermissions) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Acceso denegado: Requiere permiso de seguridad')),
+           const SnackBar(content: Text('Acceso denegado: Solo Admin Sistema puede gestionar roles')),
         );
       }
     });
@@ -684,9 +684,35 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
+
+    // Solo el administrador de sistema puede gestionar roles
+    if (!authProvider.canManageUserPermissions) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Gestión de Roles', style: GoogleFonts.poppins()),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'No tienes permisos para acceder a esta sección',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Rol actual: ${authProvider.role.displayName}',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: () => _loadData(showRefreshIndicator: true),
