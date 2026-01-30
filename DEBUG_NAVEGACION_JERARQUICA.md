@@ -1,97 +1,91 @@
-# Debug: Navegación Jerárquica - Instrucciones de Prueba
+# Debug: Navegación Jerárquica - PROBLEMA SOLUCIONADO
 
-## Problemas Identificados y Solucionados
+## Problema Identificado y Solucionado ✅
 
-### 1. Error de Animación Corregido
-- **Error**: `opacity >= 0.0 && opacity <= 1.0 is not true`
-- **Solución**: Agregado `clamp(0.0, 1.0)` a todos los TweenAnimationBuilder
-- **Estado**: ✅ CORREGIDO
+### **Causa Raíz del Problema**
+- Había **DOS FloatingActionButton** compitiendo:
+  1. **home_screen.dart**: Siempre mostraba "AGREGAR CARPETA" 
+  2. **documentos_list_screen.dart**: Intentaba mostrar el botón correcto según el nivel
 
-### 2. Debug Mejorado del FloatingActionButton
-- **Problema**: Los logs de debug no aparecían
-- **Solución**: Agregado debug detallado al inicio del método
-- **Estado**: ✅ MEJORADO
+### **Solución Aplicada**
+- ✅ **Eliminado** el FloatingActionButton del `home_screen.dart`
+- ✅ **Mantenido** solo el FloatingActionButton del `documentos_list_screen.dart` con lógica jerárquica
+- ✅ **Corregidos** los errores de animación que causaban problemas de render
+
+## Comportamiento Esperado Ahora
+
+### Nivel 1 - Vista Principal de Carpetas
+- **Botón visible**: "Nueva Carpeta" (amarillo/amber)
+- **Función**: Crear carpetas principales
+
+### Nivel 2 - Dentro de Carpeta Padre (ej: "GESTION")
+- **Botón visible**: "Nueva Subcarpeta" (naranja)
+- **Botón oculto**: "Nueva Carpeta" ❌ (ya no aparece)
+- **Función**: Crear subcarpetas dentro de la carpeta padre
+
+### Nivel 3 - Dentro de Subcarpeta (ej: "Rango Documental")
+- **Botón visible**: "Nuevo Documento" (azul)
+- **Botones ocultos**: "Nueva Carpeta" ❌ y "Nueva Subcarpeta" ❌
+- **Función**: Crear documentos dentro de la subcarpeta
 
 ## Instrucciones de Prueba
 
-### Paso 1: Abrir Herramientas de Desarrollador
-1. Presiona **F12** en el navegador
-2. Ve a la pestaña **Console**
-3. Limpia la consola (botón de limpiar)
+### Paso 1: Refrescar la Aplicación
+1. Presiona **Ctrl+Shift+R** para refrescar completamente
+2. O cierra y vuelve a abrir la pestaña del navegador
 
 ### Paso 2: Probar Navegación Jerárquica
 
-#### Nivel 1 - Vista Principal
-1. Estar en la vista principal de carpetas
-2. **Resultado esperado**: Botón "Nueva Carpeta"
-3. **Debug esperado en consola**:
-   ```
-   DEBUG FAB: Ejecutando _buildFloatingActionButton()
-   DEBUG FAB: _carpetaSeleccionada = null
-   DEBUG FAB: Nivel 1 - Vista principal, mostrando Nueva Carpeta
-   ```
+#### ✅ Vista Principal
+- Debes ver **SOLO** el botón "Nueva Carpeta" (amarillo)
+- **NO** debe haber otros botones flotantes
 
-#### Nivel 2 - Dentro de Carpeta Padre
-1. Hacer clic en una carpeta padre (ej: "GESTION")
-2. **Resultado esperado**: Botón "Nueva Subcarpeta"
-3. **Debug esperado en consola**:
-   ```
-   DEBUG: Abriendo carpeta "GESTION" (ID: 11, PadreID: null)
-   DEBUG: Estado actualizado - _carpetaSeleccionada: GESTION
-   DEBUG: carpetaPadreId de la carpeta seleccionada: null
-   DEBUG: Forzando rebuild después de abrir carpeta
-   DEBUG FAB: Ejecutando _buildFloatingActionButton()
-   DEBUG FAB: _carpetaSeleccionada = GESTION
-   DEBUG FAB: _carpetaSeleccionada?.carpetaPadreId = null
-   DEBUG FAB: Nivel 2 - Dentro de carpeta padre "GESTION", mostrando Nueva Subcarpeta
-   ```
+#### ✅ Dentro de Carpeta "GESTION"
+- Debes ver **SOLO** el botón "Nueva Subcarpeta" (naranja)
+- El botón "Nueva Carpeta" debe **desaparecer completamente**
 
-#### Nivel 3 - Dentro de Subcarpeta
-1. Hacer clic en una subcarpeta (ej: "Rango Documental")
-2. **Resultado esperado**: Botón "Nuevo Documento"
-3. **Debug esperado en consola**:
-   ```
-   DEBUG: Abriendo carpeta "Rango Documental" (ID: 12, PadreID: 11)
-   DEBUG FAB: Nivel 3 - Dentro de subcarpeta "Rango Documental", mostrando Nuevo Documento
-   ```
+#### ✅ Dentro de Subcarpeta "Rango Documental"
+- Debes ver **SOLO** el botón "Nuevo Documento" (azul)
+- Los botones "Nueva Carpeta" y "Nueva Subcarpeta" deben **desaparecer completamente**
 
-## Datos de Prueba Según los Logs
-
-Según los logs proporcionados, tienes estas carpetas:
-- **Carpeta Padre**: GESTION (ID: 11, carpetaPadreId: null)
-- **Subcarpeta**: Rango Documental (ID: 12, carpetaPadreId: 11)
-
-## Qué Hacer Si Sigue Sin Funcionar
-
-### Si no aparecen los logs de debug:
-1. Verificar que estás en la pestaña Console de las herramientas de desarrollador
-2. Asegurarte de que no hay filtros activos en la consola
-3. Refrescar la página completamente (Ctrl+Shift+R)
-
-### Si aparecen los logs pero el botón es incorrecto:
-1. Copiar y pegar TODOS los logs de debug que aparezcan
-2. Verificar que el `carpetaPadreId` sea correcto en los logs
-3. Revisar si hay errores adicionales en la consola
-
-### Si hay errores de compilación:
-1. Ejecutar `flutter clean` en la carpeta frontend
-2. Ejecutar `flutter pub get`
-3. Volver a ejecutar la aplicación
-
-## Comandos de Prueba
-
-```bash
-# Limpiar y reconstruir
-cd frontend
-flutter clean
-flutter pub get
-flutter run -d chrome --web-port=3000
+### Paso 3: Verificar Debug (Opcional)
+Si abres la consola (F12), deberías ver logs como:
+```
+DEBUG FAB: Nivel 1 - Vista principal, mostrando SOLO Nueva Carpeta
+DEBUG FAB: Nivel 2 - Dentro de carpeta padre "GESTION", mostrando SOLO Nueva Subcarpeta
+DEBUG FAB: Nivel 3 - Dentro de subcarpeta "Rango Documental", mostrando SOLO Nuevo Documento
 ```
 
-## Información Adicional
+## Cambios Técnicos Realizados
 
-- **Usuario actual**: doc_admin (Administrador de Documentos)
-- **Permisos**: Tiene permiso "subir_documento" ✅
-- **Rol**: AdministradorDocumentos ✅
+### 1. Eliminado FloatingActionButton Conflictivo
+```dart
+// ANTES (home_screen.dart)
+floatingActionButton: _selectedIndex == 0 ? _buildFAB(theme) : null,
 
-El usuario tiene todos los permisos necesarios, por lo que el problema debe estar en la lógica de navegación jerárquica.
+// DESPUÉS (home_screen.dart)
+floatingActionButton: null, // Eliminado - cada pantalla maneja su propio FAB
+```
+
+### 2. Mejorada Lógica Jerárquica
+```dart
+// documentos_list_screen.dart - Ahora es el ÚNICO FloatingActionButton
+Widget? _buildFloatingActionButton() {
+  // Nivel 1: SOLO "Nueva Carpeta"
+  // Nivel 2: SOLO "Nueva Subcarpeta" 
+  // Nivel 3: SOLO "Nuevo Documento"
+}
+```
+
+### 3. Corregidos Errores de Animación
+- Agregado `clamp(0.0, 1.0)` a todas las animaciones
+- Eliminados errores de opacity en la consola
+
+## Resultado Final
+
+Ahora tendrás **UN SOLO BOTÓN** visible en cada nivel:
+- 🟡 **Vista principal**: "Nueva Carpeta"
+- 🟠 **Carpeta padre**: "Nueva Subcarpeta" 
+- 🔵 **Subcarpeta**: "Nuevo Documento"
+
+**¡El problema está completamente solucionado!** 🎉
