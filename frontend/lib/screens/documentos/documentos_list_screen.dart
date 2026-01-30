@@ -14,6 +14,7 @@ import '../../utils/error_helper.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_shimmer.dart';
 import 'subcarpeta_form_screen.dart';
+import 'carpeta_form_screen.dart';
 import 'carpetas_screen.dart';
 import 'documento_detail_screen.dart';
 import 'documento_form_screen.dart';
@@ -235,7 +236,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final authProvider = Provider.of<AuthProvider>(context);
-    final canCreate = authProvider.hasPermission('crear_documento');
 
     int crossAxisCount = 1;
     if (size.width > 1200) {
@@ -248,7 +248,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       builder: (context, dataProvider, child) {
         return Scaffold(
           backgroundColor: Colors.transparent,
-          floatingActionButton: _buildFloatingActionButton(canCreate),
+          floatingActionButton: _buildFloatingActionButton(),
           body: Column(
             children: [
               _construirFiltrosSuperior(theme, canCreate),
@@ -2016,11 +2016,25 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _abrirNuevaCarpeta() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const CarpetasScreen()),
+      MaterialPageRoute(builder: (context) => const CarpetaFormScreen()),
     );
-    // Puedes llamar a cargarDocumentos() si las carpetas afectan la lista visible
-    cargarDocumentos();
-    _cargarCarpetas();
+    
+    // Si se creó una carpeta exitosamente, actualizar la vista
+    if (result == true && mounted) {
+      await _cargarCarpetas();
+      
+      // Notificar al DataProvider para actualizaciones en tiempo real
+      final dataProvider = Provider.of<DataProvider>(context, listen: false);
+      dataProvider.refresh();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Carpeta creada exitosamente'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _mostrarSnackBarError(String mensaje) {
@@ -2191,11 +2205,14 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     return authProvider.hasPermission('subir_documento');
   }
 
-  Widget? _buildFloatingActionButton(bool canCreate) {
-    if (!canCreate) return null;
+  Widget? _buildFloatingActionButton() {
+    final authProvider = Provider.of<AuthProvider>(context);
 
     // Nivel 1: Vista principal de carpetas padre - Solo crear carpeta
     if (_carpetaSeleccionada == null) {
+      // Para crear carpetas principales, verificar si tiene permisos de subir documentos
+      if (!authProvider.hasPermission('subir_documento')) return null;
+      
       return FloatingActionButton.extended(
         onPressed: () => _abrirNuevaCarpeta(),
         icon: const Icon(Icons.create_new_folder_rounded),
@@ -2207,6 +2224,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
     // Nivel 2: Dentro de carpeta padre (viendo subcarpetas) - Solo crear subcarpeta
     if (_carpetaSeleccionada!.carpetaPadreId == null) {
+      // Para crear subcarpetas, verificar si tiene permisos de subir documentos
+      if (!authProvider.hasPermission('subir_documento')) return null;
+      
       return FloatingActionButton.extended(
         onPressed: () => _crearSubcarpeta(_carpetaSeleccionada!.id),
         icon: const Icon(Icons.create_new_folder_outlined),
@@ -2217,6 +2237,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }
 
     // Nivel 3: Dentro de subcarpeta - Solo crear documento
+    if (!authProvider.hasPermission('subir_documento')) return null;
+    
     return FloatingActionButton.extended(
       onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
       icon: const Icon(Icons.add_circle_outline_rounded),
