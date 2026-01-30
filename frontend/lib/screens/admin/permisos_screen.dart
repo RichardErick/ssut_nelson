@@ -134,17 +134,31 @@ class _PermisosScreenState extends State<PermisosScreen> {
   }
 
   UserRole _parseRole(String roleName) {
-    switch (roleName) {
-      case 'AdministradorSistema':
-      case 'Administrador':
+    print('DEBUG PERMISOS: Parseando rol: "$roleName"'); // Debug temporal
+    final roleNameLower = roleName.toLowerCase().trim();
+    switch (roleNameLower) {
+      case 'administradorsistema':
+      case 'administrador sistema':
+      case 'admin sistema':
+      case 'administrador':
+      case 'admin':
+      case 'administrator':
+        print('DEBUG PERMISOS: Mapeado a AdministradorSistema');
         return UserRole.administradorSistema;
-      case 'AdministradorDocumentos':
+      case 'administradordocumentos':
+      case 'administrador documentos':
+      case 'admin documentos':
+      case 'administrador de documentos':
+        print('DEBUG PERMISOS: Mapeado a AdministradorDocumentos');
         return UserRole.administradorDocumentos;
-      case 'Contador':
+      case 'contador':
+        print('DEBUG PERMISOS: Mapeado a Contador');
         return UserRole.contador;
-      case 'Gerente':
+      case 'gerente':
+        print('DEBUG PERMISOS: Mapeado a Gerente');
         return UserRole.gerente;
       default:
+        print('DEBUG PERMISOS: Rol no reconocido: "$roleName", asignando AdministradorSistema por defecto');
         return UserRole.administradorSistema;
     }
   }
