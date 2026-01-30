@@ -251,7 +251,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           floatingActionButton: _buildFloatingActionButton(),
           body: Column(
             children: [
-              _construirFiltrosSuperior(theme, canCreate),
+              _construirFiltrosSuperior(theme),
               Expanded(
                 child:
                     _carpetaSeleccionada != null
@@ -1369,7 +1369,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
-  Widget _construirFiltrosSuperior(ThemeData theme, bool canCreate) {
+  Widget _construirFiltrosSuperior(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Column(
