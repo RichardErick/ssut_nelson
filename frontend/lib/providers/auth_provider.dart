@@ -54,9 +54,48 @@ class AuthProvider extends ChangeNotifier {
   List<String> get permissions => _permissions;
 
   bool hasPermission(String permissionCode) {
-    // ESTRICTO: Solo si tienen el permiso en la lista
-    return _permissions.contains(permissionCode);
+    // Verificar permisos basados en la matriz de roles específica
+    return _hasRoleBasedPermission(permissionCode);
   }
+
+  bool _hasRoleBasedPermission(String permissionCode) {
+    switch (_role) {
+      case UserRole.administradorSistema:
+        // Solo puede ver documentos
+        return permissionCode == 'ver_documento';
+        
+      case UserRole.administradorDocumentos:
+        // Puede ver, subir, editar y borrar documentos
+        return [
+          'ver_documento',
+          'crear_documento',
+          'subir_documento', 
+          'editar_metadatos',
+          'borrar_documento'
+        ].contains(permissionCode);
+        
+      case UserRole.contador:
+        // Puede ver y subir documentos
+        return [
+          'ver_documento',
+          'crear_documento',
+          'subir_documento'
+        ].contains(permissionCode);
+        
+      case UserRole.gerente:
+        // Solo puede ver documentos
+        return permissionCode == 'ver_documento';
+        
+      default:
+        return false;
+    }
+  }
+
+  // Función auxiliar para verificar si es administrador de sistema
+  bool get isSystemAdmin => _role == UserRole.administradorSistema;
+  
+  // Función auxiliar para verificar si puede gestionar permisos de usuarios
+  bool get canManageUserPermissions => _role == UserRole.administradorSistema;
 
   AuthProvider() {
     _loadAuthState();

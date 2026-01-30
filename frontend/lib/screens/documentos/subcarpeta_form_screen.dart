@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/carpeta.dart';
+import '../../providers/data_provider.dart';
 import '../../services/carpeta_service.dart';
 
 class SubcarpetaFormScreen extends StatefulWidget {
@@ -91,6 +92,10 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
       await carpetaService.create(dto);
 
       if (mounted) {
+        // Notificar al DataProvider
+        final dataProvider = Provider.of<DataProvider>(context, listen: false);
+        dataProvider.refresh();
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Subcarpeta creada exitosamente'), backgroundColor: Colors.green),
         );

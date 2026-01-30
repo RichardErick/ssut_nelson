@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../models/carpeta.dart';
 import '../../models/documento.dart';
 import '../../models/usuario.dart';
+import '../../providers/data_provider.dart';
 import '../../services/anexo_service.dart';
 import '../../services/carpeta_service.dart';
 import '../../services/catalogo_service.dart';
@@ -235,6 +236,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
         }
 
         if (mounted) {
+          // Notificar al DataProvider
+          final dataProvider = Provider.of<DataProvider>(context, listen: false);
+          dataProvider.refresh();
+          
           _showSnack('Documento creado con exito', background: Colors.green);
           Navigator.pop(context, true);
         }
@@ -263,6 +268,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
         }
 
         if (mounted) {
+          // Notificar al DataProvider
+          final dataProvider = Provider.of<DataProvider>(context, listen: false);
+          dataProvider.notifyDocumentoUpdated(widget.documento!);
+          
           _showSnack(
             'Documento actualizado con exito',
             background: Colors.green,
