@@ -128,10 +128,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         context,
         listen: false,
       );
-      final gestion = DateTime.now().year.toString();
-      final carpetas = await carpetaService.getAll(gestion: gestion);
+      final todasLasCarpetas = await carpetaService.getAll();
       setState(() {
-        _carpetas = carpetas;
+        // SOLO mostrar las carpetas raíz (las que no tienen padre)
+        _carpetas = todasLasCarpetas.where((c) => c.carpetaPadreId == null).toList();
         _estaCargandoCarpetas = false;
       });
     } catch (e) {
@@ -173,9 +173,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     setState(() => _estaCargandoSubcarpetas = true);
     try {
       final service = Provider.of<CarpetaService>(context, listen: false);
-      final subcarpetas = await service.getAll(
-        gestion: DateTime.now().year.toString(),
-      );
+      final subcarpetas = await service.getAll();
       // Filtrar manualmente si el backend no soporta filtro por padreId en getAll
       // Asumimos que getAll trae todo o filtramos en memoria por ahora
       if (mounted) {
@@ -280,6 +278,29 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         _cargarDocumentosCarpeta(carpeta.id);
       }
   }
+
+  Future<void> _crearSubcarpeta(int padreId) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CarpetaFormScreen(padreId: padreId),
+      ),
+    );
+    
+    if (result == true && mounted) {
+      // Reload subcarpetas and show success message
+      await _cargarSubcarpetas(padreId);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Subcarpeta creada exitosamente'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
 
   Widget _construirVistaCarpetas(ThemeData theme) {
     if (_estaCargandoCarpetas) {
