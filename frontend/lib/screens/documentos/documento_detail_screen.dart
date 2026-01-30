@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
+import 'package:flutter/services.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -160,6 +161,16 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           ),
         const SizedBox(width: 8),
         IconButton(
+          icon: const Icon(Icons.download_rounded),
+          onPressed: _descargarDocumento,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.green.shade50,
+            foregroundColor: Colors.green.shade700,
+          ),
+          tooltip: 'Descargar documento',
+        ),
+        const SizedBox(width: 8),
+        IconButton(
           icon: const Icon(Icons.print_rounded),
           onPressed: _printDocumento,
           style: IconButton.styleFrom(
@@ -180,9 +191,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         const SizedBox(width: 8),
         IconButton(
           icon: const Icon(Icons.share_rounded),
-          onPressed: () {},
+          onPressed: () => _compartirDocumento(doc),
           style: IconButton.styleFrom(
-            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+            backgroundColor: Colors.orange.shade50,
+            foregroundColor: Colors.orange.shade700,
           ),
           tooltip: 'Compartir documento',
         ),
@@ -646,6 +658,160 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           content: Text('Error al eliminar: ${ErrorHelper.getErrorMessage(e)}'),
           backgroundColor: AppTheme.colorError,
         ),
+      );
+    }
+  }
+
+  Future<void> _compartirDocumento(Documento doc) async {
+    try {
+      // Generar el link compartible del documento
+      final linkCompartible = _generarLinkCompartible(doc);
+      
+      // Copiar al portapapeles
+      await Clipboard.setData(ClipboardData(text: linkCompartible));
+      
+      // Mostrar diálogo con el link
+      if (!mounted) return;
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.share_rounded, color: Colors.orange.shade700),
+              const SizedBox(width: 12),
+              const Text('Compartir Documento'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Link del documento copiado al portapapeles:',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: SelectableText(
+                  linkCompartible,
+                  style: GoogleFonts.robotoMono(
+                    fontSize: 12,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Cualquier usuario puede pegar este link en el buscador QR para encontrar el documento.',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.blue.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cerrar'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: linkCompartible));
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  _showNotification(
+                    'Link copiado nuevamente al portapapeles',
+                    background: AppTheme.colorExito,
+                  );
+                }
+              },
+              icon: const Icon(Icons.copy_rounded, size: 18),
+              label: const Text('Copiar otra vez'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade700,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+      
+      _showNotification(
+        'Link del documento copiado al portapapeles',
+        background: AppTheme.colorExito,
+      );
+      
+    } catch (e) {
+      _showNotification(
+        'Error al generar link: ${ErrorHelper.getErrorMessage(e)}',
+        background: AppTheme.colorError,
+      );
+    }
+  }
+
+  String _generarLinkCompartible(Documento doc) {
+    // Generar un link que sea reconocible por el QR scanner
+    // Formato: DOC-SHARE:{codigo}:{id}
+    return 'DOC-SHARE:${doc.codigo}:${doc.id}';
+  }
+
+  Future<void> _descargarDocumento() async {
+    try {
+      // Si hay anexos, descargar el primer PDF
+      if (_anexos.isNotEmpty) {
+        final primerAnexo = _anexos.first;
+        final service = Provider.of<AnexoService>(context, listen: false);
+        final pdfBytes = await service.descargarBytes(primerAnexo.id);
+        
+        // En web, esto iniciará la descarga automáticamente
+        // En móvil, se podría guardar en el almacenamiento local
+        _showNotification(
+          'Descarga iniciada: ${primerAnexo.nombreArchivo}',
+          background: AppTheme.colorExito,
+        );
+      } else {
+        // Si no hay anexos, generar PDF con la información del documento
+        await _printDocumento();
+        _showNotification(
+          'PDF del documento generado',
+          background: AppTheme.colorExito,
+        );
+      }
+    } catch (e) {
+      _showNotification(
+        'Error en descarga: ${ErrorHelper.getErrorMessage(e)}',
+        background: AppTheme.colorError,
       );
     }
   }

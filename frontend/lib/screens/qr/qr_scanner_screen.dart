@@ -49,6 +49,14 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     setState(() => _isSearching = true);
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
+      
+      // Verificar si es un link compartible
+      if (codigoQr.startsWith('DOC-SHARE:')) {
+        await _procesarLinkCompartible(codigoQr);
+        return;
+      }
+      
+      // Búsqueda normal por QR
       final documento = await service.getByQRCode(codigoQr);
 
       if (!mounted) return;
@@ -115,6 +123,90 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     } finally {
       if (mounted) {
         setState(() => _isSearching = false);
+      }
+    }
+  }
+
+  Future<void> _procesarLinkCompartible(String linkCompartible) async {
+    try {
+      // Formato esperado: DOC-SHARE:{codigo}:{id}
+      final partes = linkCompartible.split(':');
+      if (partes.length != 3 || partes[0] != 'DOC-SHARE') {
+        throw Exception('Formato de link inválido');
+      }
+      
+      final codigo = partes[1];
+      final id = int.tryParse(partes[2]);
+      
+      if (id == null) {
+        throw Exception('ID de documento inválido');
+      }
+      
+      final service = Provider.of<DocumentoService>(context, listen: false);
+      
+      // Intentar buscar por ID primero
+      final documento = await service.getById(id);
+      
+      if (!mounted) return;
+      
+      if (documento != null) {
+        // Verificar que el código coincida para mayor seguridad
+        if (documento.codigo == codigo) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DocumentoDetailScreen(documento: documento),
+            ),
+          );
+          _qrCodeController.clear();
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Text('Documento encontrado: ${documento.codigo}'),
+                ],
+              ),
+              backgroundColor: Colors.green.shade600,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        } else {
+          throw Exception('El código del documento no coincide');
+        }
+      } else {
+        throw Exception('Documento no encontrado');
+      }
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Error procesando link compartible: ${e.toString()}',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
       }
     }
   }
@@ -303,7 +395,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Ingrese el código QR del documento para buscarlo rápidamente',
+                        'Ingrese el código QR del documento o pegue un link compartible para buscarlo rápidamente',
                         style: TextStyle(
                           color: Colors.grey.shade600,
                           fontSize: 16,
@@ -364,8 +456,8 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                       TextField(
                         controller: _qrCodeController,
                         decoration: InputDecoration(
-                          labelText: 'Código QR',
-                          hintText: 'Pegue o escriba el código QR aquí',
+                          labelText: 'Código QR o Link Compartible',
+                          hintText: 'Pegue el código QR o link del documento aquí',
                           prefixIcon: Container(
                             margin: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -472,7 +564,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                             const SizedBox(width: 16),
                             Expanded(
                               child: Text(
-                                'En la versión web, puede ingresar el código QR manualmente. Para usar el escáner de cámara, acceda desde un dispositivo móvil.',
+                                'En la versión web, puede ingresar el código QR manualmente o pegar un link compartible de documento. Para usar el escáner de cámara, acceda desde un dispositivo móvil.',
                                 style: TextStyle(
                                   color: Colors.blue.shade900,
                                   fontSize: 13,
