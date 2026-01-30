@@ -296,18 +296,70 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   }
 
   String? _extraerQrDeBytes(Uint8List bytes) {
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) return null;
-    final image = decoded.convert(numChannels: 4);
-    final pixels = image
-        .getBytes(order: img.ChannelOrder.abgr)
-        .buffer
-        .asInt32List();
+    try {
+      // Intentar decodificar como imagen
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) {
+        print('No se pudo decodificar la imagen');
+        return null;
+      }
+      
+      // Convertir a formato compatible con zxing2
+      final image = decoded.convert(numChannels: 4);
+      final pixels = image
+          .getBytes(order: img.ChannelOrder.abgr)
+          .buffer
+          .asInt32List();
 
-    final source = RGBLuminanceSource(image.width, image.height, pixels);
-    final bitmap = BinaryBitmap(HybridBinarizer(source));
-    final result = QRCodeReader().decode(bitmap);
-    return result.text.trim();
+      final source = RGBLuminanceSource(image.width, image.height, pixels);
+      
+      // Intentar con HybridBinarizer primero
+      try {
+        final bitmap = BinaryBitmap(HybridBinarizer(source));
+        final result = QRCodeReader().decode(bitmap);
+        return result.text.trim();
+      } catch (e) {
+        print('Error decodificando QR con HybridBinarizer: $e');
+        
+        // Si falla, intentar procesamiento de imagen mejorado
+        try {
+          // Mejorar contraste de la imagen
+          final enhancedImage = _mejorarImagenParaQR(decoded);
+          final enhancedPixels = enhancedImage
+              .getBytes(order: img.ChannelOrder.abgr)
+              .buffer
+              .asInt32List();
+          
+          final enhancedSource = RGBLuminanceSource(
+            enhancedImage.width, 
+            enhancedImage.height, 
+            enhancedPixels
+          );
+          final enhancedBitmap = BinaryBitmap(HybridBinarizer(enhancedSource));
+          final result2 = QRCodeReader().decode(enhancedBitmap);
+          return result2.text.trim();
+        } catch (e2) {
+          print('Error con imagen mejorada: $e2');
+          return null;
+        }
+      }
+    } catch (e) {
+      print('Error general extrayendo QR: $e');
+      return null;
+    }
+  }
+
+  img.Image _mejorarImagenParaQR(img.Image original) {
+    // Convertir a escala de grises
+    var processed = img.grayscale(original);
+    
+    // Aumentar contraste
+    processed = img.contrast(processed, contrast: 150);
+    
+    // Aplicar threshold para binarizar
+    processed = img.threshold(processed, threshold: 128);
+    
+    return processed;
   }
 
   void _showScanInfo() {
