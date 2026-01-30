@@ -55,6 +55,17 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validación previa de nombre duplicado
+    if (await _verificarNombreDuplicado()) {
+      _mostrarDialogoError(
+        'Nombre Duplicado',
+        'Ya existe una subcarpeta con el nombre "${_nombreController.text}" en esta carpeta.\n\nPor favor, elija un nombre diferente.',
+        Icons.folder_copy_outlined,
+        Colors.orange,
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -104,12 +115,111 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
 
     } catch (e) {
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString().replaceAll("Exception:", "")}'), backgroundColor: Colors.red),
-        );
+        String errorMessage = e.toString();
+        
+        // Detectar errores específicos y mostrar mensajes amigables
+        if (errorMessage.contains('duplicate') || 
+            errorMessage.contains('duplicado') || 
+            errorMessage.contains('already exists') ||
+            errorMessage.contains('ya existe') ||
+            errorMessage.contains('unique constraint') ||
+            errorMessage.contains('UNIQUE constraint failed')) {
+          _mostrarDialogoError(
+            'Subcarpeta Duplicada',
+            'Ya existe una subcarpeta con el nombre "${_nombreController.text}" en esta carpeta.\n\nPor favor, elija un nombre diferente.',
+            Icons.folder_copy_outlined,
+            Colors.orange,
+          );
+        } else if (errorMessage.contains('validation') || errorMessage.contains('invalid')) {
+          _mostrarDialogoError(
+            'Datos Inválidos',
+            'Los datos ingresados no son válidos. Verifique la información e intente nuevamente.',
+            Icons.warning_amber_rounded,
+            Colors.red,
+          );
+        } else if (errorMessage.contains('network') || errorMessage.contains('connection')) {
+          _mostrarDialogoError(
+            'Error de Conexión',
+            'No se pudo conectar con el servidor. Verifique su conexión a internet e intente nuevamente.',
+            Icons.wifi_off_rounded,
+            Colors.grey,
+          );
+        } else {
+          // Error genérico
+          _mostrarDialogoError(
+            'Error al Crear Subcarpeta',
+            'Ocurrió un error inesperado:\n${errorMessage.replaceAll("Exception:", "").trim()}',
+            Icons.error_outline_rounded,
+            Colors.red,
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _mostrarDialogoError(String titulo, String mensaje, IconData icono, Color color) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(icono, color: color, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                titulo,
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          mensaje,
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            height: 1.4,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Entendido',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _verificarNombreDuplicado() async {
+    try {
+      final carpetaService = Provider.of<CarpetaService>(context, listen: false);
+      final subcarpetas = await carpetaService.getAll();
+      
+      // Filtrar subcarpetas de la misma carpeta padre
+      final subcarpetasHermanas = subcarpetas
+          .where((c) => c.carpetaPadreId == widget.carpetaPadreId)
+          .toList();
+      
+      // Verificar si ya existe una con el mismo nombre
+      return subcarpetasHermanas.any((c) => 
+          c.nombre.toLowerCase().trim() == _nombreController.text.toLowerCase().trim());
+    } catch (e) {
+      // Si hay error verificando, permitir continuar (el backend manejará el error)
+      return false;
     }
   }
 

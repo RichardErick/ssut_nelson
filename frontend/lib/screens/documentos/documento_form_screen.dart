@@ -164,17 +164,61 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _fechaDocumento,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-      locale: const Locale('es', 'BO'),
-    );
-    if (picked != null && picked != _fechaDocumento) {
-      setState(() {
-        _fechaDocumento = picked;
-      });
+    try {
+      final DateTime? picked = await showDatePicker(
+        context: context,
+        initialDate: _fechaDocumento,
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2101),
+        locale: const Locale('es', 'ES'), // Cambiar de 'BO' a 'ES'
+        helpText: 'Seleccionar fecha del documento',
+        cancelText: 'Cancelar',
+        confirmText: 'Aceptar',
+        fieldLabelText: 'Fecha',
+        fieldHintText: 'dd/mm/aaaa',
+        errorFormatText: 'Formato de fecha inválido',
+        errorInvalidText: 'Fecha inválida',
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: Theme.of(context).colorScheme.copyWith(
+                primary: Colors.blue.shade700,
+                onPrimary: Colors.white,
+                surface: Colors.white,
+                onSurface: Colors.black87,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+      
+      if (picked != null && picked != _fechaDocumento) {
+        setState(() {
+          _fechaDocumento = picked;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Error al abrir selector de fecha: ${e.toString()}'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -281,11 +325,94 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showSnack('Error al guardar: $e', background: Colors.red);
+        String errorMessage = e.toString();
+        
+        // Detectar errores específicos y mostrar mensajes amigables
+        if (errorMessage.contains('duplicate') || 
+            errorMessage.contains('duplicado') || 
+            errorMessage.contains('already exists') ||
+            errorMessage.contains('ya existe') ||
+            errorMessage.contains('unique constraint')) {
+          _mostrarDialogoError(
+            'Documento Duplicado',
+            'Ya existe un documento con este número correlativo en la gestión seleccionada.\n\nPor favor, verifique el número correlativo.',
+            Icons.description_outlined,
+            Colors.orange,
+          );
+        } else if (errorMessage.contains('validation') || 
+                   errorMessage.contains('invalid') ||
+                   errorMessage.contains('Formato de código inválido')) {
+          _mostrarDialogoError(
+            'Datos Inválidos',
+            'Los datos ingresados no son válidos. Verifique:\n\n• Número correlativo debe ser numérico\n• Todos los campos requeridos estén completos\n• Las fechas sean válidas',
+            Icons.warning_amber_rounded,
+            Colors.red,
+          );
+        } else if (errorMessage.contains('network') || errorMessage.contains('connection')) {
+          _mostrarDialogoError(
+            'Error de Conexión',
+            'No se pudo conectar con el servidor. Verifique su conexión a internet e intente nuevamente.',
+            Icons.wifi_off_rounded,
+            Colors.grey,
+          );
+        } else {
+          // Error genérico
+          _mostrarDialogoError(
+            'Error al Guardar Documento',
+            'Ocurrió un error inesperado:\n${errorMessage.replaceAll("Exception:", "").trim()}',
+            Icons.error_outline_rounded,
+            Colors.red,
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _mostrarDialogoError(String titulo, String mensaje, IconData icono, Color color) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(icono, color: color, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                titulo,
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          mensaje,
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            height: 1.4,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Entendido',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _crearNuevaCarpeta() async {

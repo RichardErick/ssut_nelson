@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
+import 'dart:ui' as ui;
+import 'dart:html' as html;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -159,6 +161,16 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
             ),
             tooltip: 'Eliminar documento',
           ),
+        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(Icons.qr_code_rounded),
+          onPressed: () => _descargarCodigoQR(doc),
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.purple.shade50,
+            foregroundColor: Colors.purple.shade700,
+          ),
+          tooltip: 'Descargar código QR',
+        ),
         const SizedBox(width: 8),
         IconButton(
           icon: const Icon(Icons.download_rounded),
@@ -786,6 +798,179 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     return 'DOC-SHARE:${doc.codigo}:${doc.id}';
   }
 
+  Future<void> _descargarCodigoQR(Documento doc) async {
+    try {
+      // Asegurar que tenemos un código QR
+      String? qrData = _normalizeQrData(
+        _qrData ?? widget.documento.urlQR ?? widget.documento.codigoQR,
+      );
+      
+      if (qrData == null) {
+        await _generateQr();
+        qrData = _normalizeQrData(
+          _qrData ?? widget.documento.urlQR ?? widget.documento.codigoQR,
+        );
+      }
+      
+      final qrDataSafe = (qrData != null && qrData.isNotEmpty) 
+          ? qrData 
+          : widget.documento.codigo;
+      
+      // Generar imagen QR
+      final qrImageBytes = await _generarImagenQR(qrDataSafe, doc);
+      
+      // En Flutter Web, esto iniciará la descarga automáticamente
+      await _descargarArchivo(qrImageBytes, 'QR_${doc.codigo}.png');
+      
+      _showNotification(
+        'Código QR descargado: QR_${doc.codigo}.png',
+        background: AppTheme.colorExito,
+      );
+      
+    } catch (e) {
+      _showNotification(
+        'Error al descargar QR: ${ErrorHelper.getErrorMessage(e)}',
+        background: AppTheme.colorError,
+      );
+    }
+  }
+
+  Future<Uint8List> _generarImagenQR(String qrData, Documento doc) async {
+    // Crear un PDF con el QR y información del documento
+    final pdf = pw.Document();
+    
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) => pw.Container(
+          padding: const pw.EdgeInsets.all(40),
+          child: pw.Column(
+            mainAxisAlignment: pw.MainAxisAlignment.center,
+            children: [
+              // Título
+              pw.Text(
+                'CÓDIGO QR DEL DOCUMENTO',
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+                textAlign: pw.TextAlign.center,
+              ),
+              pw.SizedBox(height: 20),
+              
+              // Información del documento
+              pw.Container(
+                padding: const pw.EdgeInsets.all(20),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey600, width: 1),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _buildPdfRow('Código', doc.codigo),
+                    _buildPdfRow('Tipo', doc.tipoDocumentoNombre ?? 'N/A'),
+                    _buildPdfRow('Área', doc.areaOrigenNombre ?? 'N/A'),
+                    _buildPdfRow('Gestión', doc.gestion),
+                    _buildPdfRow('Fecha', DateFormat('dd/MM/yyyy').format(doc.fechaDocumento)),
+                    if (doc.descripcion != null)
+                      _buildPdfRow('Descripción', doc.descripcion!),
+                  ],
+                ),
+              ),
+              
+              pw.SizedBox(height: 30),
+              
+              // Código QR grande
+              pw.Center(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(20),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey600, width: 2),
+                  ),
+                  child: pw.BarcodeWidget(
+                    barcode: pw.Barcode.qrCode(),
+                    data: qrData,
+                    width: 200,
+                    height: 200,
+                  ),
+                ),
+              ),
+              
+              pw.SizedBox(height: 20),
+              
+              // Texto del código QR
+              pw.Container(
+                padding: const pw.EdgeInsets.all(10),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  border: pw.Border.all(color: PdfColors.grey400),
+                ),
+                child: pw.Text(
+                  qrData,
+                  style: pw.TextStyle(
+                    fontSize: 12,
+                    fontFamily: pw.Font.courier(),
+                  ),
+                  textAlign: pw.TextAlign.center,
+                ),
+              ),
+              
+              pw.SizedBox(height: 30),
+              
+              // Instrucciones
+              pw.Container(
+                padding: const pw.EdgeInsets.all(15),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.blue50,
+                  border: pw.Border.all(color: PdfColors.blue200),
+                ),
+                child: pw.Column(
+                  children: [
+                    pw.Text(
+                      'INSTRUCCIONES DE USO',
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue800,
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      '1. Escanee este código QR con la aplicación\n'
+                      '2. O copie el texto del código y péguelo en el buscador QR\n'
+                      '3. El sistema lo llevará directamente al documento',
+                      style: pw.TextStyle(
+                        fontSize: 11,
+                        color: PdfColors.blue700,
+                      ),
+                      textAlign: pw.TextAlign.left,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    
+    return pdf.save();
+  }
+
+  Future<void> _descargarArchivo(Uint8List bytes, String fileName) async {
+    // En Flutter Web, esto creará un enlace de descarga
+    final blob = html.Blob([bytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.document.createElement('a') as html.AnchorElement
+      ..href = url
+      ..style.display = 'none'
+      ..download = fileName;
+    html.document.body?.children.add(anchor);
+    anchor.click();
+    html.document.body?.children.remove(anchor);
+    html.Url.revokeObjectUrl(url);
+  }
+
   Future<void> _descargarDocumento() async {
     try {
       // Si hay anexos, descargar el primer PDF
@@ -794,17 +979,20 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         final service = Provider.of<AnexoService>(context, listen: false);
         final pdfBytes = await service.descargarBytes(primerAnexo.id);
         
-        // En web, esto iniciará la descarga automáticamente
-        // En móvil, se podría guardar en el almacenamiento local
+        // Descargar el archivo
+        await _descargarArchivo(pdfBytes, primerAnexo.nombreArchivo);
+        
         _showNotification(
           'Descarga iniciada: ${primerAnexo.nombreArchivo}',
           background: AppTheme.colorExito,
         );
       } else {
         // Si no hay anexos, generar PDF con la información del documento
-        await _printDocumento();
+        final pdfBytes = await _buildPdfBytes();
+        await _descargarArchivo(pdfBytes, 'Documento_${widget.documento.codigo}.pdf');
+        
         _showNotification(
-          'PDF del documento generado',
+          'PDF del documento generado y descargado',
           background: AppTheme.colorExito,
         );
       }
@@ -1757,52 +1945,98 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
             ),
           ],
         ),
-        child: Row(
+        child: Column(
           children: [
-             QrImageView(
-              data: _qrData!,
-              version: QrVersions.auto,
-              size: 80.0,
-              eyeStyle: QrEyeStyle(
-                eyeShape: QrEyeShape.square,
-                color: AppTheme.colorPrimario,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'CÓDIGO QR',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey.shade700,
-                    ),
+            Row(
+              children: [
+                QrImageView(
+                  data: _qrData!,
+                  version: QrVersions.auto,
+                  size: 80.0,
+                  eyeStyle: QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: AppTheme.colorPrimario,
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      _qrData!,
-                      style: GoogleFonts.robotoMono(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'CÓDIGO QR',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.grey.shade700,
+                        ),
                       ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _qrData!,
+                          style: GoogleFonts.robotoMono(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Autenticidad del documento',
+                        style: GoogleFonts.inter(fontSize: 10, color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _descargarCodigoQR(doc),
+                    icon: const Icon(Icons.download_rounded, size: 16),
+                    label: const Text('Descargar QR'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.purple.shade700,
+                      side: BorderSide(color: Colors.purple.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Autenticidad del documento',
-                    style: GoogleFonts.inter(fontSize: 10, color: Colors.grey.shade600),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: _qrData!));
+                      _showNotification(
+                        'Código QR copiado al portapapeles',
+                        background: AppTheme.colorExito,
+                      );
+                    },
+                    icon: const Icon(Icons.copy_rounded, size: 16),
+                    label: const Text('Copiar'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue.shade700,
+                      side: BorderSide(color: Colors.blue.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
