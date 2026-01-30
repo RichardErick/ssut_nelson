@@ -59,14 +59,17 @@ class AuthProvider extends ChangeNotifier {
   }
 
   bool _hasRoleBasedPermission(String permissionCode) {
+    print('DEBUG: Verificando permiso "$permissionCode" para rol $_role');
     switch (_role) {
       case UserRole.administradorSistema:
         // Solo puede ver documentos
-        return permissionCode == 'ver_documento';
+        final hasPermission = permissionCode == 'ver_documento';
+        print('DEBUG: AdministradorSistema - Permiso "$permissionCode": $hasPermission');
+        return hasPermission;
         
       case UserRole.administradorDocumentos:
         // Puede ver, crear, subir, editar y borrar documentos + crear carpetas
-        return [
+        final allowedPermissions = [
           'ver_documento',
           'crear_documento',
           'subir_documento', 
@@ -74,21 +77,30 @@ class AuthProvider extends ChangeNotifier {
           'borrar_documento',
           'crear_carpeta',
           'borrar_carpeta'
-        ].contains(permissionCode);
+        ];
+        final hasPermission = allowedPermissions.contains(permissionCode);
+        print('DEBUG: AdministradorDocumentos - Permiso "$permissionCode": $hasPermission');
+        return hasPermission;
         
       case UserRole.contador:
         // Puede ver y subir documentos
-        return [
+        final allowedPermissions = [
           'ver_documento',
           'crear_documento',
           'subir_documento'
-        ].contains(permissionCode);
+        ];
+        final hasPermission = allowedPermissions.contains(permissionCode);
+        print('DEBUG: Contador - Permiso "$permissionCode": $hasPermission');
+        return hasPermission;
         
       case UserRole.gerente:
         // Solo puede ver documentos
-        return permissionCode == 'ver_documento';
+        final hasPermission = permissionCode == 'ver_documento';
+        print('DEBUG: Gerente - Permiso "$permissionCode": $hasPermission');
+        return hasPermission;
         
       default:
+        print('DEBUG: Rol desconocido - Permiso "$permissionCode": false');
         return false;
     }
   }
@@ -316,6 +328,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   UserRole _parseRole(String roleName) {
+    print('DEBUG: Parseando rol: "$roleName"'); // Debug temporal
     final roleNameLower = roleName.toLowerCase().trim();
     switch (roleNameLower) {
       case 'administradorsistema':
@@ -326,19 +339,24 @@ class AuthProvider extends ChangeNotifier {
       case 'administrator':
       case 'system admin':
       case 'sysadmin':
+        print('DEBUG: Rol mapeado a AdministradorSistema');
         return UserRole.administradorSistema;
       case 'administradordocumentos':
       case 'administrador documentos':
       case 'admin documentos':
       case 'document admin':
+        print('DEBUG: Rol mapeado a AdministradorDocumentos');
         return UserRole.administradorDocumentos;
       case 'contador':
       case 'accountant':
+        print('DEBUG: Rol mapeado a Contador');
         return UserRole.contador;
       case 'gerente':
       case 'manager':
+        print('DEBUG: Rol mapeado a Gerente');
         return UserRole.gerente;
       default:
+        print('DEBUG: Rol no reconocido: "$roleName", asignando AdministradorSistema por defecto');
         // Si el rol no existe, asignar como Administrador de Sistema por defecto para admin users
         return UserRole.administradorSistema;
     }
