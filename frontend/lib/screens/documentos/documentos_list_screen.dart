@@ -194,16 +194,30 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Future<void> _abrirCarpeta(Carpeta carpeta) async {
+    print('DEBUG: Abriendo carpeta "${carpeta.nombre}" (ID: ${carpeta.id}, PadreID: ${carpeta.carpetaPadreId})');
+    
     setState(() {
       _carpetaSeleccionada = carpeta;
       _documentosCarpeta = [];
       _subcarpetas = [];
     });
+    
+    print('DEBUG: Estado actualizado - _carpetaSeleccionada: ${_carpetaSeleccionada?.nombre}');
+    print('DEBUG: carpetaPadreId de la carpeta seleccionada: ${_carpetaSeleccionada?.carpetaPadreId}');
+    
     // Cargar documentos y subcarpetas en paralelo
     await Future.wait([
       _cargarDocumentosCarpeta(carpeta.id),
       _cargarSubcarpetas(carpeta.id),
     ]);
+    
+    // Forzar rebuild del FloatingActionButton
+    if (mounted) {
+      print('DEBUG: Forzando rebuild después de abrir carpeta');
+      setState(() {
+        // Forzar rebuild
+      });
+    }
   }
 
   List<Documento> get _documentosFiltrados {
@@ -266,24 +280,40 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Future<void> _agregarDocumento(Carpeta carpeta) async {
+      print('DEBUG: Agregando documento a carpeta "${carpeta.nombre}" (ID: ${carpeta.id})');
+      
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => DocumentoFormScreen(initialCarpetaId: carpeta.id),
         ),
       );
-      if (result == true) {
+      
+      if (result == true && mounted) {
+        print('DEBUG: Documento creado exitosamente, actualizando listas');
+        
         await _cargarDocumentosCarpeta(carpeta.id);
+        
+        // También recargar carpetas para actualizar contadores
+        await _cargarCarpetas();
+        if (carpeta.carpetaPadreId != null) {
+          await _cargarSubcarpetas(carpeta.carpetaPadreId!);
+        }
         
         // Notificar al DataProvider
         if (mounted) {
           final dataProvider = Provider.of<DataProvider>(context, listen: false);
           dataProvider.refresh();
+          
+          // Forzar rebuild
+          setState(() {});
         }
       }
   }
 
   Future<void> _crearSubcarpeta(int padreId) async {
+    print('DEBUG: Creando subcarpeta para padre ID: $padreId');
+    
     // Obtener información de la carpeta padre
     final carpetaService = Provider.of<CarpetaService>(context, listen: false);
     final carpetaPadre = await carpetaService.getById(padreId);
@@ -299,12 +329,22 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
     
     if (result == true && mounted) {
+      print('DEBUG: Subcarpeta creada exitosamente, actualizando listas');
+      
       // Reload subcarpetas
       await _cargarSubcarpetas(padreId);
+      
+      // También recargar carpetas principales por si acaso
+      await _cargarCarpetas();
       
       // Notificar al DataProvider
       final dataProvider = Provider.of<DataProvider>(context, listen: false);
       dataProvider.refresh();
+      
+      // Forzar rebuild
+      if (mounted) {
+        setState(() {});
+      }
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -362,9 +402,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       tween: Tween(begin: 0.0, end: 1.0),
       curve: Curves.easeOutBack,
       builder: (context, value, child) {
+        final clampedValue = value.clamp(0.0, 1.0);
         return Transform.scale(
-          scale: 0.95 + (0.05 * value),
-          child: Opacity(opacity: value, child: child),
+          scale: 0.95 + (0.05 * clampedValue),
+          child: Opacity(opacity: clampedValue, child: child),
         );
       },
       child: Container(
@@ -662,10 +703,16 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 ),
                 child: IconButton(
                   onPressed: () {
+                    print('DEBUG: Botón de regreso presionado');
                     if (widget.initialCarpetaId != null) {
+                      print('DEBUG: Navegando hacia atrás (pop)');
                       Navigator.pop(context);
                     } else {
-                      setState(() => _carpetaSeleccionada = null);
+                      print('DEBUG: Regresando a vista principal - limpiando _carpetaSeleccionada');
+                      setState(() {
+                        _carpetaSeleccionada = null;
+                      });
+                      print('DEBUG: Estado actualizado - _carpetaSeleccionada: $_carpetaSeleccionada');
                     }
                   },
                   icon: const Icon(Icons.arrow_back_rounded),
@@ -1231,9 +1278,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           tween: Tween(begin: 0.0, end: 1.0),
           curve: Curves.easeOutCubic,
           builder: (context, value, child) {
+            final clampedValue = value.clamp(0.0, 1.0);
             return Transform.translate(
-              offset: Offset(0, 20 * (1 - value)),
-              child: Opacity(opacity: value, child: child),
+              offset: Offset(0, 20 * (1 - clampedValue)),
+              child: Opacity(opacity: clampedValue, child: child),
             );
           },
           child: Container(
@@ -2014,6 +2062,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Future<void> _abrirNuevaCarpeta() async {
+    print('DEBUG: Abriendo formulario de nueva carpeta');
+    
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CarpetaFormScreen()),
@@ -2021,11 +2071,18 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     
     // Si se creó una carpeta exitosamente, actualizar la vista
     if (result == true && mounted) {
+      print('DEBUG: Carpeta creada exitosamente, actualizando listas');
+      
       await _cargarCarpetas();
       
       // Notificar al DataProvider para actualizaciones en tiempo real
       final dataProvider = Provider.of<DataProvider>(context, listen: false);
       dataProvider.refresh();
+      
+      // Forzar rebuild
+      if (mounted) {
+        setState(() {});
+      }
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2206,13 +2263,22 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Widget? _buildFloatingActionButton() {
+    print('DEBUG FAB: Ejecutando _buildFloatingActionButton()');
+    print('DEBUG FAB: _carpetaSeleccionada = ${_carpetaSeleccionada?.nombre}');
+    print('DEBUG FAB: _carpetaSeleccionada?.id = ${_carpetaSeleccionada?.id}');
+    print('DEBUG FAB: _carpetaSeleccionada?.carpetaPadreId = ${_carpetaSeleccionada?.carpetaPadreId}');
+    
     final authProvider = Provider.of<AuthProvider>(context);
+
+    // Verificar permisos primero
+    if (!authProvider.hasPermission('subir_documento')) {
+      print('DEBUG FAB: Sin permisos de subir_documento, retornando null');
+      return null;
+    }
 
     // Nivel 1: Vista principal de carpetas padre - Solo crear carpeta
     if (_carpetaSeleccionada == null) {
-      // Para crear carpetas principales, verificar si tiene permisos de subir documentos
-      if (!authProvider.hasPermission('subir_documento')) return null;
-      
+      print('DEBUG FAB: Nivel 1 - Vista principal, mostrando Nueva Carpeta');
       return FloatingActionButton.extended(
         onPressed: () => _abrirNuevaCarpeta(),
         icon: const Icon(Icons.create_new_folder_rounded),
@@ -2222,11 +2288,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       );
     }
 
-    // Nivel 2: Dentro de carpeta padre (viendo subcarpetas) - Solo crear subcarpeta
+    // Nivel 2: Dentro de carpeta padre (carpetaPadreId == null) - Solo crear subcarpeta
     if (_carpetaSeleccionada!.carpetaPadreId == null) {
-      // Para crear subcarpetas, verificar si tiene permisos de subir documentos
-      if (!authProvider.hasPermission('subir_documento')) return null;
-      
+      print('DEBUG FAB: Nivel 2 - Dentro de carpeta padre "${_carpetaSeleccionada!.nombre}", mostrando Nueva Subcarpeta');
       return FloatingActionButton.extended(
         onPressed: () => _crearSubcarpeta(_carpetaSeleccionada!.id),
         icon: const Icon(Icons.create_new_folder_outlined),
@@ -2236,9 +2300,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       );
     }
 
-    // Nivel 3: Dentro de subcarpeta - Solo crear documento
-    if (!authProvider.hasPermission('subir_documento')) return null;
-    
+    // Nivel 3: Dentro de subcarpeta (carpetaPadreId != null) - Solo crear documento
+    print('DEBUG FAB: Nivel 3 - Dentro de subcarpeta "${_carpetaSeleccionada!.nombre}", mostrando Nuevo Documento');
     return FloatingActionButton.extended(
       onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
       icon: const Icon(Icons.add_circle_outline_rounded),
