@@ -1,29 +1,27 @@
-import 'package:flutter/material.dart';
-import 'dart:typed_data';
-import 'package:flutter/services.dart';
-import 'dart:ui' as ui;
 import 'dart:html' as html;
+import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:provider/provider.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:printing/printing.dart';
+import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../models/anexo.dart';
+import '../../models/documento.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_provider.dart';
-import '../../models/documento.dart';
 import '../../services/anexo_service.dart';
 import '../../services/documento_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/animated_card.dart';
-import '../../widgets/loading_shimmer.dart';
 
 class DocumentoDetailScreen extends StatefulWidget {
   final Documento documento;
@@ -47,10 +45,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // Inicializar QR de forma independiente del puerto
     String? initialQrData = widget.documento.urlQR ?? widget.documento.codigoQR;
-    
+
     // Si viene como URL, extraer solo el código
     if (initialQrData != null && initialQrData.startsWith('http')) {
       final partes = initialQrData.split('/');
@@ -58,10 +56,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         initialQrData = partes.last; // Extraer solo el código del documento
       }
     }
-    
+
     // Si no hay código válido, usar el código del documento
     _qrData = _normalizeQrData(initialQrData ?? widget.documento.codigo);
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _qrData == null) {
         _generateQr();
@@ -90,13 +88,14 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
       final response = await service.generarQR(widget.documento.id);
-      
+
       // Extraer solo el código del documento, no la URL completa
-      String? qrContent = response['qrContent'] ?? 
-                         response['QrContent'] ?? 
-                         widget.documento.urlQR ?? 
-                         widget.documento.codigoQR;
-      
+      String? qrContent =
+          response['qrContent'] ??
+          response['QrContent'] ??
+          widget.documento.urlQR ??
+          widget.documento.codigoQR;
+
       // Si viene como URL, extraer solo el código
       if (qrContent != null && qrContent.startsWith('http')) {
         final partes = qrContent.split('/');
@@ -104,10 +103,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           qrContent = partes.last; // Extraer solo el código del documento
         }
       }
-      
+
       // Si no hay código, usar el código del documento
       qrContent = qrContent ?? widget.documento.codigo;
-      
+
       if (mounted) {
         setState(() => _qrData = _normalizeQrData(qrContent));
       }
@@ -115,10 +114,12 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       if (mounted) {
         // Si falla la generación, usar el código del documento
         setState(() => _qrData = widget.documento.codigo);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('QR generado localmente: ${ErrorHelper.getErrorMessage(e)}'),
+            content: Text(
+              'QR generado localmente: ${ErrorHelper.getErrorMessage(e)}',
+            ),
             backgroundColor: AppTheme.colorAdvertencia,
           ),
         );
@@ -143,28 +144,26 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       appBar: _buildAppBar(doc, theme),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
-        child: isDesktop
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 4,
-                    child: _buildLeftColumn(doc, dateFormat, theme),
-                  ),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    flex: 3,
-                    child: _buildRightColumn(theme),
-                  ),
-                ],
-              )
-            : Column(
-                children: [
-                  _buildLeftColumn(doc, dateFormat, theme),
-                  const SizedBox(height: 24),
-                  _buildRightColumn(theme),
-                ],
-              ),
+        child:
+            isDesktop
+                ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: _buildLeftColumn(doc, dateFormat, theme),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(flex: 3, child: _buildRightColumn(theme)),
+                  ],
+                )
+                : Column(
+                  children: [
+                    _buildLeftColumn(doc, dateFormat, theme),
+                    const SizedBox(height: 24),
+                    _buildRightColumn(theme),
+                  ],
+                ),
       ),
     );
   }
@@ -178,7 +177,9 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 18),
       ),
       actions: [
-        if (Provider.of<AuthProvider>(context).hasPermission('borrar_documento'))
+        if (Provider.of<AuthProvider>(
+          context,
+        ).hasPermission('borrar_documento'))
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded),
             onPressed: () => _confirmarEliminarDocumento(doc),
@@ -218,7 +219,9 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           tooltip: 'Imprimir documento',
         ),
         const SizedBox(width: 8),
-        if (Provider.of<AuthProvider>(context).hasPermission('editar_metadatos'))
+        if (Provider.of<AuthProvider>(
+          context,
+        ).hasPermission('editar_metadatos'))
           IconButton(
             icon: const Icon(Icons.edit_rounded),
             onPressed: () {},
@@ -442,7 +445,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: doc.palabrasClave.map((tag) => _buildKeywordChip(tag, theme)).toList(),
+                children:
+                    doc.palabrasClave
+                        .map((tag) => _buildKeywordChip(tag, theme))
+                        .toList(),
               ),
             ],
           ],
@@ -465,16 +471,16 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
-                Icons.visibility_rounded, 
-                size: 20, 
-                color: theme.colorScheme.primary
+                Icons.visibility_rounded,
+                size: 20,
+                color: theme.colorScheme.primary,
               ),
             ),
             const SizedBox(width: 12),
             Text(
               'VISUALIZACIÓN',
               style: GoogleFonts.poppins(
-                fontSize: 14, 
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.0,
                 color: Colors.black87,
@@ -567,8 +573,11 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                           const SizedBox(height: 12),
                           Text(
                             'Subiendo...',
-                            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade700),
-                          )
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
                         ],
                       )
                     else
@@ -576,7 +585,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                         onPressed: _pickAndUploadAnexo,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: theme.colorScheme.primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -700,7 +712,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                       ),
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(6),
@@ -716,7 +731,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Autenticidad del documento',
-                        style: GoogleFonts.inter(fontSize: 10, color: Colors.grey.shade600),
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ],
                   ),
@@ -928,108 +946,116 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     try {
       final linkCompartible = _generarLinkCompartible(doc);
       await Clipboard.setData(ClipboardData(text: linkCompartible));
-      
+
       if (!mounted) return;
-      
+
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              Icon(Icons.share_rounded, color: Colors.orange.shade700),
-              const SizedBox(width: 12),
-              const Text('Compartir Documento'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Link del documento copiado al portapapeles:',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: Colors.grey.shade700,
-                ),
+        builder:
+            (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: SelectableText(
-                  linkCompartible,
-                  style: GoogleFonts.robotoMono(
-                    fontSize: 12,
-                    color: Colors.blue.shade800,
+              title: Row(
+                children: [
+                  Icon(Icons.share_rounded, color: Colors.orange.shade700),
+                  const SizedBox(width: 12),
+                  const Text('Compartir Documento'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Link del documento copiado al portapapeles:',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.grey.shade700,
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Cualquier usuario puede pegar este link en el buscador QR para encontrar el documento.',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.blue.shade800,
-                        ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: SelectableText(
+                      linkCompartible,
+                      style: GoogleFonts.robotoMono(
+                        fontSize: 12,
+                        color: Colors.blue.shade800,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.blue.shade700,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Cualquier usuario puede pegar este link en el buscador QR para encontrar el documento.',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: Colors.blue.shade800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cerrar'),
-            ),
-            ElevatedButton.icon(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: linkCompartible));
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  _showNotification(
-                    'Link copiado nuevamente al portapapeles',
-                    background: AppTheme.colorExito,
-                  );
-                }
-              },
-              icon: const Icon(Icons.copy_rounded, size: 18),
-              label: const Text('Copiar otra vez'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange.shade700,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cerrar'),
                 ),
-              ),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(
+                      ClipboardData(text: linkCompartible),
+                    );
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      _showNotification(
+                        'Link copiado nuevamente al portapapeles',
+                        background: AppTheme.colorExito,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  label: const Text('Copiar otra vez'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade700,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
       );
-      
+
       _showNotification(
         'Link del documento copiado al portapapeles',
         background: AppTheme.colorExito,
       );
-      
     } catch (e) {
       _showNotification(
         'Error al generar link: ${ErrorHelper.getErrorMessage(e)}',
@@ -1049,26 +1075,26 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       String? qrData = _normalizeQrData(
         _qrData ?? widget.documento.urlQR ?? widget.documento.codigoQR,
       );
-      
+
       if (qrData == null) {
         await _generateQr();
         qrData = _normalizeQrData(
           _qrData ?? widget.documento.urlQR ?? widget.documento.codigoQR,
         );
       }
-      
-      final qrDataSafe = (qrData != null && qrData.isNotEmpty) 
-          ? qrData 
-          : widget.documento.codigo;
-      
+
+      final qrDataSafe =
+          (qrData != null && qrData.isNotEmpty)
+              ? qrData
+              : widget.documento.codigo;
+
       final qrImageBytes = await _generarImagenQRPNG(qrDataSafe, doc);
       await _descargarArchivo(qrImageBytes, 'QR_${doc.codigo}.pdf');
-      
+
       _showNotification(
         'Código QR descargado: QR_${doc.codigo}.pdf',
         background: AppTheme.colorExito,
       );
-      
     } catch (e) {
       _showNotification(
         'Error al descargar QR: ${ErrorHelper.getErrorMessage(e)}',
@@ -1082,82 +1108,85 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       String? qrData = _normalizeQrData(
         _qrData ?? widget.documento.urlQR ?? widget.documento.codigoQR,
       );
-      
+
       if (qrData == null) {
         await _generateQr();
         qrData = _normalizeQrData(
           _qrData ?? widget.documento.urlQR ?? widget.documento.codigoQR,
         );
       }
-      
-      final qrDataSafe = (qrData != null && qrData.isNotEmpty) 
-          ? qrData 
-          : widget.documento.codigo;
-      
+
+      final qrDataSafe =
+          (qrData != null && qrData.isNotEmpty)
+              ? qrData
+              : widget.documento.codigo;
+
       // Mostrar opciones de descarga
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              Icon(Icons.qr_code_rounded, color: Colors.green.shade700),
-              const SizedBox(width: 12),
-              const Text('Descargar Código QR'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Selecciona el formato de descarga:',
-                style: GoogleFonts.inter(fontSize: 14),
+        builder:
+            (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await _descargarQRComoPNG(qrDataSafe, doc);
-                  },
-                  icon: const Icon(Icons.image_rounded),
-                  label: const Text('Imagen PNG (Recomendado)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+              title: Row(
+                children: [
+                  Icon(Icons.qr_code_rounded, color: Colors.green.shade700),
+                  const SizedBox(width: 12),
+                  const Text('Descargar Código QR'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Selecciona el formato de descarga:',
+                    style: GoogleFonts.inter(fontSize: 14),
                   ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await _descargarQRComoPDF(qrDataSafe, doc);
-                  },
-                  icon: const Icon(Icons.picture_as_pdf_rounded),
-                  label: const Text('PDF con Información'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.purple.shade700,
-                    side: BorderSide(color: Colors.purple.shade300),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await _descargarQRComoPNG(qrDataSafe, doc);
+                      },
+                      icon: const Icon(Icons.image_rounded),
+                      label: const Text('Imagen PNG (Recomendado)'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await _descargarQRComoPDF(qrDataSafe, doc);
+                      },
+                      icon: const Icon(Icons.picture_as_pdf_rounded),
+                      label: const Text('PDF con Información'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.purple.shade700,
+                        side: BorderSide(color: Colors.purple.shade300),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+              ],
             ),
-          ],
-        ),
       );
-      
     } catch (e) {
       _showNotification(
         'Error al preparar descarga: ${ErrorHelper.getErrorMessage(e)}',
@@ -1213,10 +1242,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     );
     canvas.save();
     canvas.translate(padding.toDouble(), padding.toDouble());
-    qrPainter.paint(
-      canvas,
-      Size(qrSize.toDouble(), qrSize.toDouble()),
-    );
+    qrPainter.paint(canvas, Size(qrSize.toDouble(), qrSize.toDouble()));
     canvas.restore();
 
     final picture = recorder.endRecording();
@@ -1232,12 +1258,11 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     try {
       final qrImageBytes = await _generarImagenQRPNG(qrData, doc);
       await _descargarArchivo(qrImageBytes, 'QR_Info_${doc.codigo}.pdf');
-      
+
       _showNotification(
         'PDF con información descargado: QR_Info_${doc.codigo}.pdf',
         background: AppTheme.colorExito,
       );
-      
     } catch (e) {
       _showNotification(
         'Error al descargar PDF: ${ErrorHelper.getErrorMessage(e)}',
@@ -1252,7 +1277,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       const int size = 400;
       const int qrSize = 320;
       const int padding = (size - qrSize) ~/ 2;
-      
+
       // Generar el QR usando qr_flutter internamente
       final qrPainter = QrPainter(
         data: qrData,
@@ -1267,31 +1292,31 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         ),
         gapless: false,
       );
-      
+
       // Crear un canvas para dibujar
       final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
-      
+      final canvas = Canvas(
+        recorder,
+        Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
+      );
+
       // Fondo blanco
       canvas.drawRect(
         Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
         Paint()..color = Colors.white,
       );
-      
+
       // Dibujar el QR centrado
       canvas.save();
       canvas.translate(padding.toDouble(), padding.toDouble());
-      qrPainter.paint(
-        canvas,
-        Size(qrSize.toDouble(), qrSize.toDouble()),
-      );
+      qrPainter.paint(canvas, Size(qrSize.toDouble(), qrSize.toDouble()));
       canvas.restore();
-      
+
       // Convertir a imagen
       final picture = recorder.endRecording();
       final img = await picture.toImage(size, size);
       final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
-      
+
       return byteData!.buffer.asUint8List();
     } catch (e) {
       print('Error generando imagen QR real: $e');
@@ -1303,58 +1328,59 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   Future<Uint8List> _generarImagenQRPNG(String qrData, Documento doc) async {
     try {
       final pdf = pw.Document();
-      
+
       pdf.addPage(
         pw.Page(
           pageFormat: const PdfPageFormat(400, 400, marginAll: 20),
-          build: (context) => pw.Container(
-            width: 360,
-            height: 360,
-            color: PdfColors.white,
-            child: pw.Column(
-              mainAxisAlignment: pw.MainAxisAlignment.center,
-              children: [
-                pw.Text(
-                  'QR - ${doc.codigo}',
-                  style: pw.TextStyle(
-                    fontSize: 16,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
+          build:
+              (context) => pw.Container(
+                width: 360,
+                height: 360,
+                color: PdfColors.white,
+                child: pw.Column(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Text(
+                      'QR - ${doc.codigo}',
+                      style: pw.TextStyle(
+                        fontSize: 16,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 15),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(20),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.white,
+                        border: pw.Border.all(color: PdfColors.black, width: 2),
+                      ),
+                      child: pw.BarcodeWidget(
+                        barcode: pw.Barcode.qrCode(),
+                        data: qrData,
+                        width: 280,
+                        height: 280,
+                        drawText: false,
+                      ),
+                    ),
+                    pw.SizedBox(height: 15),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(8),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.grey100,
+                        border: pw.Border.all(color: PdfColors.grey400),
+                      ),
+                      child: pw.Text(
+                        qrData,
+                        style: const pw.TextStyle(fontSize: 10),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  ],
                 ),
-                pw.SizedBox(height: 15),
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(20),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.white,
-                    border: pw.Border.all(color: PdfColors.black, width: 2),
-                  ),
-                  child: pw.BarcodeWidget(
-                    barcode: pw.Barcode.qrCode(),
-                    data: qrData,
-                    width: 280,
-                    height: 280,
-                    drawText: false,
-                  ),
-                ),
-                pw.SizedBox(height: 15),
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(8),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey100,
-                    border: pw.Border.all(color: PdfColors.grey400),
-                  ),
-                  child: pw.Text(
-                    qrData,
-                    style: const pw.TextStyle(fontSize: 10),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
         ),
       );
-      //DEBERIA RETORNAR EL PNG O SALIR ERROR EN TODO CASO 
+      //DEBERIA RETORNAR EL PNG O SALIR ERROR EN TODO CASO
       return pdf.save();
     } catch (e) {
       print('Error generando QR PNG: $e');
@@ -1373,98 +1399,101 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
 
   Future<Uint8List> _generarPDFOptimizado(String qrData, Documento doc) async {
     final pdf = pw.Document();
-    
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
-        build: (context) => pw.Container(
-          color: PdfColors.white,
-          child: pw.Column(
-            mainAxisAlignment: pw.MainAxisAlignment.center,
-            children: [
-              pw.Text(
-                'QR - ${doc.codigo}',
-                style: pw.TextStyle(
-                  fontSize: 20,
-                  fontWeight: pw.FontWeight.bold,
-                ),
+        build:
+            (context) => pw.Container(
+              color: PdfColors.white,
+              child: pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'QR - ${doc.codigo}',
+                    style: pw.TextStyle(
+                      fontSize: 20,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 20),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(30),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      border: pw.Border.all(color: PdfColors.black, width: 2),
+                    ),
+                    child: pw.BarcodeWidget(
+                      barcode: pw.Barcode.qrCode(),
+                      data: qrData,
+                      width: 400,
+                      height: 400,
+                      drawText: false,
+                    ),
+                  ),
+                  pw.SizedBox(height: 20),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(15),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.grey100,
+                      border: pw.Border.all(color: PdfColors.grey400),
+                    ),
+                    child: pw.Text(
+                      qrData,
+                      style: const pw.TextStyle(fontSize: 12),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  pw.SizedBox(height: 15),
+                  pw.Text(
+                    'Escanee el código QR o copie el texto para buscar el documento',
+                    style: const pw.TextStyle(fontSize: 11),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ],
               ),
-              pw.SizedBox(height: 20),
-              pw.Container(
-                padding: const pw.EdgeInsets.all(30),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.white,
-                  border: pw.Border.all(color: PdfColors.black, width: 2),
-                ),
-                child: pw.BarcodeWidget(
-                  barcode: pw.Barcode.qrCode(),
-                  data: qrData,
-                  width: 400,
-                  height: 400,
-                  drawText: false,
-                ),
-              ),
-              pw.SizedBox(height: 20),
-              pw.Container(
-                padding: const pw.EdgeInsets.all(15),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.grey100,
-                  border: pw.Border.all(color: PdfColors.grey400),
-                ),
-                child: pw.Text(
-                  qrData,
-                  style: const pw.TextStyle(fontSize: 12),
-                  textAlign: pw.TextAlign.center,
-                ),
-              ),
-              pw.SizedBox(height: 15),
-              pw.Text(
-                'Escanee el código QR o copie el texto para buscar el documento',
-                style: const pw.TextStyle(fontSize: 11),
-                textAlign: pw.TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+            ),
       ),
     );
-    
+
     return pdf.save();
   }
 
   Future<Uint8List> _generarImagenSimplePDF(String qrData) async {
     final pdf = pw.Document();
-    
+
     pdf.addPage(
       pw.Page(
         pageFormat: const PdfPageFormat(400, 400, marginAll: 0),
-        build: (context) => pw.Container(
-          width: 400,
-          height: 400,
-          color: PdfColors.white,
-          child: pw.Center(
-            child: pw.BarcodeWidget(
-              barcode: pw.Barcode.qrCode(),
-              data: qrData,
-              width: 350,
-              height: 350,
-              drawText: false,
+        build:
+            (context) => pw.Container(
+              width: 400,
+              height: 400,
+              color: PdfColors.white,
+              child: pw.Center(
+                child: pw.BarcodeWidget(
+                  barcode: pw.Barcode.qrCode(),
+                  data: qrData,
+                  width: 350,
+                  height: 350,
+                  drawText: false,
+                ),
+              ),
             ),
-          ),
-        ),
       ),
     );
-    
+
     return pdf.save();
   }
 
   Future<void> _descargarArchivo(Uint8List bytes, String fileName) async {
     final blob = html.Blob([bytes]);
     final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.document.createElement('a') as html.AnchorElement
-      ..href = url
-      ..style.display = 'none'
-      ..download = fileName;
+    final anchor =
+        html.document.createElement('a') as html.AnchorElement
+          ..href = url
+          ..style.display = 'none'
+          ..download = fileName;
     html.document.body?.children.add(anchor);
     anchor.click();
     html.document.body?.children.remove(anchor);
@@ -1477,17 +1506,20 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         final primerAnexo = _anexos.first;
         final service = Provider.of<AnexoService>(context, listen: false);
         final pdfBytes = await service.descargarBytes(primerAnexo.id);
-        
+
         await _descargarArchivo(pdfBytes, primerAnexo.nombreArchivo);
-        
+
         _showNotification(
           'Descarga iniciada: ${primerAnexo.nombreArchivo}',
           background: AppTheme.colorExito,
         );
       } else {
         final pdfBytes = await _buildPdfBytes();
-        await _descargarArchivo(pdfBytes, 'Documento_${widget.documento.codigo}.pdf');
-        
+        await _descargarArchivo(
+          pdfBytes,
+          'Documento_${widget.documento.codigo}.pdf',
+        );
+
         _showNotification(
           'PDF del documento generado y descargado',
           background: AppTheme.colorExito,
@@ -1511,9 +1543,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         _qrData ?? widget.documento.urlQR ?? widget.documento.codigoQR,
       );
     }
-    final qrDataSafe = (qrData != null && qrData.isNotEmpty)
-        ? qrData
-        : widget.documento.codigo;
+    final qrDataSafe =
+        (qrData != null && qrData.isNotEmpty)
+            ? qrData
+            : widget.documento.codigo;
 
     final doc = widget.documento;
     final dateFormat = DateFormat('dd/MM/yyyy');
@@ -1522,109 +1555,128 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
-        build: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Container(
-              padding: const pw.EdgeInsets.all(12),
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(width: 0.6, color: PdfColors.grey600),
-              ),
-              child: pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Expanded(
-                    flex: 3,
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'Comprobante de Documento',
-                          style: pw.TextStyle(
-                            fontSize: 18,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                        pw.Text(
-                          'Correspondiente al ${dateFormat.format(doc.fechaDocumento)}',
-                          style: pw.TextStyle(
-                            fontSize: 10,
-                            color: PdfColors.grey700,
-                          ),
-                        ),
-                        pw.SizedBox(height: 6),
-                        _buildPdfRow('Área', doc.areaOrigenNombre ?? 'N/A'),
-                        _buildPdfRow('Tipo', doc.tipoDocumentoNombre ?? 'N/A'),
-                        _buildPdfRow('Gestión', doc.gestion),
-                      ],
-                    ),
+        build:
+            (context) => pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(width: 0.6, color: PdfColors.grey600),
                   ),
-                  pw.SizedBox(width: 8),
-                  pw.Container(
-                    padding: const pw.EdgeInsets.all(8),
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(width: 0.6, color: PdfColors.grey600),
-                    ),
-                    child: pw.Column(
-                      children: [
-                        pw.Text('N°', style: pw.TextStyle(fontSize: 10)),
-                        pw.Text(
-                          doc.numeroCorrelativo,
-                          style: pw.TextStyle(
-                            fontSize: 16,
-                            fontWeight: pw.FontWeight.bold,
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Expanded(
+                        flex: 3,
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'Comprobante de Documento',
+                              style: pw.TextStyle(
+                                fontSize: 18,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                            pw.Text(
+                              'Correspondiente al ${dateFormat.format(doc.fechaDocumento)}',
+                              style: pw.TextStyle(
+                                fontSize: 10,
+                                color: PdfColors.grey700,
+                              ),
+                            ),
+                            pw.SizedBox(height: 6),
+                            _buildPdfRow('Área', doc.areaOrigenNombre ?? 'N/A'),
+                            _buildPdfRow(
+                              'Tipo',
+                              doc.tipoDocumentoNombre ?? 'N/A',
+                            ),
+                            _buildPdfRow('Gestión', doc.gestion),
+                          ],
+                        ),
+                      ),
+                      pw.SizedBox(width: 8),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.all(8),
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(
+                            width: 0.6,
+                            color: PdfColors.grey600,
                           ),
                         ),
-                        pw.SizedBox(height: 6),
-                        pw.Text(
-                          'Estado: ${doc.estado}',
-                          style: pw.TextStyle(fontSize: 10),
+                        child: pw.Column(
+                          children: [
+                            pw.Text('N°', style: pw.TextStyle(fontSize: 10)),
+                            pw.Text(
+                              doc.numeroCorrelativo,
+                              style: pw.TextStyle(
+                                fontSize: 16,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                            pw.SizedBox(height: 6),
+                            pw.Text(
+                              'Estado: ${doc.estado}',
+                              style: pw.TextStyle(fontSize: 10),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                pw.SizedBox(height: 14),
+                pw.Text(
+                  'Detalle',
+                  style: pw.TextStyle(
+                    fontSize: 12,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+                _buildPdfRow('Código', doc.codigo),
+                _buildPdfRow('Correlativo', doc.numeroCorrelativo),
+                _buildPdfRow('Tipo', doc.tipoDocumentoNombre ?? 'N/A'),
+                _buildPdfRow('Área origen', doc.areaOrigenNombre ?? 'N/A'),
+                _buildPdfRow('Gestión', doc.gestion),
+                _buildPdfRow(
+                  'Fecha documento',
+                  dateFormat.format(doc.fechaDocumento),
+                ),
+                _buildPdfRow(
+                  'Responsable',
+                  doc.responsableNombre ?? 'No asignado',
+                ),
+                _buildPdfRow('Carpeta', doc.carpetaNombre ?? 'Sin carpeta'),
+                _buildPdfRow(
+                  'Ubicacion fisica',
+                  doc.ubicacionFisica ?? 'No registrada',
+                ),
+                _buildPdfRow('Estado', doc.estado),
+                _buildPdfRow(
+                  'Descripcion',
+                  doc.descripcion ?? 'Sin descripción',
+                ),
+                pw.SizedBox(height: 12),
+                pw.Text(
+                  'QR',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.BarcodeWidget(
+                  barcode: pw.Barcode.qrCode(),
+                  data: qrDataSafe,
+                  width: 120,
+                  height: 120,
+                ),
+                pw.SizedBox(height: 8),
+                pw.Text(qrDataSafe, style: const pw.TextStyle(fontSize: 10)),
+              ],
             ),
-            pw.SizedBox(height: 14),
-            pw.Text(
-              'Detalle',
-              style: pw.TextStyle(
-                fontSize: 12,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-            pw.SizedBox(height: 6),
-            _buildPdfRow('Código', doc.codigo),
-            _buildPdfRow('Correlativo', doc.numeroCorrelativo),
-            _buildPdfRow('Tipo', doc.tipoDocumentoNombre ?? 'N/A'),
-            _buildPdfRow('Área origen', doc.areaOrigenNombre ?? 'N/A'),
-            _buildPdfRow('Gestión', doc.gestion),
-            _buildPdfRow('Fecha documento', dateFormat.format(doc.fechaDocumento)),
-            _buildPdfRow('Responsable', doc.responsableNombre ?? 'No asignado'),
-            _buildPdfRow('Carpeta', doc.carpetaNombre ?? 'Sin carpeta'),
-            _buildPdfRow('Ubicacion fisica', doc.ubicacionFisica ?? 'No registrada'),
-            _buildPdfRow('Estado', doc.estado),
-            _buildPdfRow('Descripcion', doc.descripcion ?? 'Sin descripción'),
-            pw.SizedBox(height: 12),
-            pw.Text(
-              'QR',
-              style: pw.TextStyle(
-                fontSize: 14,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-            pw.SizedBox(height: 8),
-            pw.BarcodeWidget(
-              barcode: pw.Barcode.qrCode(),
-              data: qrDataSafe,
-              width: 120,
-              height: 120,
-            ),
-            pw.SizedBox(height: 8),
-            pw.Text(qrDataSafe, style: const pw.TextStyle(fontSize: 10)),
-          ],
-        ),
       ),
     );
 
@@ -1645,26 +1697,27 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   Future<void> _confirmarEliminarDocumento(Documento doc) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar documento'),
-        content: Text(
-          '¿Estás seguro de eliminar el documento "${doc.codigo}"?\n\nEsta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Eliminar documento'),
+            content: Text(
+              '¿Estás seguro de eliminar el documento "${doc.codigo}"?\n\nEsta acción no se puede deshacer.',
             ),
-            child: const Text('Sí, Eliminar'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Sí, Eliminar'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (confirm == true) {
@@ -1676,12 +1729,12 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
       await service.delete(doc.id);
-      
+
       if (!mounted) return;
-      
+
       final dataProvider = Provider.of<DataProvider>(context, listen: false);
       dataProvider.notifyDocumentoDeleted(doc.id);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -1694,11 +1747,11 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           backgroundColor: AppTheme.colorExito,
         ),
       );
-      
+
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al eliminar: ${ErrorHelper.getErrorMessage(e)}'),
@@ -1718,9 +1771,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         _qrData ?? widget.documento.urlQR ?? widget.documento.codigoQR,
       );
     }
-    final qrDataSafe = (qrData != null && qrData.isNotEmpty)
-        ? qrData
-        : widget.documento.codigo;
+    final qrDataSafe =
+        (qrData != null && qrData.isNotEmpty)
+            ? qrData
+            : widget.documento.codigo;
 
     final doc = widget.documento;
     final dateFormat = DateFormat('dd/MM/yyyy');
@@ -1729,108 +1783,124 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
-        build: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Container(
-              padding: const pw.EdgeInsets.all(12),
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(width: 0.6, color: PdfColors.grey600),
-              ),
-              child: pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Expanded(
-                    flex: 3,
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'Comprobante de Documento',
-                          style: pw.TextStyle(
-                            fontSize: 18,
-                            fontWeight: pw.FontWeight.bold,
+        build:
+            (context) => pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(width: 0.6, color: PdfColors.grey600),
+                  ),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Expanded(
+                        flex: 3,
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'Comprobante de Documento',
+                              style: pw.TextStyle(
+                                fontSize: 18,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                            pw.Text(
+                              'Correspondiente al ${dateFormat.format(doc.fechaDocumento)}',
+                              style: pw.TextStyle(
+                                fontSize: 10,
+                                color: PdfColors.grey700,
+                              ),
+                            ),
+                            pw.SizedBox(height: 6),
+                            _buildPdfRow('Área', doc.areaOrigenNombre ?? 'N/A'),
+                            _buildPdfRow(
+                              'Tipo',
+                              doc.tipoDocumentoNombre ?? 'N/A',
+                            ),
+                            _buildPdfRow('Gestión', doc.gestion),
+                          ],
+                        ),
+                      ),
+                      pw.SizedBox(width: 8),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.all(8),
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(
+                            width: 0.6,
+                            color: PdfColors.grey600,
                           ),
                         ),
-                        pw.Text(
-                          'Correspondiente al ${dateFormat.format(doc.fechaDocumento)}',
-                          style: pw.TextStyle(
-                            fontSize: 10,
-                            color: PdfColors.grey700,
-                          ),
+                        child: pw.Column(
+                          children: [
+                            pw.Text('N°', style: pw.TextStyle(fontSize: 10)),
+                            pw.Text(
+                              doc.numeroCorrelativo,
+                              style: pw.TextStyle(
+                                fontSize: 16,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                            pw.SizedBox(height: 6),
+                            pw.Text(
+                              'Estado: ${doc.estado}',
+                              style: pw.TextStyle(fontSize: 10),
+                            ),
+                          ],
                         ),
-                        pw.SizedBox(height: 6),
-                        _buildPdfRow('Área', doc.areaOrigenNombre ?? 'N/A'),
-                        _buildPdfRow('Tipo', doc.tipoDocumentoNombre ?? 'N/A'),
-                        _buildPdfRow('Gestión', doc.gestion),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  pw.SizedBox(width: 8),
-                  pw.Container(
-                    padding: const pw.EdgeInsets.all(8),
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(width: 0.6, color: PdfColors.grey600),
-                    ),
-                    child: pw.Column(
-                      children: [
-                        pw.Text('N°', style: pw.TextStyle(fontSize: 10)),
-                        pw.Text(
-                          doc.numeroCorrelativo,
-                          style: pw.TextStyle(
-                            fontSize: 16,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
+                ),
+                pw.SizedBox(height: 12),
+                pw.Text(
+                  doc.descripcion ?? 'Detalle no registrado',
+                  style: pw.TextStyle(fontSize: 11),
+                ),
+                pw.SizedBox(height: 12),
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(width: 0.6, color: PdfColors.grey600),
+                  ),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Expanded(
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            _buildPdfRow('Código', doc.codigo),
+                            _buildPdfRow('Correlativo', doc.numeroCorrelativo),
+                            _buildPdfRow(
+                              'Responsable',
+                              doc.responsableNombre ?? 'No asignado',
+                            ),
+                            _buildPdfRow(
+                              'Carpeta',
+                              doc.carpetaNombre ?? 'Sin carpeta',
+                            ),
+                            _buildPdfRow(
+                              'Ubicación',
+                              doc.ubicacionFisica ?? 'No registrada',
+                            ),
+                          ],
                         ),
-                        pw.SizedBox(height: 6),
-                        pw.Text(
-                          'Estado: ${doc.estado}',
-                          style: pw.TextStyle(fontSize: 10),
-                        ),
-                      ],
-                    ),
+                      ),
+                      pw.SizedBox(width: 12),
+                      pw.BarcodeWidget(
+                        barcode: pw.Barcode.qrCode(),
+                        data: qrDataSafe,
+                        width: 80,
+                        height: 80,
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            pw.SizedBox(height: 12),
-            pw.Text(
-              doc.descripcion ?? 'Detalle no registrado',
-              style: pw.TextStyle(fontSize: 11),
-            ),
-            pw.SizedBox(height: 12),
-            pw.Container(
-              padding: const pw.EdgeInsets.all(8),
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(width: 0.6, color: PdfColors.grey600),
-              ),
-              child: pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Expanded(
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        _buildPdfRow('Código', doc.codigo),
-                        _buildPdfRow('Correlativo', doc.numeroCorrelativo),
-                        _buildPdfRow('Responsable', doc.responsableNombre ?? 'No asignado'),
-                        _buildPdfRow('Carpeta', doc.carpetaNombre ?? 'Sin carpeta'),
-                        _buildPdfRow('Ubicación', doc.ubicacionFisica ?? 'No registrada'),
-                      ],
-                    ),
-                  ),
-                  pw.SizedBox(width: 12),
-                  pw.BarcodeWidget(
-                    barcode: pw.Barcode.qrCode(),
-                    data: qrDataSafe,
-                    width: 80,
-                    height: 80,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
 
@@ -1863,7 +1933,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       final anexos = await service.listarPorDocumento(widget.documento.id);
       if (mounted) {
         setState(() => _anexos = anexos);
-        
+
         if (anexos.isNotEmpty && _previewPdfBytes == null) {
           _loadFirstPdfPreview(anexos.first);
         }
@@ -1887,13 +1957,15 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       print('DEBUG: Cargando preview del anexo: ${anexo.nombreArchivo}');
       final service = Provider.of<AnexoService>(context, listen: false);
       final pdfBytes = await service.descargarBytes(anexo.id);
-      
+
       if (mounted && pdfBytes != null) {
         setState(() {
           _previewPdfBytes = pdfBytes;
           _previewFileName = anexo.nombreArchivo;
         });
-        print('DEBUG: Preview cargado exitosamente para: ${anexo.nombreArchivo}');
+        print(
+          'DEBUG: Preview cargado exitosamente para: ${anexo.nombreArchivo}',
+        );
       }
     } catch (e) {
       print('DEBUG: Error cargando preview: $e');
@@ -1948,9 +2020,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
 
   void _handleAnexoLink(Anexo anexo) {
     final url = anexo.urlArchivo;
-    final message = url != null
-        ? 'Descarga disponible: ${url.replaceAll('\\', '/')} '
-        : 'Anexo sin URL disponible';
+    final message =
+        url != null
+            ? 'Descarga disponible: ${url.replaceAll('\\', '/')} '
+            : 'Anexo sin URL disponible';
     _showNotification(message, background: AppTheme.colorPrimario);
   }
 
