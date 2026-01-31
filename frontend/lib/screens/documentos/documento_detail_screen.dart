@@ -1168,43 +1168,64 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
 
   Future<void> _descargarQRComoPNG(String qrData, Documento doc) async {
     try {
-      // Método más simple usando solo PDF con QR grande
-      final pdf = pw.Document();
-      
-      pdf.addPage(
-        pw.Page(
-          pageFormat: const PdfPageFormat(300, 300, marginAll: 0),
-          build: (context) => pw.Container(
-            width: 300,
-            height: 300,
-            color: PdfColors.white,
-            child: pw.Center(
-              child: pw.BarcodeWidget(
-                barcode: pw.Barcode.qrCode(),
-                data: qrData,
-                width: 280,
-                height: 280,
-                drawText: false,
-              ),
-            ),
-          ),
-        ),
-      );
-      
-      final bytes = await pdf.save();
-      await _descargarArchivo(bytes, 'QR_${doc.codigo}.pdf');
-      
+      final pngBytes = await _generarQRBytesPNG(qrData);
+      await _descargarArchivo(pngBytes, 'QR_${doc.codigo}.png');
       _showNotification(
-        'QR descargado: QR_${doc.codigo}.pdf',
+        'Imagen PNG descargada: QR_${doc.codigo}.png',
         background: AppTheme.colorExito,
       );
-      
     } catch (e) {
       _showNotification(
-        'Error al descargar QR: ${ErrorHelper.getErrorMessage(e)}',
+        'Error al descargar PNG: ${ErrorHelper.getErrorMessage(e)}',
         background: AppTheme.colorError,
       );
     }
+  }
+
+  /// Genera bytes de una imagen PNG del código QR (sin fallback a PDF).
+  Future<Uint8List> _generarQRBytesPNG(String qrData) async {
+    const int size = 400;
+    const int qrSize = 320;
+    const int padding = (size - qrSize) ~/ 2;
+
+    final qrPainter = QrPainter(
+      data: qrData,
+      version: QrVersions.auto,
+      eyeStyle: const QrEyeStyle(
+        eyeShape: QrEyeShape.square,
+        color: Colors.black,
+      ),
+      dataModuleStyle: const QrDataModuleStyle(
+        dataModuleShape: QrDataModuleShape.square,
+        color: Colors.black,
+      ),
+      gapless: false,
+    );
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(
+      recorder,
+      Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
+      Paint()..color = Colors.white,
+    );
+    canvas.save();
+    canvas.translate(padding.toDouble(), padding.toDouble());
+    qrPainter.paint(
+      canvas,
+      Size(qrSize.toDouble(), qrSize.toDouble()),
+    );
+    canvas.restore();
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(size, size);
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    if (byteData == null) {
+      throw Exception('No se pudo codificar la imagen como PNG');
+    }
+    return byteData.buffer.asUint8List();
   }
 
   Future<void> _descargarQRComoPDF(String qrData, Documento doc) async {
