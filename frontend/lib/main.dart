@@ -8,6 +8,7 @@ import 'providers/theme_provider.dart';
 import 'providers/data_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/api_service.dart';
 import 'services/audit_service.dart';
 import 'services/documento_service.dart';
@@ -73,7 +74,7 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.temaClaro,
             darkTheme: AppTheme.temaOscuro,
             themeMode: themeProvider.themeMode,
-            home: const LoginScreen(),
+            home: const SplashScreen(),
             routes: {
               '/home': (context) => const HomeScreen(),
               '/login': (context) => const LoginScreen(),
