@@ -46,11 +46,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    debugPrint('[HOME] didChangeDependencies() -> _buildNavItems()');
     _buildNavItems();
   }
 
   void _buildNavItems() {
     final role = Provider.of<AuthProvider>(context).role;
+    debugPrint('[HOME] _buildNavItems() role=$role');
 
     _navItems = [
       NavigationItem(
@@ -201,6 +203,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width >= 1100;
     final isTablet = size.width >= 700 && size.width < 1100;
+    debugPrint('[HOME] build() size=${size.width}x${size.height} navItems=${_navItems.length}');
 
     return Scaffold(
       body: Row(

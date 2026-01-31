@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
-import 'providers/theme_provider.dart';
 import 'providers/data_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/splash_screen.dart';
+import 'services/anexo_service.dart';
 import 'services/api_service.dart';
 import 'services/audit_service.dart';
+import 'services/carpeta_service.dart';
+import 'services/catalogo_service.dart';
 import 'services/documento_service.dart';
 import 'services/movimiento_service.dart';
+import 'services/permiso_service.dart';
 import 'services/reporte_service.dart';
 import 'services/sync_service.dart';
 import 'services/usuario_service.dart';
-import 'services/carpeta_service.dart';
-import 'services/catalogo_service.dart';
-import 'services/anexo_service.dart';
-import 'services/permiso_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
+  debugPrint('[MAIN] Iniciando app...');
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_BO', null);
-
+  debugPrint('[MAIN] runApp(MyApp)');
   runApp(const MyApp());
 }
 
@@ -37,6 +37,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[MAIN] MyApp.build() - creando providers y MaterialApp');
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
@@ -67,6 +68,9 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
+          debugPrint(
+            '[MAIN] MaterialApp builder - themeMode=${themeProvider.themeMode}',
+          );
           return MaterialApp(
             navigatorKey: navigatorKey,
             title: 'SSUT Gestión Documental',
@@ -74,7 +78,7 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.temaClaro,
             darkTheme: AppTheme.temaOscuro,
             themeMode: themeProvider.themeMode,
-            home: const SplashScreen(),
+            home: const SplashScreen(), // [MAIN] home = SplashScreen
             routes: {
               '/home': (context) => const HomeScreen(),
               '/login': (context) => const LoginScreen(),

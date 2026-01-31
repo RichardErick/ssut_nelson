@@ -146,7 +146,9 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
+        debugPrint('[LOGIN] build() isAuthenticated=${authProvider.isAuthenticated}');
         if (authProvider.isAuthenticated) {
+          debugPrint('[LOGIN] ya autenticado -> redirigiendo a /home');
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               Navigator.of(context).pushReplacementNamed('/home');
@@ -179,6 +181,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           );
         }
+        debugPrint('[LOGIN] mostrando formulario de login');
         return _buildLoginContent(context);
       },
     );
@@ -187,6 +190,7 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildLoginContent(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
+    debugPrint('[LOGIN] _buildLoginContent() size=${size.width}x${size.height} isDesktop=$isDesktop');
 
     return Scaffold(
       body:

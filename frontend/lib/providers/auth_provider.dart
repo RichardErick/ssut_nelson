@@ -112,9 +112,11 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _loadAuthState() async {
+    debugPrint('[AUTH] _loadAuthState() iniciando...');
     try {
       // Cargar token de forma segura
       _token = await _secureStorage.read(key: 'auth_token');
+      debugPrint('[AUTH] token leído: ${_token != null ? "SÍ (${_token!.length} chars)" : "null"}');
 
       if (_token != null) {
         final prefs = await SharedPreferences.getInstance();
@@ -153,6 +155,7 @@ class AuthProvider extends ChangeNotifier {
         }
 
         _isAuthenticated = true;
+        debugPrint('[AUTH] _loadAuthState() -> isAuthenticated=true');
 
         // Configurar header Authorization si ya hay contexto
         try {
@@ -165,11 +168,13 @@ class AuthProvider extends ChangeNotifier {
           // Ignorar si aún no hay context
         }
       }
-    } catch (e) {
-      print('Error cargando estado de autenticación: $e');
+    } catch (e, st) {
+      debugPrint('[AUTH] ERROR _loadAuthState: $e');
+      debugPrint('[AUTH] stack: $st');
       _isAuthenticated = false;
       _token = null;
     }
+    debugPrint('[AUTH] _loadAuthState() terminado -> isAuthenticated=$_isAuthenticated, notifyListeners()');
     notifyListeners();
   }
 

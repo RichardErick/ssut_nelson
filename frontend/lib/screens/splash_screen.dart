@@ -16,19 +16,26 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('[SPLASH] initState()');
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      debugPrint('[SPLASH] postFrameCallback - esperando 400ms...');
       await Future.delayed(const Duration(milliseconds: 400));
       _redirect();
     });
   }
 
   void _redirect() {
+    debugPrint('[SPLASH] _redirect() mounted=$mounted');
     if (!mounted) return;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final route = auth.isAuthenticated ? '/home' : '/login';
+      debugPrint('[SPLASH] auth.isAuthenticated=${auth.isAuthenticated} -> navegando a $route');
       Navigator.of(context).pushReplacementNamed(route);
-    } catch (_) {
+      debugPrint('[SPLASH] pushReplacementNamed($route) llamado');
+    } catch (e, st) {
+      debugPrint('[SPLASH] ERROR en _redirect: $e');
+      debugPrint('[SPLASH] stack: $st');
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/login');
       }
@@ -37,6 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[SPLASH] build() - pintando pantalla azul');
     return Material(
       child: Container(
         width: double.infinity,
