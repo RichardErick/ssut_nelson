@@ -57,8 +57,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       // Si venimos con un ID, cargamos directamente esa carpeta y sus cosas
       _cargarCarpetaInicial(widget.initialCarpetaId!);
     } else {
-      cargarDocumentos();
+      // Primero carpetas (vista inicial); documentos se cargan después para no bloquear
       _cargarCarpetas();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) cargarDocumentos();
+      });
     }
     _searchController.addListener(_alCambiarBusqueda);
   }
@@ -130,7 +133,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         context,
         listen: false,
       );
-      final todasLasCarpetas = await carpetaService.getAll();
+      // Solo cargar carpetas de la gestión actual para reducir tiempo de carga
+      final gestion = DateTime.now().year.toString();
+      final todasLasCarpetas = await carpetaService.getAll(gestion: gestion);
+      if (!mounted) return;
       setState(() {
         // SOLO mostrar las carpetas raíz (las que no tienen padre)
         _carpetas = todasLasCarpetas.where((c) => c.carpetaPadreId == null).toList();
