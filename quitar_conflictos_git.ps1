@@ -11,7 +11,8 @@ if (-not (Test-Path "$base\lib\screens\home_screen.dart")) {
 
 $files = @(
     "$base\lib\screens\home_screen.dart",
-    "$base\lib\screens\notifications_screen.dart"
+    "$base\lib\screens\notifications_screen.dart",
+    "$base\lib\screens\documentos\documentos_list_screen.dart"
 )
 
 function Resolve-Conflicts($path) {
@@ -35,6 +36,6 @@ foreach ($f in $files) {
     Set-Content -Path $f -Value $resolved -NoNewline
     Write-Host "Resuelto: $f"
 }
-Write-Host "Listo. Luego ejecuta:"
-Write-Host "  git add frontend/lib/screens/home_screen.dart frontend/lib/screens/notifications_screen.dart"
+Write-Host "Listo. Luego ejecuta (desde la raiz del proyecto):"
+Write-Host "  git add frontend/lib/screens/home_screen.dart frontend/lib/screens/notifications_screen.dart frontend/lib/screens/documentos/documentos_list_screen.dart"
 Write-Host "  git commit -m \"Resueltos conflictos de merge\""

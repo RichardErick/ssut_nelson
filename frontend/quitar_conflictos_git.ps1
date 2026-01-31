@@ -15,7 +15,8 @@ else {
 
 $files = @(
     "$base\lib\screens\home_screen.dart",
-    "$base\lib\screens\notifications_screen.dart"
+    "$base\lib\screens\notifications_screen.dart",
+    "$base\lib\screens\documentos\documentos_list_screen.dart"
 )
 
 function Resolve-Conflicts($path) {
@@ -40,5 +41,6 @@ foreach ($f in $files) {
     Write-Host "Resuelto: $f"
 }
 Write-Host "Listo. Marca como resueltos y haz commit:"
-Write-Host "  git add frontend/lib/screens/home_screen.dart frontend/lib/screens/notifications_screen.dart"
+Write-Host "  Desde raiz: git add frontend/lib/screens/home_screen.dart frontend/lib/screens/notifications_screen.dart frontend/lib/screens/documentos/documentos_list_screen.dart"
+Write-Host "  Desde frontend: git add lib/screens/home_screen.dart lib/screens/notifications_screen.dart lib/screens/documentos/documentos_list_screen.dart"
 Write-Host "  git commit -m \"Resueltos conflictos de merge\""

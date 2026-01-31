@@ -66,16 +66,18 @@ Cuando diga "Resuelto", ejecuta **desde la raíz del proyecto** (`sistema seguro
 
 ```powershell
 cd "C:\Users\Brayan Cortez\Desktop\sistema seguro"
-git add frontend/lib/screens/home_screen.dart frontend/lib/screens/notifications_screen.dart
+git add frontend/lib/screens/home_screen.dart frontend/lib/screens/notifications_screen.dart frontend/lib/screens/documentos/documentos_list_screen.dart
 git commit -m "Resueltos conflictos de merge"
 ```
 
 **Si estás dentro de la carpeta `frontend`**, usa estas rutas (sin `frontend/`):
 
 ```powershell
-git add lib/screens/home_screen.dart lib/screens/notifications_screen.dart
+git add lib/screens/home_screen.dart lib/screens/notifications_screen.dart lib/screens/documentos/documentos_list_screen.dart
 git commit -m "Resueltos conflictos de merge"
 ```
+
+**Nota:** Si también salen errores en `documentos_list_screen.dart` (por ejemplo `<<<<<<< HEAD` o "Expected '>' after this"), el script ya incluye ese archivo. Vuelve a ejecutar el script desde `frontend` y luego el `git add` de los tres archivos.
 
 Luego ya puedes hacer `git pull` si hace falta.
 
@@ -86,6 +88,7 @@ Luego ya puedes hacer `git pull` si hace falta.
 1. **Abre** en tu editor:
    - `lib/screens/home_screen.dart`
    - `lib/screens/notifications_screen.dart`
+   - `lib/screens/documentos/documentos_list_screen.dart`
 
 2. **Busca** en cada archivo (Ctrl+F):
    - `<<<<<<< `
@@ -109,8 +112,8 @@ Luego ya puedes hacer `git pull` si hace falta.
 
 ## Si prefieres reemplazar todo el archivo
 
-Copia el contenido actual de `home_screen.dart` y `notifications_screen.dart` desde este mismo proyecto (la copia que no tiene conflictos) y pégalo en tu carpeta donde estás compilando (por ejemplo `C:\Users\Brayan Cortez\Desktop\sistema seguro\frontend\lib\screens\`), sobrescribiendo los archivos.
+Copia el contenido actual de `home_screen.dart`, `notifications_screen.dart` y `documentos_list_screen.dart` desde este mismo proyecto (la copia que no tiene conflictos) y pégalo en tu carpeta: `home_screen.dart` y `notifications_screen.dart` en `frontend\lib\screens\`, y `documentos_list_screen.dart` en `frontend\lib\screens\documentos\`, sobrescribiendo los archivos.
 
 ## Nota
 
-Si estás en otro equipo o carpeta (por ejemplo "sistema seguro"), haz un **pull** desde el repo y resuelve los conflictos en Git, o copia estos dos archivos desde el repo que ya está limpio.
+Si estás en otro equipo o carpeta (por ejemplo "sistema seguro"), haz un **pull** desde el repo y resuelve los conflictos en Git, o copia los tres archivos (home_screen, notifications_screen, documentos_list_screen) desde el repo que ya está limpio.
