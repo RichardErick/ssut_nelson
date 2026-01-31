@@ -4,6 +4,27 @@ Los errores tipo `'HEAD' isn't a type` o `Expected '>' after this` aparecen porq
 
 ---
 
+## Si `documentos_list_screen.dart` sigue con errores (solución segura)
+
+Si después del script siguen saliendo errores en **documentos_list_screen.dart** (<<<<<<< HEAD, Expected '>', _searchController isn't defined, etc.):
+
+**Tú (programador):** Envía a Brayan tu archivo limpio:
+- `frontend/lib/screens/documentos/documentos_list_screen.dart`
+
+**Brayan:** Reemplaza su archivo con el tuyo:
+1. Copia el archivo que te enviaron.
+2. Pégalo aquí (sobrescribiendo):  
+   `C:\Users\Brayan Cortez\Desktop\sistema seguro\frontend\lib\screens\documentos\documentos_list_screen.dart`
+3. Luego en la raíz del proyecto:
+   ```powershell
+   cd "C:\Users\Brayan Cortez\Desktop\sistema seguro"
+   git add frontend/lib/screens/documentos/documentos_list_screen.dart
+   git commit -m "Resueltos conflictos"
+   ```
+4. Ejecuta: `flutter run -d chrome`
+
+---
+
 ## Si eres el programador y tu amigo es el cliente (sin scripts)
 
 **Tú (programador):**
@@ -11,10 +32,11 @@ Los errores tipo `'HEAD' isn't a type` o `Expected '>' after this` aparecen porq
 1. En tu proyecto (donde no hay conflictos) tienes ya limpios estos archivos:
    - `frontend/lib/screens/home_screen.dart`
    - `frontend/lib/screens/notifications_screen.dart`
-2. Envíale a tu amigo esos **dos archivos** (por WhatsApp, correo, Google Drive, USB, o subiéndolos al repo y que haga pull).
+   - `frontend/lib/screens/documentos/documentos_list_screen.dart`
+2. Envíale a tu amigo esos **tres archivos** (por WhatsApp, correo, Google Drive, USB, etc.).
 3. Dile que los copie en su carpeta del proyecto **reemplazando** los que tiene:
-   - En su PC: `C:\Users\Brayan Cortez\Desktop\sistema seguro\frontend\lib\screens\`
-   - Que pegue ahí `home_screen.dart` y `notifications_screen.dart` (y que acepte sobrescribir).
+   - `home_screen.dart` y `notifications_screen.dart` → en `...\sistema seguro\frontend\lib\screens\`
+   - `documentos_list_screen.dart` → en `...\sistema seguro\frontend\lib\screens\documentos\`
 
 **Tu amigo (cliente), después de pegar los archivos:**
 
@@ -22,12 +44,12 @@ Los errores tipo `'HEAD' isn't a type` o `Expected '>' after this` aparecen porq
    ```powershell
    cd "C:\Users\Brayan Cortez\Desktop\sistema seguro"
    ```
-2. Ejecuta solo estas dos líneas (una por una):
+2. Ejecuta (una línea por vez):
    ```powershell
-   git add frontend/lib/screens/home_screen.dart frontend/lib/screens/notifications_screen.dart
+   git add frontend/lib/screens/home_screen.dart frontend/lib/screens/notifications_screen.dart frontend/lib/screens/documentos/documentos_list_screen.dart
    git commit -m "Resueltos conflictos"
    ```
-3. Listo. Ya puede hacer `git pull` si lo necesita.
+3. Listo. Ya puede hacer `git pull --no-edit` si lo necesita.
 
 No hace falta descargar ni ejecutar ningún script en su computadora.
 
@@ -80,6 +102,26 @@ git commit -m "Resueltos conflictos de merge"
 **Nota:** Si también salen errores en `documentos_list_screen.dart` (por ejemplo `<<<<<<< HEAD` o "Expected '>' after this"), el script ya incluye ese archivo. Vuelve a ejecutar el script desde `frontend` y luego el `git add` de los tres archivos.
 
 Luego ya puedes hacer `git pull` si hace falta.
+
+---
+
+## Evitar que se abra el editor al hacer pull (merge)
+
+Si al hacer `git pull` te sale un mensaje pidiendo "Please enter a commit message" (vim o otro editor), puedes evitarlo usando:
+
+```powershell
+git pull --no-edit
+```
+
+Así Git usa el mensaje de merge por defecto y no abre el editor.
+
+Para que al hacer `git pull` nunca se abra el editor, Brayan puede crear un alias (una sola vez):
+
+```powershell
+git config --global alias.pulln "pull --no-edit"
+```
+
+Después, en lugar de `git pull`, que use: **`git pulln`**
 
 ---
 

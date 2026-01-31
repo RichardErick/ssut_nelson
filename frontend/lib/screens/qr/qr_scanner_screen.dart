@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:zxing2/qrcode.dart';
 
+import '../../models/documento.dart';
 import '../../services/documento_service.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/animated_card.dart';
@@ -49,18 +50,18 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     setState(() => _isSearching = true);
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
-      
+
       // Limpiar el código QR
       String codigoLimpio = codigoQr.trim();
-      
+
       print('DEBUG: Código QR original: $codigoLimpio');
-      
+
       // Verificar si es un link compartible
       if (codigoLimpio.startsWith('DOC-SHARE:')) {
         await _procesarLinkCompartible(codigoLimpio);
         return;
       }
-      
+
       // Si es una URL completa, extraer el código del documento
       if (codigoLimpio.startsWith('http')) {
         // Formato: http://localhost:5286/documentos/ver/CI-CONT-2026-0001
@@ -69,9 +70,9 @@ class _QRScannerScreenState extends State<QRScannerScreen>
           codigoLimpio = partes.last;
         }
       }
-      
+
       print('DEBUG: Código procesado: $codigoLimpio');
-      
+
       // Intentar buscar por IdDocumento (que es el código)
       Documento? documento;
       try {
@@ -89,21 +90,22 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       if (!mounted) return;
 
       if (documento != null) {
+        final doc = documento; // Local variable so closure gets non-null type
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => DocumentoDetailScreen(documento: documento),
+            builder: (context) => DocumentoDetailScreen(documento: doc),
           ),
         );
         _qrCodeController.clear();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 12),
-                Text('Documento encontrado: ${documento.codigo}'),
+                Text('Documento encontrado: ${doc.codigo}'),
               ],
             ),
             backgroundColor: Colors.green.shade600,
@@ -179,21 +181,21 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       if (partes.length != 3 || partes[0] != 'DOC-SHARE') {
         throw Exception('Formato de link inválido');
       }
-      
+
       final codigo = partes[1];
       final id = int.tryParse(partes[2]);
-      
+
       if (id == null) {
         throw Exception('ID de documento inválido');
       }
-      
+
       final service = Provider.of<DocumentoService>(context, listen: false);
-      
+
       // Intentar buscar por ID primero
       final documento = await service.getById(id);
-      
+
       if (!mounted) return;
-      
+
       if (documento != null) {
         // Verificar que el código coincida para mayor seguridad
         if (documento.codigo == codigo) {
@@ -204,7 +206,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             ),
           );
           _qrCodeController.clear();
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -227,7 +229,6 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       } else {
         throw Exception('Documento no encontrado');
       }
-      
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -289,10 +290,13 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     setState(() => _isSearching = true);
     try {
       final bytes = await file.readAsBytes();
-      
+
       // Verificar si es un PDF
-      if (bytes.length > 4 && 
-          bytes[0] == 0x25 && bytes[1] == 0x50 && bytes[2] == 0x44 && bytes[3] == 0x46) {
+      if (bytes.length > 4 &&
+          bytes[0] == 0x25 &&
+          bytes[1] == 0x50 &&
+          bytes[2] == 0x44 &&
+          bytes[3] == 0x46) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -311,14 +315,16 @@ class _QRScannerScreenState extends State<QRScannerScreen>
               ),
               backgroundColor: Colors.blue.shade700,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               duration: const Duration(seconds: 6),
             ),
           );
         }
         return;
       }
-      
+
       final codigo = _extraerQrDeBytes(bytes);
 
       if (!mounted) return;
@@ -341,7 +347,9 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             ),
             backgroundColor: Colors.orange.shade700,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             duration: const Duration(seconds: 5),
           ),
         );
@@ -380,28 +388,29 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   String? _extraerQrDeBytes(Uint8List bytes) {
     try {
       // Primero verificar si es un PDF
-      if (bytes.length > 4 && 
-          bytes[0] == 0x25 && bytes[1] == 0x50 && bytes[2] == 0x44 && bytes[3] == 0x46) {
+      if (bytes.length > 4 &&
+          bytes[0] == 0x25 &&
+          bytes[1] == 0x50 &&
+          bytes[2] == 0x44 &&
+          bytes[3] == 0x46) {
         print('Archivo detectado como PDF - no se puede procesar como imagen');
         return null;
       }
-      
+
       // Intentar decodificar como imagen
       final decoded = img.decodeImage(bytes);
       if (decoded == null) {
         print('No se pudo decodificar la imagen');
         return null;
       }
-      
+
       // Convertir a formato compatible con zxing2
       final image = decoded.convert(numChannels: 4);
-      final pixels = image
-          .getBytes(order: img.ChannelOrder.abgr)
-          .buffer
-          .asInt32List();
+      final pixels =
+          image.getBytes(order: img.ChannelOrder.abgr).buffer.asInt32List();
 
       final source = RGBLuminanceSource(image.width, image.height, pixels);
-      
+
       // Intentar con HybridBinarizer primero
       try {
         final bitmap = BinaryBitmap(HybridBinarizer(source));
@@ -409,7 +418,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         return result.text.trim();
       } catch (e) {
         print('Error decodificando QR con HybridBinarizer: $e');
-        
+
         // Si falla, intentar con GlobalHistogramBinarizer
         try {
           final bitmap2 = BinaryBitmap(GlobalHistogramBinarizer(source));
@@ -417,21 +426,24 @@ class _QRScannerScreenState extends State<QRScannerScreen>
           return result2.text.trim();
         } catch (e2) {
           print('Error con GlobalHistogramBinarizer: $e2');
-          
+
           // Último intento: mejorar la imagen y probar de nuevo
           try {
             final enhancedImage = _mejorarImagenParaQR(decoded);
-            final enhancedPixels = enhancedImage
-                .getBytes(order: img.ChannelOrder.abgr)
-                .buffer
-                .asInt32List();
-            
+            final enhancedPixels =
+                enhancedImage
+                    .getBytes(order: img.ChannelOrder.abgr)
+                    .buffer
+                    .asInt32List();
+
             final enhancedSource = RGBLuminanceSource(
-              enhancedImage.width, 
-              enhancedImage.height, 
-              enhancedPixels
+              enhancedImage.width,
+              enhancedImage.height,
+              enhancedPixels,
             );
-            final enhancedBitmap = BinaryBitmap(HybridBinarizer(enhancedSource));
+            final enhancedBitmap = BinaryBitmap(
+              HybridBinarizer(enhancedSource),
+            );
             final result3 = QRCodeReader().decode(enhancedBitmap);
             return result3.text.trim();
           } catch (e3) {
@@ -449,25 +461,26 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   img.Image _mejorarImagenParaQR(img.Image original) {
     // Convertir a escala de grises
     var processed = img.grayscale(original);
-    
+
     // Aumentar contraste significativamente
     processed = img.contrast(processed, contrast: 200);
-    
+
     // Aplicar un filtro de mediana para reducir ruido
     processed = img.gaussianBlur(processed, radius: 1);
-    
+
     // Binarización manual (convertir a blanco y negro)
     for (int y = 0; y < processed.height; y++) {
       for (int x = 0; x < processed.width; x++) {
         final pixel = processed.getPixel(x, y);
         final luminance = img.getLuminance(pixel);
-        final newPixel = luminance > 128 
-            ? img.ColorRgb8(255, 255, 255) // Blanco
-            : img.ColorRgb8(0, 0, 0);      // Negro
+        final newPixel =
+            luminance > 128
+                ? img.ColorRgb8(255, 255, 255) // Blanco
+                : img.ColorRgb8(0, 0, 0); // Negro
         processed.setPixel(x, y, newPixel);
       }
     }
-    
+
     return processed;
   }
 
@@ -572,7 +585,9 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                               icon: const Icon(Icons.qr_code_scanner_rounded),
                               label: const Text('Escanear QR'),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
@@ -588,7 +603,9 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue.shade700,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
@@ -618,7 +635,8 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                         controller: _qrCodeController,
                         decoration: InputDecoration(
                           labelText: 'Código QR o Link Compartible',
-                          hintText: 'Pegue el código QR o link del documento aquí',
+                          hintText:
+                              'Pegue el código QR o link del documento aquí',
                           prefixIcon: Container(
                             margin: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
