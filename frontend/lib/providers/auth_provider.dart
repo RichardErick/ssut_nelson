@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -54,14 +55,19 @@ class AuthProvider extends ChangeNotifier {
   List<String> _permissions = [];
   List<String> get permissions => _permissions;
 
+  final Completer<void> _authStateCompleter = Completer<void>();
+  Future<void> get authReady => _authStateCompleter.future;
+
   bool hasPermission(String permissionCode) {
-    // Si el backend envió la lista de permisos efectivos (login), usarla tal cual
-    if (_permissions.isNotEmpty) {
-      final has = _permissions.contains(permissionCode);
-      print('DEBUG: Permiso "$permissionCode" (desde backend): $has');
-      return has;
+    try {
+      if (_permissions.isNotEmpty) {
+        final has = _permissions.contains(permissionCode);
+        debugPrint('[AUTH] Permiso "$permissionCode" (desde backend): $has');
+        return has;
+      }
+    } catch (_) {
+      debugPrint('[AUTH] hasPermission fallback por error en _permissions');
     }
-    // Fallback: matriz por rol (solo si no hay permisos desde backend)
     return _hasRoleBasedPermission(permissionCode);
   }
 
@@ -174,7 +180,15 @@ class AuthProvider extends ChangeNotifier {
 
         if (permissionsString != null) {
            try {
-             _permissions = List<String>.from(jsonDecode(permissionsString));
+             final decoded = jsonDecode(permissionsString);
+             if (decoded is List) {
+               _permissions = decoded
+                   .where((e) => e is String)
+                   .map((e) => e as String)
+                   .toList();
+             } else {
+               _permissions = [];
+             }
            } catch (_) {
              _permissions = [];
            }
@@ -199,6 +213,9 @@ class AuthProvider extends ChangeNotifier {
       debugPrint('[AUTH] stack: $st');
       _isAuthenticated = false;
       _token = null;
+    }
+    if (!_authStateCompleter.isCompleted) {
+      _authStateCompleter.complete();
     }
     debugPrint('[AUTH] _loadAuthState() terminado -> isAuthenticated=$_isAuthenticated, notifyListeners()');
     notifyListeners();
@@ -237,7 +254,10 @@ class AuthProvider extends ChangeNotifier {
       _user = user;
       
       if (permisosList != null) {
-        _permissions = permisosList.map((e) => e.toString()).toList();
+        _permissions = permisosList
+            .map((e) => e is String ? e : (e is Map ? (e['codigo'] ?? e).toString() : e.toString()))
+            .where((s) => s.isNotEmpty)
+            .toList();
       } else {
         _permissions = [];
       }

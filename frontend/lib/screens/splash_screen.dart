@@ -20,21 +20,29 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    debugPrint('[SPLASH] initState()');
+    debugPrint('[SPLASH] initState() - pantalla de carga visible');
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 800),
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _fadeAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
-    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
     _controller.forward();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await Future.delayed(const Duration(milliseconds: 1400));
+      await Future.delayed(const Duration(milliseconds: 150));
+      if (!mounted) return;
+      try {
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        await auth.authReady.timeout(
+          const Duration(seconds: 3),
+          onTimeout: () => debugPrint('[SPLASH] authReady timeout'),
+        );
+      } catch (_) {}
       if (mounted) _redirect();
     });
   }
@@ -57,7 +65,11 @@ class _SplashScreenState extends State<SplashScreen>
       debugPrint('[SPLASH] ERROR en _redirect: $e');
       debugPrint('[SPLASH] stack: $st');
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        try {
+          Navigator.of(context).pushReplacementNamed('/login');
+        } catch (_) {
+          debugPrint('[SPLASH] No se pudo navegar a /login');
+        }
       }
     }
   }
