@@ -23,7 +23,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
   List<Usuario> _usuarios = [];
   List<Usuario> _usuariosFiltrados = [];
   List<Permiso> _permisosDisponiblesLista = [];
-  
+
   // Permisos disponibles según la matriz SIMPLIFICADA
   final Map<String, String> _permisosDisponibles = {
     'ver_documento': 'Ver Documento',
@@ -39,12 +39,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
       'ver_documento',
       'subir_documento',
       'editar_documento',
-      'borrar_documento'
+      'borrar_documento',
     ],
-    UserRole.contador: [
-      'ver_documento',
-      'subir_documento'
-    ],
+    UserRole.contador: ['ver_documento', 'subir_documento'],
     UserRole.gerente: ['ver_documento'],
   };
 
@@ -72,22 +69,29 @@ class _PermisosScreenState extends State<PermisosScreen> {
   void _filtrarUsuarios() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      _usuariosFiltrados = _usuarios.where((usuario) {
-        return usuario.nombreCompleto.toLowerCase().contains(query) ||
-               usuario.nombreUsuario.toLowerCase().contains(query);
-      }).toList();
+      _usuariosFiltrados =
+          _usuarios.where((usuario) {
+            return usuario.nombreCompleto.toLowerCase().contains(query) ||
+                usuario.nombreUsuario.toLowerCase().contains(query);
+          }).toList();
     });
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
-      final permisoService = Provider.of<PermisoService>(context, listen: false);
-      
+      final usuarioService = Provider.of<UsuarioService>(
+        context,
+        listen: false,
+      );
+      final permisoService = Provider.of<PermisoService>(
+        context,
+        listen: false,
+      );
+
       final usuarios = await usuarioService.getAll();
       final permisos = await permisoService.getAll();
-      
+
       if (mounted) {
         setState(() {
           _usuarios = usuarios.where((u) => u.activo).toList();
@@ -95,7 +99,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
           _permisosDisponiblesLista = permisos;
           _isLoading = false;
         });
-        
+
         // Seleccionar el primer usuario si existe
         if (_usuarios.isNotEmpty && _usuarioSeleccionado == null) {
           _seleccionarUsuario(_usuarios.first);
@@ -106,7 +110,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error cargando usuarios: ${ErrorHelper.getErrorMessage(e)}'),
+            content: Text(
+              'Error cargando usuarios: ${ErrorHelper.getErrorMessage(e)}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -118,34 +124,45 @@ class _PermisosScreenState extends State<PermisosScreen> {
     print('DEBUG: Seleccionando usuario: ${usuario.nombreCompleto}');
     print('DEBUG: Rol del usuario: "${usuario.rol}"');
     print('DEBUG: Nombre de usuario: "${usuario.nombreUsuario}"');
-    
+
     setState(() {
       _usuarioSeleccionado = usuario;
     });
-    
+
     // Inicializar permisos activos si no existen
     if (!_permisosActivos.containsKey(usuario.nombreUsuario)) {
       _permisosActivos[usuario.nombreUsuario] = {};
-      
+
       // Inicializar todos los permisos del rol como ACTIVOS por defecto
-      final role = _parseRoleWithContext(usuario.rol, usuario.nombreUsuario, usuario.nombreCompleto);
+      final role = _parseRoleWithContext(
+        usuario.rol,
+        usuario.nombreUsuario,
+        usuario.nombreCompleto,
+      );
       print('DEBUG: Rol parseado: $role');
       final permisosRol = _permisosPorRol[role] ?? [];
       print('DEBUG: Permisos del rol: $permisosRol');
-      
+
       for (final permiso in permisosRol) {
-        _permisosActivos[usuario.nombreUsuario]![permiso] = true; // ACTIVO por defecto
+        _permisosActivos[usuario.nombreUsuario]![permiso] =
+            true; // ACTIVO por defecto
         print('DEBUG: Activando permiso: $permiso');
       }
     }
   }
 
-  UserRole _parseRoleWithContext(String roleName, String nombreUsuario, String nombreCompleto) {
-    print('DEBUG PERMISOS: Parseando rol: "$roleName" para usuario: "$nombreUsuario" ($nombreCompleto)');
+  UserRole _parseRoleWithContext(
+    String roleName,
+    String nombreUsuario,
+    String nombreCompleto,
+  ) {
+    print(
+      'DEBUG PERMISOS: Parseando rol: "$roleName" para usuario: "$nombreUsuario" ($nombreCompleto)',
+    );
     final roleNameLower = roleName.toLowerCase().trim();
     final usernameLower = nombreUsuario.toLowerCase().trim();
     final fullNameLower = nombreCompleto.toLowerCase().trim();
-    
+
     switch (roleNameLower) {
       case 'administradorsistema':
       case 'administrador sistema':
@@ -163,21 +180,27 @@ class _PermisosScreenState extends State<PermisosScreen> {
       case 'administrator':
         // Para el rol genérico "Administrador", usar contexto del usuario
         // Si el nombre completo contiene "documentos" o el username es "doc_admin", es admin de documentos
-        if (fullNameLower.contains('documentos') || 
+        if (fullNameLower.contains('documentos') ||
             fullNameLower.contains('documento') ||
             usernameLower == 'doc_admin' ||
             usernameLower.contains('doc')) {
-          print('DEBUG PERMISOS: Rol "Administrador" mapeado a AdministradorDocumentos por contexto (documentos)');
+          print(
+            'DEBUG PERMISOS: Rol "Administrador" mapeado a AdministradorDocumentos por contexto (documentos)',
+          );
           return UserRole.administradorDocumentos;
         }
         // Si el nombre completo contiene "sistema" o el username es "admin", es admin de sistema
-        else if (fullNameLower.contains('sistema') || 
-                 usernameLower == 'admin') {
-          print('DEBUG PERMISOS: Rol "Administrador" mapeado a AdministradorSistema por contexto (sistema)');
+        else if (fullNameLower.contains('sistema') ||
+            usernameLower == 'admin') {
+          print(
+            'DEBUG PERMISOS: Rol "Administrador" mapeado a AdministradorSistema por contexto (sistema)',
+          );
           return UserRole.administradorSistema;
         } else {
           // Por defecto, si no hay contexto claro, asignar AdministradorDocumentos
-          print('DEBUG PERMISOS: Rol "Administrador" mapeado a AdministradorDocumentos por defecto');
+          print(
+            'DEBUG PERMISOS: Rol "Administrador" mapeado a AdministradorDocumentos por defecto',
+          );
           return UserRole.administradorDocumentos;
         }
       case 'contador':
@@ -187,7 +210,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
         print('DEBUG PERMISOS: Mapeado a Gerente');
         return UserRole.gerente;
       default:
-        print('DEBUG PERMISOS: Rol no reconocido: "$roleName", asignando AdministradorDocumentos por defecto');
+        print(
+          'DEBUG PERMISOS: Rol no reconocido: "$roleName", asignando AdministradorDocumentos por defecto',
+        );
         return UserRole.administradorDocumentos;
     }
   }
@@ -197,45 +222,66 @@ class _PermisosScreenState extends State<PermisosScreen> {
     return _parseRoleWithContext(roleName, '', '');
   }
 
+  /// Devuelve la lista de códigos de permiso que tiene el rol base del usuario.
+  List<String> _obtenerPermisosRol(Usuario usuario) {
+    final role = _parseRoleWithContext(
+      usuario.rol,
+      usuario.nombreUsuario,
+      usuario.nombreCompleto,
+    );
+    return _permisosPorRol[role] ?? [];
+  }
+
   void _togglePermiso(String permiso) {
     if (_usuarioSeleccionado == null) return;
-    
+
     setState(() {
       final username = _usuarioSeleccionado!.nombreUsuario;
-      _permisosActivos[username]![permiso] = 
+      _permisosActivos[username]![permiso] =
           !(_permisosActivos[username]![permiso] ?? false);
     });
   }
 
   Future<void> _guardarCambios() async {
     if (_usuarioSeleccionado == null) return;
-    
+
     setState(() => _isSaving = true);
-    
+
     try {
-      final permisoService = Provider.of<PermisoService>(context, listen: false);
+      final permisoService = Provider.of<PermisoService>(
+        context,
+        listen: false,
+      );
       final usuario = _usuarioSeleccionado!;
       final permisosActivos = _permisosActivos[usuario.nombreUsuario] ?? {};
-      
+
       // Obtener los permisos del rol base para comparar
       final permisosRol = _obtenerPermisosRol(usuario);
-      
+
       int cambios = 0;
       for (final codigo in _permisosDisponibles.keys) {
         final activo = permisosActivos[codigo] ?? false;
         final rolTienePermiso = permisosRol.contains(codigo);
-        
+
         // Buscar el ID del permiso en el catálogo
         final permiso = _permisosDisponiblesLista.firstWhere(
           (p) => p.codigo == codigo,
-          orElse: () => Permiso(id: 0, codigo: codigo, nombre: '', descripcion: '', modulo: '', activo: true),
+          orElse:
+              () => Permiso(
+                id: 0,
+                codigo: codigo,
+                nombre: '',
+                descripcion: '',
+                modulo: '',
+                activo: true,
+              ),
         );
-        
+
         if (permiso.id == 0) {
           print('WARN: No se encontró ID para permiso $codigo');
           continue;
         }
-        
+
         // Si el usuario debe tenerlo activo pero el rol NO lo tiene, asignar
         if (activo && !rolTienePermiso) {
           await permisoService.asignarPermiso(usuario.id, permiso.id);
@@ -248,7 +294,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
         }
         // Si ambos están de acuerdo con el rol, no hacer nada
       }
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -268,7 +314,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error guardando permisos: ${ErrorHelper.getErrorMessage(e)}'),
+            content: Text(
+              'Error guardando permisos: ${ErrorHelper.getErrorMessage(e)}',
+            ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -284,7 +332,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    
+
     // Solo el administrador de sistema puede gestionar permisos
     if (!authProvider.canManageUserPermissions) {
       return Scaffold(
@@ -324,24 +372,25 @@ class _PermisosScreenState extends State<PermisosScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                final height = constraints.maxHeight;
-                if (width <= 0 || height <= 0) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                return Row(
-                  children: [
-                    Expanded(flex: 1, child: _buildUsuariosList()),
-                    const VerticalDivider(width: 1),
-                    Expanded(flex: 2, child: _buildPermisosPanel()),
-                  ],
-                );
-              },
-            ),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final height = constraints.maxHeight;
+                  if (width <= 0 || height <= 0) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return Row(
+                    children: [
+                      Expanded(flex: 1, child: _buildUsuariosList()),
+                      const VerticalDivider(width: 1),
+                      Expanded(flex: 2, child: _buildPermisosPanel()),
+                    ],
+                  );
+                },
+              ),
     );
   }
 
@@ -361,7 +410,10 @@ class _PermisosScreenState extends State<PermisosScreen> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
             ),
           ),
@@ -372,17 +424,20 @@ class _PermisosScreenState extends State<PermisosScreen> {
               itemBuilder: (context, index) {
                 final usuario = _usuariosFiltrados[index];
                 final isSelected = _usuarioSeleccionado?.id == usuario.id;
-                
+
                 return ListTile(
                   selected: isSelected,
                   selectedTileColor: AppTheme.colorPrimario.withOpacity(0.1),
                   leading: CircleAvatar(
                     backgroundColor: AppTheme.colorPrimario,
                     child: Text(
-                      usuario.nombreCompleto.isNotEmpty 
+                      usuario.nombreCompleto.isNotEmpty
                           ? usuario.nombreCompleto[0].toUpperCase()
                           : 'U',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   title: Text(
@@ -394,11 +449,17 @@ class _PermisosScreenState extends State<PermisosScreen> {
                     children: [
                       Text(
                         '@${usuario.nombreUsuario}',
-                        style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                       Container(
                         margin: const EdgeInsets.only(top: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: _getRoleColor(usuario.rol).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
@@ -459,11 +520,11 @@ class _PermisosScreenState extends State<PermisosScreen> {
                   radius: 30,
                   backgroundColor: AppTheme.colorPrimario,
                   child: Text(
-                    usuario.nombreCompleto.isNotEmpty 
+                    usuario.nombreCompleto.isNotEmpty
                         ? usuario.nombreCompleto[0].toUpperCase()
                         : 'U',
                     style: const TextStyle(
-                      color: Colors.white, 
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 24,
                     ),
@@ -490,7 +551,10 @@ class _PermisosScreenState extends State<PermisosScreen> {
                       ),
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: _getRoleColor(usuario.rol).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(16),
@@ -510,7 +574,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
               ],
             ),
           ),
-          
+
           // Permisos
           Expanded(
             child: Padding(
@@ -534,7 +598,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Mostrar solo los permisos que tiene el rol
                   if (permisosRol.isEmpty)
                     Container(
@@ -546,7 +610,10 @@ class _PermisosScreenState extends State<PermisosScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline, color: Colors.orange.shade700),
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.orange.shade700,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -566,9 +633,10 @@ class _PermisosScreenState extends State<PermisosScreen> {
                         itemCount: permisosRol.length,
                         itemBuilder: (context, index) {
                           final permiso = permisosRol[index];
-                          final nombre = _permisosDisponibles[permiso] ?? permiso;
+                          final nombre =
+                              _permisosDisponibles[permiso] ?? permiso;
                           final estaActivo = permisosUsuario[permiso] ?? true;
-                          
+
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
                             elevation: 2,
@@ -576,9 +644,10 @@ class _PermisosScreenState extends State<PermisosScreen> {
                               leading: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: estaActivo 
-                                      ? Colors.green.withOpacity(0.1)
-                                      : Colors.red.withOpacity(0.1),
+                                  color:
+                                      estaActivo
+                                          ? Colors.green.withOpacity(0.1)
+                                          : Colors.red.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
@@ -588,15 +657,20 @@ class _PermisosScreenState extends State<PermisosScreen> {
                               ),
                               title: Text(
                                 nombre,
-                                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               subtitle: Text(
-                                estaActivo 
-                                    ? 'Permiso ACTIVO' 
+                                estaActivo
+                                    ? 'Permiso ACTIVO'
                                     : 'Permiso DESACTIVADO',
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
-                                  color: estaActivo ? Colors.green.shade600 : Colors.red.shade600,
+                                  color:
+                                      estaActivo
+                                          ? Colors.green.shade600
+                                          : Colors.red.shade600,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -612,7 +686,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
                         },
                       ),
                     ),
-                  
+
                   if (permisosRol.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     // Botón guardar
@@ -627,22 +701,23 @@ class _PermisosScreenState extends State<PermisosScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: _isSaving
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
+                        child:
+                            _isSaving
+                                ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : Text(
+                                  'Guardar Cambios',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              )
-                            : Text(
-                                'Guardar Cambios',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
                       ),
                     ),
                   ],
