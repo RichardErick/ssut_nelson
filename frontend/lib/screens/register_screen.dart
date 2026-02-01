@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../services/api_service.dart';
 import '../utils/error_helper.dart';
+import '../utils/form_validators.dart';
+import '../widgets/app_alert.dart';
 import '../widgets/animated_background.dart';
 import '../widgets/glass_container.dart';
 
@@ -78,16 +80,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } catch (e) {
         if (mounted) {
           final msg = ErrorHelper.getErrorMessage(e);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(msg),
-              backgroundColor:
-                  msg.toLowerCase().contains('usuario') &&
-                          msg.toLowerCase().contains('uso')
-                      ? Colors.orange.shade700
-                      : Colors.red.shade700,
-              behavior: SnackBarBehavior.floating,
-            ),
+          AppAlert.error(
+            context,
+            'No se pudo registrar',
+            msg,
+            buttonText: 'Entendido',
           );
         }
       } finally {
@@ -155,11 +152,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           label: 'Nombre Completo',
                           hint: 'Ej. Juan Pérez Botello',
                           icon: Icons.badge_outlined,
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return 'Requerido';
-                            if (v.length < 5) return 'Mínimo 5 caracteres';
-                            return null;
-                          },
+                          validator: FormValidators.nombre,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
@@ -167,25 +160,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           label: 'Usuario',
                           hint: 'Ej. juan.perez',
                           icon: Icons.person_outline,
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return 'Requerido';
-                            if (v.length < 4) return 'Mínimo 4 caracteres';
-                            if (!RegExp(r'^[a-zA-Z0-9_\.]+$').hasMatch(v)) return 'Caracteres inválidos';
-                            return null;
-                          },
+                          validator: FormValidators.usuario,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
                           controller: _emailController,
-                          label: 'Email',
+                          label: 'Correo electrónico',
                           hint: 'Ej. juan@correo.com',
                           icon: Icons.email_outlined,
                           keyboardType: TextInputType.emailAddress,
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return 'Requerido';
-                            if (!v.contains('@')) return 'Email inválido';
-                            return null;
-                          },
+                          validator: FormValidators.email,
                         ),
                         const SizedBox(height: 16),
                         Column(
@@ -241,11 +225,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           hint: '••••••••',
                           icon: Icons.lock_outline,
                           isPassword: true,
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return 'Requerido';
-                            if (v.length < 6) return 'Mínimo 6 caracteres';
-                            return null;
-                          },
+                          validator: FormValidators.password,
                         ),
                         
                         const SizedBox(height: 40),
@@ -345,7 +325,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.white, width: 2),
             ),
-            errorStyle: const TextStyle(color: Colors.amberAccent),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade600, width: 2),
+            ),
+            errorStyle: TextStyle(color: Colors.red.shade100, fontSize: 13),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
           validator: validator,

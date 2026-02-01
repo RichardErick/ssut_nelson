@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -6,7 +7,9 @@ import '../../models/movimiento.dart';
 import '../../services/movimiento_service.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/animated_card.dart';
+import '../../widgets/app_alert.dart';
 import '../../widgets/loading_shimmer.dart';
+import 'prestamo_form_screen.dart';
 
 class MovimientosScreen extends StatefulWidget {
   const MovimientosScreen({super.key});
@@ -37,26 +40,53 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    ErrorHelper.getErrorMessage(e),
-                    style: const TextStyle(fontSize: 14),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 5),
+        AppAlert.error(
+          context,
+          'Error al cargar movimientos',
+          ErrorHelper.getErrorMessage(e),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmarDevolucion(Movimiento mov) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text('Registrar devolución', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        content: Text(
+          '¿Registrar la devolución del documento "${mov.documentoCodigo ?? 'Sin código'}"? El estado del documento pasará a Disponible.',
+          style: GoogleFonts.inter(fontSize: 14),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.green.shade600),
+            child: const Text('Devolver'),
           ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      await Provider.of<MovimientoService>(context, listen: false).devolverDocumento(mov.id);
+      await _loadMovimientos();
+      if (mounted) {
+        AppAlert.success(
+          context,
+          'Devolución registrada',
+          'El documento ha sido marcado como devuelto y su estado es Disponible.',
+          buttonText: 'Entendido',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        AppAlert.error(
+          context,
+          'Error al devolver',
+          ErrorHelper.getErrorMessage(e),
         );
       }
     }
@@ -80,6 +110,17 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(builder: (_) => const PrestamoFormScreen()),
+          );
+          if (result == true) _loadMovimientos();
+        },
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Registrar préstamo'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+      ),
       body: Column(
         children: [
           Container(
@@ -294,109 +335,14 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                                   mov.estado == 'Activo' &&
                                           mov.tipoMovimiento == 'Salida'
                                       ? ElevatedButton.icon(
-                                        onPressed: () async {
-                                          try {
-                                            await Provider.of<
-                                              MovimientoService
-                                            >(
-                                              context,
-                                              listen: false,
-                                            ).devolverDocumento(mov.id);
-                                            _loadMovimientos();
-                                            if (mounted) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: const Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.check_circle,
-                                                        color: Colors.white,
-                                                      ),
-                                                      SizedBox(width: 12),
-                                                      Text(
-                                                        'Documento devuelto',
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  backgroundColor: Colors.green,
-                                                  behavior:
-                                                      SnackBarBehavior.floating,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (mounted) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Row(
-                                                    children: [
-                                                      const Icon(
-                                                        Icons.error_outline,
-                                                        color: Colors.white,
-                                                      ),
-                                                      const SizedBox(width: 12),
-                                                      Expanded(
-                                                        child: Text(
-                                                          ErrorHelper.getErrorMessage(
-                                                            e,
-                                                          ),
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 14,
-                                                              ),
-                                                          maxLines: 3,
-                                                          overflow:
-                                                              TextOverflow
-                                                                  .ellipsis,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  backgroundColor: Colors.red,
-                                                  behavior:
-                                                      SnackBarBehavior.floating,
-                                                  duration: const Duration(
-                                                    seconds: 5,
-                                                  ),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          }
-                                        },
-                                        icon: const Icon(
-                                          Icons.undo_rounded,
-                                          size: 18,
-                                        ),
+                                        onPressed: () => _confirmarDevolucion(mov),
+                                        icon: const Icon(Icons.undo_rounded, size: 18),
                                         label: const Text('Devolver'),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              Colors.green.shade600,
+                                          backgroundColor: Colors.green.shade600,
                                           foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 8,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                         ),
                                       )
                                       : null,

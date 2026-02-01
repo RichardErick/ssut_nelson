@@ -10,6 +10,7 @@ import '../services/api_service.dart';
 import '../services/usuario_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_helper.dart';
+import '../widgets/app_alert.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -48,11 +49,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         alertsList = [];
       }
       
-      // 2. If Admin, load pending users
+      // 2. Solo el Administrador de Sistema puede ver y gestionar solicitudes de registro
       List<Usuario> pending = [];
-      if (authProvider.role == UserRole.administradorSistema || 
-          authProvider.role == UserRole.administradorDocumentos) {
-          
+      if (authProvider.role == UserRole.administradorSistema) {
           final allUsers = await usuarioService.getAll(incluirInactivos: true);
           pending = allUsers.where((u) => !u.activo).toList();
       }
@@ -77,48 +76,137 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     try {
       final usuarioService = Provider.of<UsuarioService>(context, listen: false);
       await usuarioService.updateEstado(user.id, true);
-      
-      // Refresh
-      _loadData(); // Reloads both alerts and users
-      
+      if (mounted) await _loadData();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Usuario aprobado y activado correctamente'),
-            backgroundColor: AppTheme.colorExito,
-          )
+        AppAlert.success(
+          context,
+          'Usuario aprobado',
+          '${user.nombreCompleto} ya puede iniciar sesión en el sistema.',
+          buttonText: 'Entendido',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Error: ${ErrorHelper.getErrorMessage(e)}'), backgroundColor: Colors.red)
+        AppAlert.error(
+          context,
+          'Error al aprobar',
+          ErrorHelper.getErrorMessage(e),
+          buttonText: 'Entendido',
         );
       }
     }
   }
 
-  Future<void> _deleteUser(Usuario user) async {
-     // Implement reject logic (maybe delete user or keep inactive)
-     // For now, let's assume reject = delete for pending registrations
-     try {
-       final apiService = Provider.of<ApiService>(context, listen: false);
-       await apiService.delete('/usuarios/${user.id}?hard=true');
-       
-       _loadData();
-       
-       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Solicitud rechazada y usuario eliminado'))
-         );
-       }
-     } catch (e) {
-       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Error: ${ErrorHelper.getErrorMessage(e)}'), backgroundColor: Colors.red)
+  Future<void> _confirmarRechazo(Usuario user) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 380),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.person_off_rounded, size: 48, color: Colors.orange.shade700),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Rechazar solicitud',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(ctx).colorScheme.onSurface,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '¿Rechazar la solicitud de ${user.nombreCompleto}? Esta acción no se puede deshacer.',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Rechazar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (confirm == true && mounted) await _rechazarSolicitud(user);
+  }
+
+  Future<void> _rechazarSolicitud(Usuario user) async {
+    try {
+      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      await usuarioService.rechazarSolicitudRegistro(user.id);
+      if (mounted) await _loadData();
+      if (mounted) {
+        AppAlert.warning(
+          context,
+          'Solicitud rechazada',
+          'El registro de ${user.nombreCompleto} ha sido denegado.',
+          buttonText: 'Entendido',
         );
       }
-     }
+    } catch (e) {
+      if (mounted) {
+        AppAlert.error(
+          context,
+          'Error al rechazar',
+          ErrorHelper.getErrorMessage(e),
+          buttonText: 'Entendido',
+        );
+      }
+    }
   }
 
   Future<void> _markAsRead(int id) async {
@@ -159,139 +247,173 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
+      body: _isLoading
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Cargando notificaciones...',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          )
         : RefreshIndicator(
             onRefresh: _loadData,
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               children: [
-                // 1. Pending Approvals Section
                 if (_pendingUsers.isNotEmpty) ...[
-                  Text(
-                    'SOLICITUDES DE REGISTRO',
-                    style: GoogleFonts.inter(
-                      fontSize: 12, 
-                      fontWeight: FontWeight.bold, 
-                      color: theme.colorScheme.primary,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ..._pendingUsers.map((user) => _buildPendingUserCard(user, theme)).toList(),
-                  const SizedBox(height: 24),
-                  Divider(color: theme.colorScheme.outline.withOpacity(0.1)),
-                  const SizedBox(height: 24),
+                  _buildSectionHeader('SOLICITUDES DE REGISTRO', '${_pendingUsers.length} pendiente${_pendingUsers.length == 1 ? '' : 's'}', theme, isPrimary: true),
+                  const SizedBox(height: 10),
+                  ..._pendingUsers.map((user) => _buildPendingUserCard(user, theme)),
+                  const SizedBox(height: 20),
+                  Divider(height: 1, color: theme.colorScheme.outline.withOpacity(0.15)),
+                  const SizedBox(height: 20),
                 ],
-                
-                // 2. General Alerts
-                Row(
-                  children: [
-                    Text(
-                      'NOTIFICACIONES',
-                      style: GoogleFonts.inter(
-                        fontSize: 12, 
-                        fontWeight: FontWeight.bold, 
-                        color: theme.colorScheme.onSurfaceVariant,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (_alertas.isNotEmpty)
-                      Text(
-                        '${_alertas.where((a) => a['leida'] == false).length} nuevas',
-                        style: TextStyle(fontSize: 12, color: theme.colorScheme.primary),
-                      ),
-                  ],
+                _buildSectionHeader(
+                  'NOTIFICACIONES',
+                  _alertas.isEmpty ? '' : '${_alertas.where((a) => a['leida'] == false).length} nuevas',
+                  theme,
+                  isPrimary: false,
                 ),
-                const SizedBox(height: 12),
-                if (_alertas.isEmpty) 
-                   _buildEmptyState(theme, 'No tienes notificaciones'),
-                ..._alertas.map((alerta) => _buildAlertCard(alerta, theme)).toList(),
+                const SizedBox(height: 10),
+                if (_alertas.isEmpty)
+                  _buildEmptyState(theme),
+                ..._alertas.map((alerta) => _buildAlertCard(alerta, theme)),
               ],
             ),
         ),
     );
   }
-  
+
+  Widget _buildSectionHeader(String title, String subtitle, ThemeData theme, {bool isPrimary = false}) {
+    return Row(
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: isPrimary ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const Spacer(),
+        if (subtitle.isNotEmpty)
+          Text(
+            subtitle,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildPendingUserCard(Usuario user, ThemeData theme) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 1,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withOpacity(0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.person_add, color: Colors.orange),
+                  child: Icon(Icons.person_add_rounded, color: Colors.orange.shade700, size: 20),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Solicitud de Nuevo Usuario',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 4),
                       Text.rich(
                         TextSpan(
                           children: [
-                            const TextSpan(text: 'El usuario '),
-                            TextSpan(text: user.nombreCompleto, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            TextSpan(text: ' (${user.nombreUsuario}) ha solicitado acceso.'),
-                          ]
+                            TextSpan(text: user.nombreCompleto, style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface)),
+                            TextSpan(text: ' (${user.nombreUsuario})', style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)),
+                          ],
                         ),
-                        style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
+                        style: GoogleFonts.inter(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Row(
-                         children: [
-                           Icon(Icons.email_outlined, size: 14, color: theme.colorScheme.onSurfaceVariant),
-                           const SizedBox(width: 4),
-                           Text(user.email, style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)),
-                           const SizedBox(width: 16),
-                           Icon(Icons.calendar_today_outlined, size: 14, color: theme.colorScheme.onSurfaceVariant),
-                           const SizedBox(width: 4),
-                           Text(
-                             DateFormat('dd/MM/yyyy HH:mm').format(user.fechaRegistro),
-                             style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)
-                           ),
-                         ],
-                      )
+                        children: [
+                          Icon(Icons.email_outlined, size: 12, color: theme.colorScheme.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              user.email,
+                              style: GoogleFonts.inter(color: theme.colorScheme.onSurfaceVariant, fontSize: 11),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            DateFormat('dd/MM HH:mm').format(user.fechaRegistro),
+                            style: GoogleFonts.inter(color: theme.colorScheme.onSurfaceVariant, fontSize: 11),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OutlinedButton(
-                  onPressed: () => _deleteUser(user),
+                  onPressed: () => _confirmarRechazo(user),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: BorderSide(color: Colors.red.withOpacity(0.5)),
+                    foregroundColor: Colors.red.shade600,
+                    side: BorderSide(color: Colors.red.shade200),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    minimumSize: const Size(0, 36),
                   ),
                   child: const Text('Rechazar'),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 FilledButton.icon(
                   onPressed: () => _approveUser(user),
-                  icon: const Icon(Icons.check, size: 16),
-                  label: const Text('Aprobar Acceso'),
-                  style: FilledButton.styleFrom(backgroundColor: AppTheme.colorExito),
+                  icon: const Icon(Icons.check_rounded, size: 16),
+                  label: const Text('Aprobar'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.colorExito,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    minimumSize: const Size(0, 36),
+                  ),
                 ),
               ],
             ),
@@ -305,98 +427,142 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final bool leida = alerta['leida'] ?? false;
     final String tipo = alerta['tipoAlerta'] ?? 'info';
     final DateTime fecha = DateTime.parse(alerta['fechaCreacion']).toLocal();
-    
+
     Color iconColor;
     IconData icon;
-    
-    switch(tipo) {
+
+    switch (tipo) {
       case 'warning':
-        iconColor = Colors.orange;
+        iconColor = Colors.orange.shade700;
         icon = Icons.warning_amber_rounded;
         break;
       case 'error':
-        iconColor = Colors.red;
-        icon = Icons.error_outline;
+        iconColor = Colors.red.shade600;
+        icon = Icons.error_rounded;
         break;
       case 'success':
-        iconColor = Colors.green;
-        icon = Icons.check_circle_outline;
+        iconColor = Colors.green.shade600;
+        icon = Icons.check_circle_rounded;
         break;
       default:
         iconColor = theme.colorScheme.primary;
-        icon = Icons.info_outline;
+        icon = Icons.info_rounded;
     }
-    
+
     return Dismissible(
       key: Key(alerta['id'].toString()),
-      background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), child: const Icon(Icons.delete, color: Colors.white)),
+      background: Container(
+        color: Colors.red.shade500,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.only(bottom: 8),
+        child: const Icon(Icons.delete_rounded, color: Colors.white, size: 22),
+      ),
       direction: DismissDirection.endToStart,
-      onDismissed: (direction) => _deleteAlert(alerta['id']),
+      onDismissed: (_) => _deleteAlert(alerta['id']),
       child: Card(
-        color: leida ? theme.colorScheme.surface : theme.colorScheme.primary.withOpacity(0.05),
-        elevation: leida ? 0 : 2,
+        color: leida ? theme.colorScheme.surface : theme.colorScheme.primary.withOpacity(0.04),
+        elevation: leida ? 0 : 1,
         margin: const EdgeInsets.only(bottom: 8),
         shape: RoundedRectangleBorder(
-           borderRadius: BorderRadius.circular(12),
-           side: leida ? BorderSide.none : BorderSide(color: theme.colorScheme.primary.withOpacity(0.2)),
+          borderRadius: BorderRadius.circular(12),
+          side: leida ? BorderSide.none : BorderSide(color: theme.colorScheme.primary.withOpacity(0.15)),
         ),
         child: ListTile(
           onTap: () => _markAsRead(alerta['id']),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           leading: Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: iconColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: iconColor, size: 24),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
           title: Text(
-            alerta['titulo'] ?? 'Notificacion',
-            style: TextStyle(
-              fontWeight: leida ? FontWeight.normal : FontWeight.bold,
-              fontSize: 14,
+            alerta['titulo'] ?? 'Notificación',
+            style: GoogleFonts.inter(
+              fontWeight: leida ? FontWeight.w500 : FontWeight.w600,
+              fontSize: 13,
             ),
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              Text(
-                alerta['mensaje'] ?? '',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 13,
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  alerta['mensaje'] ?? '',
+                  style: GoogleFonts.inter(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                DateFormat('dd MMM HH:mm').format(fecha),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                const SizedBox(height: 4),
+                Text(
+                  DateFormat('dd MMM HH:mm').format(fecha),
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          trailing: !leida 
-            ? Container(width: 8, height: 8, decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle)) 
-            : null,
+          trailing: !leida
+              ? Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                )
+              : null,
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme, String message) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          children: [
-            Icon(Icons.notifications_off_outlined, size: 48, color: theme.colorScheme.outline.withOpacity(0.3)),
-            const SizedBox(height: 16),
-            Text(message, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
-          ],
-        ),
+  Widget _buildEmptyState(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.outline.withOpacity(0.06),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.notifications_off_outlined,
+              size: 44,
+              color: theme.colorScheme.outline.withOpacity(0.4),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No tienes notificaciones',
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Las alertas y avisos aparecerán aquí.',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.8),
+            ),
+          ),
+        ],
       ),
     );
   }

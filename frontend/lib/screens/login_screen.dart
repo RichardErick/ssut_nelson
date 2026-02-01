@@ -6,10 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../utils/error_helper.dart';
 import '../widgets/animated_background.dart';
+import '../widgets/app_alert.dart';
 import '../widgets/glass_container.dart';
 import 'forgot_password_screen.dart';
 import 'login/widgets/lockout_timer.dart';
 import 'register_screen.dart';
+import 'splash_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -35,12 +37,14 @@ class _LoginScreenState extends State<LoginScreen>
     super.initState();
     // Load saved preferences for "Recordarme"
     SharedPreferences.getInstance().then((prefs) {
-      setState(() {
-        _rememberMe = prefs.getBool('rememberMe') ?? false;
-        if (_rememberMe) {
-          _usernameController.text = prefs.getString('savedUsername') ?? '';
-        }
-      });
+      if (mounted) {
+        setState(() {
+          _rememberMe = prefs.getBool('rememberMe') ?? false;
+          if (_rememberMe) {
+            _usernameController.text = prefs.getString('savedUsername') ?? '';
+          }
+        });
+      }
     });
     _animationController = AnimationController(
       vsync: this,
@@ -76,31 +80,33 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _handleLogin() async {
+    if (_isLoading) return;
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
       await Future.delayed(const Duration(milliseconds: 800));
 
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final username = _usernameController.text.trim();
+      final password = _passwordController.text.trim();
       try {
-        await authProvider.login(
-          _usernameController.text,
-          _passwordController.text,
-        );
+        await authProvider.login(username, password);
 
         if (authProvider.isAuthenticated) {
           // Save preferences if "Recordarme" is checked
           final prefs = await SharedPreferences.getInstance();
           if (_rememberMe) {
             await prefs.setBool('rememberMe', true);
-            await prefs.setString('savedUsername', _usernameController.text);
+            await prefs.setString('savedUsername', username);
           } else {
             await prefs.setBool('rememberMe', false);
             await prefs.remove('savedUsername');
           }
 
           if (mounted) {
-            Navigator.of(context).pushReplacementNamed('/home');
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const SessionSplashScreen()),
+            );
           }
         } else {
           _showError('Credenciales invalidas');
@@ -117,28 +123,15 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(fontSize: 14),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.red.shade800,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        duration: const Duration(seconds: 5),
-      ),
+    if (!mounted) return;
+    final isLockout =
+        message.toLowerCase().contains('bloquead') ||
+        message.toLowerCase().contains('intentos');
+    AppAlert.error(
+      context,
+      isLockout ? 'Cuenta bloqueada' : 'Error de inicio de sesión',
+      message,
+      buttonText: 'Entendido',
     );
   }
 
@@ -146,12 +139,16 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
-        debugPrint('[LOGIN] build() isAuthenticated=${authProvider.isAuthenticated}');
+        debugPrint(
+          '[LOGIN] build() isAuthenticated=${authProvider.isAuthenticated}',
+        );
         if (authProvider.isAuthenticated) {
           debugPrint('[LOGIN] ya autenticado -> redirigiendo a /home');
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
-              Navigator.of(context).pushReplacementNamed('/home');
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const SessionSplashScreen()),
+              );
             }
           });
           return Scaffold(
@@ -190,7 +187,9 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildLoginContent(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
-    debugPrint('[LOGIN] _buildLoginContent() size=${size.width}x${size.height} isDesktop=$isDesktop');
+    debugPrint(
+      '[LOGIN] _buildLoginContent() size=${size.width}x${size.height} isDesktop=$isDesktop',
+    );
 
     return Scaffold(
       body:
@@ -316,15 +315,14 @@ class _LoginScreenState extends State<LoginScreen>
                                       icon: Icons.person_outline_rounded,
                                       isDark: true,
                                       validator: (v) {
-                                        if (v == null || v.isEmpty) {
+                                        final t = (v ?? '').trim();
+                                        if (t.isEmpty) {
                                           return 'Ingrese su usuario';
                                         }
-                                        if (v.length < 4 || v.length > 20) {
+                                        if (t.length < 4 || t.length > 20) {
                                           return 'Debe tener entre 4 y 20 caracteres';
                                         }
-                                        if (!RegExp(
-                                          r'^[a-zA-Z0-9_]+$',
-                                        ).hasMatch(v)) {
+                                        if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(t)) {
                                           return 'Solo letras, numeros y guion bajo';
                                         }
                                         return null;
@@ -562,12 +560,12 @@ class _LoginScreenState extends State<LoginScreen>
                         hint: 'ej. juan.perez',
                         icon: Icons.person_outline_rounded,
                         validator: (v) {
-                          if (v == null || v.isEmpty)
-                            return 'Ingrese su usuario';
-                          if (v.length < 4 || v.length > 20) {
+                          final t = (v ?? '').trim();
+                          if (t.isEmpty) return 'Ingrese su usuario';
+                          if (t.length < 4 || t.length > 20) {
                             return 'Debe tener entre 4 y 20 caracteres';
                           }
-                          if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v)) {
+                          if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(t)) {
                             return 'Solo letras, numeros y guion bajo';
                           }
                           return null;

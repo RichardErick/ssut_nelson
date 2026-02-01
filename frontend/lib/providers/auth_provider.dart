@@ -266,15 +266,15 @@ class AuthProvider extends ChangeNotifier {
                 );
               } else {
                 _lockoutEndTime = DateTime.now().add(
-                  const Duration(seconds: 30),
+                  const Duration(minutes: 10),
                 );
               }
             }
           } else {
-            _lockoutEndTime = DateTime.now().add(const Duration(seconds: 30));
+            _lockoutEndTime = DateTime.now().add(const Duration(minutes: 10));
           }
         } catch (_) {
-          _lockoutEndTime = DateTime.now().add(const Duration(seconds: 30));
+          _lockoutEndTime = DateTime.now().add(const Duration(minutes: 10));
         }
       }
 

@@ -13,6 +13,8 @@ import '../../services/carpeta_service.dart';
 import '../../services/catalogo_service.dart';
 import '../../services/documento_service.dart';
 import '../../services/usuario_service.dart';
+import '../../utils/form_validators.dart';
+import '../../widgets/app_alert.dart';
 
 class DocumentoFormScreen extends StatefulWidget {
   final Documento? documento;
@@ -181,16 +183,26 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
   }
 
   Future<void> _saveDocumento() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      setState(() => _autoValidateMode = AutovalidateMode.always);
+      return;
+    }
 
-    // Validaciones extra dropdowns
     if (_tipoDocumentoId == null) {
-      _showSnack('Seleccione un tipo de documento', background: Colors.orange);
+      AppAlert.warning(
+        context,
+        'Falta información',
+        'Debe seleccionar un tipo de documento.',
+        buttonText: 'Entendido',
+      );
       return;
     }
     if (_areaOrigenId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seleccione un área de origen')),
+      AppAlert.warning(
+        context,
+        'Falta información',
+        'Debe seleccionar un área de origen.',
+        buttonText: 'Entendido',
       );
       return;
     }
@@ -297,7 +309,12 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
           }
         }
         setState(() => _numeroCorrelativoError = null);
-        _showSnack('Error al guardar: $e', background: Colors.red);
+        AppAlert.error(
+          context,
+          'No se pudo guardar',
+          e.toString().replaceFirst('Exception: ', ''),
+          buttonText: 'Entendido',
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -463,14 +480,14 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         },
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) {
-                            return 'Requerido';
+                            return FormValidators.requerido;
                           }
                           final digits = v.replaceAll(RegExp(r'\D'), '');
                           if (digits.isEmpty) {
-                            return 'Solo números (dígitos). Ej: 1, 001, 1234';
+                            return 'Ingrese solo números (ej: 1, 001, 1234)';
                           }
                           if (digits.length > 6) {
-                            return 'Máximo 6 dígitos. El código es TIPO-AREA-GESTIÓN-####';
+                            return 'Máximo 6 dígitos';
                           }
                           return null;
                         },
@@ -502,7 +519,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                       ? null
                                       : (v) =>
                                           setState(() => _areaOrigenId = v),
-                              validator: (v) => v == null ? 'Requerido' : null,
+                              validator: (v) => v == null ? 'Seleccione un área de origen' : null,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -514,7 +531,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                               keyboardType: TextInputType.number,
                               maxLength: 4,
                               validator:
-                                  (v) => v!.length != 4 ? 'Inválido' : null,
+                                  (v) => v == null || v.trim().isEmpty || v.trim().length != 4 ? 'Ingrese un año de 4 dígitos (ej: 2025)' : null,
                               onChanged: (v) {
                                 if (v.length == 4)
                                   _loadData(); // Recargar carpetas al cambiar año
@@ -552,7 +569,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         decoration: _inputDecoration('Descripción / Asunto'),
                         maxLines: 3,
                         validator:
-                            (v) => v == null || v.isEmpty ? 'Requerido' : null,
+                            (v) => v == null || v.trim().isEmpty ? FormValidators.requerido : null,
                       ),
                       if (!ocultarSelectorCarpeta) ...[
                         if (_carpetas.isEmpty)
@@ -634,7 +651,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                 .toList(),
                         onChanged: (v) => setState(() => _responsableId = v),
                         validator:
-                            (v) => v == null ? 'Responsable requerido' : null,
+                            (v) => v == null ? 'Seleccione un responsable' : null,
                       ),
                       const SizedBox(height: 16),
 
@@ -772,9 +789,25 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
 
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
-      
       labelText: label,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.blue.shade600, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.red.shade600, width: 2),
+      ),
+      errorStyle: TextStyle(color: Colors.red.shade700, fontSize: 13),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
   }

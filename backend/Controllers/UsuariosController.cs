@@ -10,6 +10,7 @@ namespace SistemaGestionDocumental.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+
 [Authorize]
 public class UsuariosController : ControllerBase
 {
@@ -338,7 +339,7 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "AdministradorSistema,Administrador,AdministradorDocumentos")]
+    [Authorize(Roles = "AdministradorSistema,Administrador")]
     public async Task<ActionResult> DeleteUsuario(int id, [FromQuery] bool hard = false)
     {
         var usuario = await _context.Usuarios.FindAsync(id);
@@ -363,6 +364,39 @@ public class UsuariosController : ControllerBase
             return BadRequest(new
             {
                 message = "No se pudo eliminar el usuario (tiene relaciones). Usa eliminación lógica (hard=false) o desvincula sus registros primero."
+            });
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Rechazar solicitud de registro: quita permisos y desactiva al usuario (soft delete). No se borra el registro para no violar FKs (auditoría, etc.).
+    /// </summary>
+    [HttpPost("{id}/rechazar")]
+    [Authorize(Roles = "AdministradorSistema,Administrador")]
+    public async Task<ActionResult> RechazarSolicitudRegistro(int id)
+    {
+        var usuario = await _context.Usuarios.FindAsync(id);
+        if (usuario == null)
+            return NotFound(new { message = "Usuario no encontrado" });
+
+        var permisosUsuario = await _context.UsuarioPermisos
+            .Where(up => up.UsuarioId == id)
+            .ToListAsync();
+        _context.UsuarioPermisos.RemoveRange(permisosUsuario);
+        usuario.Activo = false;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            return BadRequest(new
+            {
+                message = "No se pudo rechazar la solicitud. El usuario tiene otros registros asociados.",
+                error = ex.InnerException?.Message
             });
         }
 

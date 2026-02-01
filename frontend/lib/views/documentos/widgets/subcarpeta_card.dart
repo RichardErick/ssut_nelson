@@ -26,6 +26,7 @@ class SubcarpetaCard extends StatelessWidget {
         children: [
           Container(
             width: 140,
+            height: 130,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.blue.shade50,
@@ -33,16 +34,17 @@ class SubcarpetaCard extends StatelessWidget {
               border: Border.all(color: Colors.blue.shade100),
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.folder_shared_rounded, color: Colors.blue, size: 32),
+                const Icon(Icons.folder_shared_rounded, color: Colors.blue, size: 28),
                 const Spacer(),
                 Text(
                   subcarpeta.nombre,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Colors.blue.shade900,
                   ),
@@ -51,7 +53,7 @@ class SubcarpetaCard extends StatelessWidget {
                   Text(
                     '${subcarpeta.rangoInicio} - ${subcarpeta.rangoFin}',
                     style: GoogleFonts.inter(
-                      fontSize: 11,
+                      fontSize: 10,
                       color: Colors.blue.shade700,
                     ),
                   ),

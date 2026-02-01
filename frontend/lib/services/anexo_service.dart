@@ -42,10 +42,13 @@ class AnexoService {
 
   Future<Uint8List> descargarBytes(int anexoId) async {
     final api = Provider.of<ApiService>(navigatorKey.currentContext!, listen: false);
-    
-    // Usar el nuevo método getBytes que incluye automáticamente el token de autenticación
-    final response = await api.getBytes('/documentos/anexos/$anexoId/download');
-    
+
+    // Timeout largo para PDFs grandes (60 s)
+    final response = await api.getBytes(
+      '/documentos/anexos/$anexoId/download',
+      receiveTimeout: const Duration(seconds: 60),
+    );
+
     final data = response.data;
     if (data is Uint8List) return data;
     if (data is List<int>) return Uint8List.fromList(data);

@@ -280,20 +280,21 @@ class _PermisosScreenState extends State<PermisosScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Row(
-              children: [
-                // Panel izquierdo - Lista de usuarios
-                Expanded(
-                  flex: 1,
-                  child: _buildUsuariosList(),
-                ),
-                const VerticalDivider(width: 1),
-                // Panel derecho - Permisos del usuario seleccionado
-                Expanded(
-                  flex: 2,
-                  child: _buildPermisosPanel(),
-                ),
-              ],
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final height = constraints.maxHeight;
+                if (width <= 0 || height <= 0) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                return Row(
+                  children: [
+                    Expanded(flex: 1, child: _buildUsuariosList()),
+                    const VerticalDivider(width: 1),
+                    Expanded(flex: 2, child: _buildPermisosPanel()),
+                  ],
+                );
+              },
             ),
     );
   }

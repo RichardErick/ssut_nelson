@@ -93,10 +93,10 @@ INSERT INTO tipos_documento (nombre, codigo, descripcion) VALUES
 ('Resolución', 'RES', 'Resoluciones administrativas')
 ON CONFLICT DO NOTHING;
 
--- Usuario administrador por defecto (password: admin123 - debe ser hasheado en producción)
+-- Usuario administrador por defecto (admin/admin123, doc_admin/admin; backend acepta texto plano como fallback)
 INSERT INTO usuarios (nombre_usuario, nombre_completo, email, password_hash, rol, area_id) VALUES
-('admin', 'Administrador del Sistema', 'admin@ssut.edu.bo', '$2a$11$placeholder_hash_here', 'Administrador', 1),
-('doc_admin', 'Administrador de Documentos', 'docadmin@ssut.edu.bo', '$2a$11$placeholder_hash_here', 'AdministradorDocumentos', 4)
+('admin', 'Administrador del Sistema', 'admin@ssut.edu.bo', 'admin123', 'Administrador', 1),
+('doc_admin', 'Administrador de Documentos', 'docadmin@ssut.edu.bo', 'admin', 'AdministradorDocumentos', 4)
 ON CONFLICT DO NOTHING;
 
 -- Tabla de Anexos (Archivos digitales)

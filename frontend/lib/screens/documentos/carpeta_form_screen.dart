@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/carpeta.dart';
+import '../../utils/form_validators.dart';
+import '../../widgets/app_alert.dart';
 import '../../providers/data_provider.dart';
 import '../../services/carpeta_service.dart';
 
@@ -108,8 +110,11 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
 
     } catch (e) {
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString().replaceAll("Exception:", "")}'), backgroundColor: Colors.red),
+        AppAlert.error(
+          context,
+          'No se pudo crear la carpeta',
+          e.toString().replaceAll('Exception:', '').trim(),
+          buttonText: 'Entendido',
         );
       }
     } finally {
@@ -189,7 +194,7 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
                   TextFormField(
                     controller: _nombreController,
                     decoration: _inputDecoration('Ingrese el nombre de la carpeta', icon: Icons.folder),
-                    validator: (v) => v == null || v.isEmpty ? 'El nombre es requerido' : null,
+                    validator: (v) => v == null || v.trim().isEmpty ? FormValidators.requerido : null,
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -213,13 +218,7 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
                     controller: _gestionController,
                     keyboardType: TextInputType.number,
                     decoration: _inputDecoration('Período administrativo', icon: Icons.business_center),
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'La gestión es requerida';
-                      final year = int.tryParse(v);
-                      if (year == null) return 'Ingrese un año válido';
-                      if (year < 2020 || year > 2030) return 'El año debe estar entre 2020 y 2030';
-                      return null;
-                    },
+                    validator: FormValidators.anio,
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -243,13 +242,7 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
                     controller: _anoController,
                     keyboardType: TextInputType.number,
                     decoration: _inputDecoration('Año calendario', icon: Icons.calendar_today),
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'El año es requerido';
-                      final year = int.tryParse(v);
-                      if (year == null) return 'Ingrese un año válido';
-                      if (year < 2020 || year > 2030) return 'El año debe estar entre 2020 y 2030';
-                      return null;
-                    },
+                    validator: FormValidators.anio,
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -321,6 +314,15 @@ class _CarpetaFormScreenState extends State<CarpetaFormScreen> {
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: Colors.blue.shade500, width: 2),
       ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.red.shade600, width: 2),
+      ),
+      errorStyle: TextStyle(color: Colors.red.shade700, fontSize: 13),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       filled: true,
       fillColor: Colors.white,

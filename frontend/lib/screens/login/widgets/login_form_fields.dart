@@ -83,7 +83,15 @@ class LoginTextField extends StatelessWidget {
                 width: 2,
               ),
             ),
-            errorStyle: const TextStyle(color: Colors.redAccent),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade600, width: 2),
+            ),
+            errorStyle: TextStyle(color: Colors.red.shade700, fontSize: 13),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 16,

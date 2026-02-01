@@ -32,6 +32,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _selectedIndex = 0;
   bool _isSidebarCollapsed = false;
+  bool _showNavSplash = false;
+  int? _pendingNavIndex;
   late AnimationController _fabController;
   late Animation<double> _fabAnimation;
 
@@ -187,13 +189,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _onItemSelected(int index) {
+    if (index == _selectedIndex) return;
     setState(() {
-      _selectedIndex = index;
-      if (index == 0) {
-        _fabController.forward();
-      } else {
-        _fabController.reverse();
-      }
+      _showNavSplash = true;
+      _pendingNavIndex = index;
+    });
+    Future.delayed(const Duration(milliseconds: 280), () {
+      if (!mounted) return;
+      final newIndex = _pendingNavIndex ?? index;
+      setState(() {
+        _selectedIndex = newIndex;
+        _showNavSplash = false;
+        _pendingNavIndex = null;
+        if (newIndex == 0) {
+          _fabController.forward();
+        } else {
+          _fabController.reverse();
+        }
+      });
     });
   }
 
@@ -216,13 +229,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               navItems: _navItems,
             ),
           Expanded(
-            child: Scaffold(
-              extendBodyBehindAppBar: true,
-              appBar: _buildAppBar(theme, isDesktop),
-              body: _buildBody(theme),
-              floatingActionButton: null, // Eliminado - cada pantalla maneja su propio FAB
-              bottomNavigationBar:
-                  !isDesktop && !isTablet ? _buildBottomNav(theme) : null,
+            child: Stack(
+              children: [
+                Scaffold(
+                  extendBodyBehindAppBar: true,
+                  appBar: _buildAppBar(theme, isDesktop),
+                  body: _buildBody(theme),
+                  floatingActionButton: null,
+                  bottomNavigationBar:
+                      !isDesktop && !isTablet ? _buildBottomNav(theme) : null,
+                ),
+                if (_showNavSplash) _buildNavSplashOverlay(theme),
+              ],
             ),
           ),
         ],
@@ -333,6 +351,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             color: theme.colorScheme.primary,
             letterSpacing: 1.1,
           ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
         Text(
           label,
@@ -341,6 +361,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             fontWeight: FontWeight.bold,
             color: theme.colorScheme.onSurface,
           ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
       ],
     );
@@ -486,6 +508,44 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildNavSplashOverlay(ThemeData theme) {
+    return Positioned.fill(
+      child: Material(
+        color: theme.colorScheme.surface.withOpacity(0.92),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.description_rounded,
+                size: 48,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Cargando...',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

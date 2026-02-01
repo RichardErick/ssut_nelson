@@ -123,6 +123,34 @@ public class AuthController : ControllerBase
         return $"pbkdf2${iterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
     }
 
+    /// <summary>
+    /// Reinicia el contador de intentos fallidos al abrir/reiniciar la app. La app llama con el usuario del formulario (p. ej. Recordarme).
+    /// </summary>
+    [HttpPost("reset-intentos")]
+    public async Task<ActionResult> ResetIntentos([FromBody] ResetIntentosRequest dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto?.Username))
+            return Ok(new { reset = false, message = "Sin usuario" });
+
+        var usernameOrEmail = dto.Username.Trim();
+        var usuario = await _context.Usuarios
+            .FirstOrDefaultAsync(u => u.NombreUsuario == usernameOrEmail || u.Email == usernameOrEmail);
+        if (usuario == null)
+            return Ok(new { reset = false });
+
+        usuario.IntentosFallidos = 0;
+        usuario.FechaActualizacion = DateTime.UtcNow;
+        try
+        {
+            await _context.SaveChangesAsync();
+            return Ok(new { reset = true });
+        }
+        catch (DbUpdateException)
+        {
+            return Ok(new { reset = false });
+        }
+    }
+
     [HttpPost("login")]
     public async Task<ActionResult> Login([FromBody] LoginRequest dto)
     {
@@ -158,53 +186,51 @@ public class AuthController : ControllerBase
 
         if (!VerifyPassword(dto.Password, usuario.PasswordHash))
         {
-            usuario.IntentosFallidos += 1;
-            usuario.FechaActualizacion = DateTime.UtcNow;
-
             const int maxAttempts = 3;
-            
-            if (usuario.IntentosFallidos >= maxAttempts)
-            {
-                // Bloquear por 30 minutos
-                usuario.BloqueadoHasta = DateTime.UtcNow.AddMinutes(30);
-                
-                try
-                {
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateException ex)
-                {
-                    return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error actualizando estado de bloqueo.", error = ex.Message });
-                }
+            const int lockoutMinutes = 10;
+            var now = DateTime.UtcNow;
+            var userId = usuario.Id;
 
-                return StatusCode(423, new 
-                { 
-                    message = "Se ha excedido el número máximo de intentos. Su cuenta ha sido bloqueada temporalmente por 30 minutos.",
-                    remainingSeconds = 30 * 60
+            // Si el bloqueo ya expiró, dar 3 intentos nuevos (reiniciar contador)
+            if (usuario.BloqueadoHasta.HasValue && usuario.BloqueadoHasta.Value <= now)
+            {
+                await _context.Database.ExecuteSqlRawAsync(
+                    "UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL, fecha_actualizacion = {0} WHERE id = {1}",
+                    now, userId);
+            }
+
+            // Incremento atómico en BD para que los intentos se persistan correctamente
+            await _context.Database.ExecuteSqlRawAsync(
+                "UPDATE usuarios SET intentos_fallidos = intentos_fallidos + 1, fecha_actualizacion = {0} WHERE id = {1}",
+                now, userId);
+
+            // Recargar usuario desde BD para obtener el valor actualizado de intentos_fallidos
+            var usuarioActualizado = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+            var intentosActuales = usuarioActualizado?.IntentosFallidos ?? 1;
+
+            if (intentosActuales >= maxAttempts)
+            {
+                var bloqueadoHasta = now.AddMinutes(lockoutMinutes);
+                await _context.Database.ExecuteSqlRawAsync(
+                    "UPDATE usuarios SET bloqueado_hasta = {0}, fecha_actualizacion = {1} WHERE id = {2}",
+                    bloqueadoHasta, now, userId);
+
+                return StatusCode(423, new
+                {
+                    message = $"Se ha excedido el número máximo de intentos. Cuenta bloqueada temporalmente por {lockoutMinutes} minutos.",
+                    remainingSeconds = lockoutMinutes * 60
                 });
             }
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    message = "Error actualizando intentos fallidos en BD.",
-                    error = ex.Message
-                });
-            }
-
-            // Aquí el usuario pide "borrar esa validación", pero no podemos permitir entrar con contraseña mal.
-            // Lo más probable es que quiera que se note que se está bloqueando.
-            // Retornamos Unauthorized pero con el contador.
+            var remaining = maxAttempts - intentosActuales;
+            string message = remaining == 1
+                ? "Credenciales inválidas. Le queda 1 intento antes del bloqueo temporal. ¡Precaución!"
+                : $"Credenciales inválidas. Le quedan {remaining} intentos antes del bloqueo temporal.";
             return Unauthorized(new
             {
-                message = "Credenciales inválidas. Tenga cuidado, su cuenta se bloqueará si excede los intentos.",
-                failedAttempts = usuario.IntentosFallidos,
-                remainingAttempts = maxAttempts - usuario.IntentosFallidos
+                message,
+                failedAttempts = intentosActuales,
+                remainingAttempts = remaining
             });
         }
 
@@ -430,4 +456,9 @@ public class LoginRequest
 {
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+}
+
+public class ResetIntentosRequest
+{
+    public string? Username { get; set; }
 }

@@ -67,11 +67,22 @@ public class MovimientosController : ControllerBase
     [HttpPost("devolver")]
     public async Task<ActionResult<MovimientoDTO>> DevolverDocumento([FromBody] DevolverDocumentoDTO dto)
     {
-        var movimiento = await _movimientoService.DevolverDocumentoAsync(dto);
-        if (movimiento == null)
-            return BadRequest(new { message = "No se pudo procesar la devolución" });
+        if (dto == null || dto.MovimientoId <= 0)
+            return BadRequest(new { message = "Movimiento no válido" });
 
-        return Ok(movimiento);
+        try
+        {
+            var movimiento = await _movimientoService.DevolverDocumentoAsync(dto);
+            if (movimiento == null)
+                return BadRequest(new { message = "No se pudo procesar la devolución. Verifique que el movimiento exista y esté en estado Activo." });
+
+            return Ok(movimiento);
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, new { message = "Error al procesar la devolución.", error = msg });
+        }
     }
 }
 

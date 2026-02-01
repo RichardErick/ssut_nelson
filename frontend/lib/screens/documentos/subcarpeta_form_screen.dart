@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/carpeta.dart';
+import '../../utils/form_validators.dart';
 import '../../providers/data_provider.dart';
 import '../../services/carpeta_service.dart';
 
@@ -78,13 +79,26 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
           ? int.tryParse(_rangoFinController.text) 
           : null;
 
-      // Validar que si se ingresa rango, ambos campos estén completos
       if ((rInicio != null && rFin == null) || (rInicio == null && rFin != null)) {
-        throw Exception('Debe especificar tanto Rango Inicio como Rango Fin, o dejar ambos vacíos.');
+        _mostrarDialogoError(
+          'Rango incompleto',
+          'Debe completar ambos campos (Límite Inicio y Límite Fin) o dejar ambos vacíos.',
+          Icons.format_list_numbered,
+          Colors.orange,
+        );
+        setState(() => _isLoading = false);
+        return;
       }
 
       if (rInicio != null && rFin != null && rInicio > rFin) {
-        throw Exception('El Rango Inicio no puede ser mayor que el Rango Fin.');
+        _mostrarDialogoError(
+          'Rango inválido',
+          'El límite de inicio no puede ser mayor que el límite fin. Corrija los valores.',
+          Icons.warning_amber_rounded,
+          Colors.orange,
+        );
+        setState(() => _isLoading = false);
+        return;
       }
 
       // Obtener la gestión de la carpeta padre
@@ -145,10 +159,9 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
             Colors.grey,
           );
         } else {
-          // Error genérico
           _mostrarDialogoError(
-            'Error al Crear Subcarpeta',
-            'Ocurrió un error inesperado:\n${errorMessage.replaceAll("Exception:", "").trim()}',
+            'No se pudo crear la subcarpeta',
+            'Revise los datos e intente de nuevo. Si el problema continúa, contacte al administrador.',
             Icons.error_outline_rounded,
             Colors.red,
           );
@@ -381,7 +394,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                           controller: _nombreController,
                           icon: Icons.folder,
                           hint: 'Ej: Rango 1-50, Subcarpeta A, Documentos Enero',
-                          validator: (v) => v == null || v.isEmpty ? 'El nombre es requerido' : null,
+                          validator: (v) => v == null || v.trim().isEmpty ? FormValidators.requerido : null,
                         ),
                         
                         const SizedBox(height: 24),
@@ -566,8 +579,13 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.red.shade400),
+              borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
             ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade600, width: 2),
+            ),
+            errorStyle: TextStyle(color: Colors.red.shade700, fontSize: 13),
             contentPadding: EdgeInsets.symmetric(
               horizontal: 16, 
               vertical: maxLines > 1 ? 16 : 16,

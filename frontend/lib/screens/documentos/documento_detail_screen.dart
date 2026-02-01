@@ -15,10 +15,12 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../models/anexo.dart';
 import '../../models/documento.dart';
+import '../../models/movimiento.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/data_provider.dart';
 import '../../services/anexo_service.dart';
 import '../../services/documento_service.dart';
+import '../../services/movimiento_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/animated_card.dart';
@@ -41,6 +43,9 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   Uint8List? _previewPdfBytes;
   String? _previewFileName;
   bool _anexosLoaded = false;
+  bool _pdfPreviewError = false;
+  List<Movimiento> _movimientos = [];
+  bool _movimientosLoaded = false;
 
   @override
   void initState() {
@@ -73,6 +78,20 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     if (!_anexosLoaded) {
       _anexosLoaded = true;
       _loadAnexos();
+    }
+    if (!_movimientosLoaded) {
+      _movimientosLoaded = true;
+      _loadMovimientos();
+    }
+  }
+
+  Future<void> _loadMovimientos() async {
+    try {
+      final service = Provider.of<MovimientoService>(context, listen: false);
+      final list = await service.getByDocumentoId(widget.documento.id);
+      if (mounted) setState(() => _movimientos = list);
+    } catch (_) {
+      if (mounted) setState(() => _movimientos = []);
     }
   }
 
@@ -264,7 +283,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     return AnimatedCard(
       delay: const Duration(milliseconds: 0),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
@@ -277,11 +296,12 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -291,61 +311,61 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                         AppTheme.colorSecundario.withOpacity(0.8),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(
                     Icons.description_rounded,
                     color: Colors.white,
-                    size: 24,
+                    size: 22,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         doc.codigo,
                         style: GoogleFonts.poppins(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: theme.colorScheme.primary,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                       Text(
                         doc.tipoDocumentoNombre ?? 'TIPO NO DEFINIDO',
                         style: GoogleFonts.inter(
-                          fontSize: 12,
+                          fontSize: 11,
                           color: Colors.grey.shade600,
                           fontWeight: FontWeight.w600,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildConfidentialityBadge(doc.nivelConfidencialidad),
-                        const SizedBox(width: 8),
-                        _buildStatusChip(doc.estado),
-                      ],
-                    ),
+                    _buildConfidentialityBadge(doc.nivelConfidencialidad),
+                    const SizedBox(width: 6),
+                    _buildStatusChip(doc.estado),
                   ],
                 ),
               ],
             ),
-            const Divider(height: 24, thickness: 1),
+            const Divider(height: 20, thickness: 1),
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 4.5,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 16,
+              childAspectRatio: 3.6,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 12,
               children: [
                 _buildMiniInfo(
                   'Número Correlativo',
@@ -458,7 +478,69 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   }
 
   Widget _buildRightColumn(ThemeData theme) {
+    final hasAnexos = _anexos.isNotEmpty;
     final hasPreview = _previewPdfBytes != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasAnexos) ...[
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.visibility_rounded,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'VISUALIZACIÓN',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.0,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          hasPreview
+              ? _buildPdfPreview(theme)
+              : _buildPdfLoadingPlaceholder(theme),
+          const SizedBox(height: 16),
+        ] else ...[
+          TextButton.icon(
+            onPressed: _isUploadingAnexo ? null : _pickAndUploadAnexo,
+            icon: Icon(
+              Icons.add_circle_outline,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            label: Text(
+              'Añadir PDF',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        _buildQrCard(widget.documento, theme),
+        const SizedBox(height: 24),
+        _buildHistorialMovimientos(theme),
+      ],
+    );
+  }
+
+  Widget _buildHistorialMovimientos(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -470,31 +552,205 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                 color: theme.colorScheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                Icons.visibility_rounded,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
+              child: Icon(Icons.history_rounded, size: 20, color: theme.colorScheme.primary),
             ),
             const SizedBox(width: 12),
             Text(
-              'VISUALIZACIÓN',
+              'HISTORIAL DE MOVIMIENTOS',
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.0,
-                color: Colors.black87,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        hasPreview
-            ? _buildPdfPreview(theme)
-            : _buildAttachDocumentPlaceholder(theme),
-        const SizedBox(height: 16),
-        _buildQrCard(widget.documento, theme),
+        const SizedBox(height: 12),
+        if (_movimientos.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+            ),
+            child: Text(
+              'No hay movimientos registrados para este documento.',
+              style: GoogleFonts.inter(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+            ),
+          )
+        else
+          ..._movimientos.take(10).map((m) => _buildMovimientoTile(m, theme)),
+        if (_movimientos.length > 10)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'Mostrando los últimos 10 de ${_movimientos.length} movimientos.',
+              style: GoogleFonts.inter(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
       ],
+    );
+  }
+
+  Widget _buildMovimientoTile(Movimiento m, ThemeData theme) {
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+    Color iconColor;
+    IconData icon;
+    switch (m.tipoMovimiento) {
+      case 'Entrada':
+        iconColor = Colors.green.shade600;
+        icon = Icons.arrow_downward_rounded;
+        break;
+      case 'Salida':
+        iconColor = Colors.orange.shade600;
+        icon = Icons.arrow_upward_rounded;
+        break;
+      default:
+        iconColor = theme.colorScheme.primary;
+        icon = Icons.swap_horiz_rounded;
+    }
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.15)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  m.tipoMovimiento,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+                if (m.usuarioNombre != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Responsable: ${m.usuarioNombre}',
+                    style: GoogleFonts.inter(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ],
+                if (m.observaciones != null && m.observaciones!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    m.observaciones!,
+                    style: GoogleFonts.inter(fontSize: 11, fontStyle: FontStyle.italic, color: theme.colorScheme.onSurfaceVariant),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                const SizedBox(height: 4),
+                Text(
+                  dateFormat.format(m.fechaMovimiento),
+                  style: GoogleFonts.inter(fontSize: 11, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                ),
+                if (m.fechaDevolucion != null)
+                  Text(
+                    'Devuelto: ${dateFormat.format(m.fechaDevolucion!)}',
+                    style: GoogleFonts.inter(fontSize: 11, color: Colors.green.shade700),
+                  ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: m.estado == 'Devuelto' ? Colors.green.withOpacity(0.1) : theme.colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              m.estado,
+              style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Mientras se carga el PDF del anexo o si falló la carga.
+  Widget _buildPdfLoadingPlaceholder(ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+      ),
+      child: _pdfPreviewError
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline_rounded,
+                  size: 48,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No se pudo cargar el PDF',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Compruebe que el archivo existe en el servidor y vuelva a intentar.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextButton.icon(
+                  onPressed: _anexos.isEmpty
+                      ? null
+                      : () => _loadFirstPdfPreview(_anexos.first),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Reintentar'),
+                ),
+              ],
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Cargando PDF adjunto...',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -798,43 +1054,46 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     ThemeData theme,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.withOpacity(0.08)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: theme.colorScheme.primary.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 20, color: theme.colorScheme.primary),
+            child: Icon(icon, size: 18, color: theme.colorScheme.primary),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
                   style: GoogleFonts.inter(
-                    fontSize: 11,
+                    fontSize: 10,
                     color: Colors.grey.shade600,
                     fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Colors.black87,
                   ),
@@ -1956,22 +2215,23 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   }
 
   Future<void> _loadFirstPdfPreview(Anexo anexo) async {
+    if (!mounted) return;
+    setState(() => _pdfPreviewError = false);
     try {
-      print('DEBUG: Cargando preview del anexo: ${anexo.nombreArchivo}');
       final service = Provider.of<AnexoService>(context, listen: false);
       final pdfBytes = await service.descargarBytes(anexo.id);
 
-      if (mounted && pdfBytes != null) {
+      if (mounted && pdfBytes.isNotEmpty) {
         setState(() {
           _previewPdfBytes = pdfBytes;
           _previewFileName = anexo.nombreArchivo;
+          _pdfPreviewError = false;
         });
-        print(
-          'DEBUG: Preview cargado exitosamente para: ${anexo.nombreArchivo}',
-        );
+      } else if (mounted) {
+        setState(() => _pdfPreviewError = true);
       }
     } catch (e) {
-      print('DEBUG: Error cargando preview: $e');
+      if (mounted) setState(() => _pdfPreviewError = true);
     }
   }
 

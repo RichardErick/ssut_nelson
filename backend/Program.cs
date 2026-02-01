@@ -56,13 +56,14 @@ builder.Services.AddCors(options =>
             policy.SetIsOriginAllowed(_ => true) // Permitir todos los orígenes en desarrollo
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowCredentials()
+            .WithExposedHeaders("Content-Disposition", "Content-Length");
         });
 });
 
 // Configuramos Postgres
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-            ?? "Host=localhost;Database=ssut_gestion_documental;Username=postgres;Password=nel7243159";
+            ?? "Host=localhost;Database=ssut_gestion_documental;Username=postgres;Password=admin";
 
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         // MapEnum eliminado ya que guardamos el estado como string
@@ -124,6 +125,23 @@ if (!app.Environment.IsDevelopment())
 
 // CORS debe estar ANTES de cualquier otro middleware que pueda fallar
 app.UseCors("AllowFlutterApp");
+
+// Asegurar cabeceras CORS en TODAS las respuestas (incl. File/bytes) para evitar bloqueo en Flutter Web
+app.Use(async (context, next) =>
+{
+    var origin = context.Request.Headers["Origin"].ToString();
+    context.Response.OnStarting(() =>
+    {
+        if (string.IsNullOrWhiteSpace(origin)) return Task.CompletedTask;
+        if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
+        {
+            context.Response.Headers["Access-Control-Allow-Origin"] = origin;
+            context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+        }
+        return Task.CompletedTask;
+    });
+    await next();
+});
 
 // Middleware de manejo de errores global DESPUÉS de CORS
 app.Use(async (context, next) =>
@@ -292,6 +310,28 @@ END $cleanup$;";
                 db.Database.ExecuteSqlRaw(fixSql);
             } catch (Exception ex) {
                 logger.LogWarning("No se pudo ejecutar el script de corrección de tipos: {Message}", ex.Message);
+            }
+            // Asegurar columnas rango_inicio/rango_fin en carpetas (evita 500 al crear subcarpetas)
+            try
+            {
+                const string carpetasRangoSql = @"
+DO $r1$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'carpetas' AND column_name = 'rango_inicio') THEN
+        ALTER TABLE carpetas ADD COLUMN rango_inicio INTEGER;
+    END IF;
+END $r1$;
+DO $r2$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'carpetas' AND column_name = 'rango_fin') THEN
+        ALTER TABLE carpetas ADD COLUMN rango_fin INTEGER;
+    END IF;
+END $r2$;";
+                db.Database.ExecuteSqlRaw(carpetasRangoSql);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Migración carpetas (rango_inicio/rango_fin): {Message}", ex.Message);
             }
         }
         //aqui no deberia entrar nunca

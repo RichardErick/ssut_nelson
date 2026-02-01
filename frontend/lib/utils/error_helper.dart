@@ -84,10 +84,12 @@ class ErrorHelper {
         final statusCode = error.response?.statusCode;
         final responseData = error.response?.data;
 
-        // Intentar extraer el mensaje del cuerpo de la respuesta
+        // Intentar extraer el mensaje y detalle del cuerpo de la respuesta
         String? serverMessage;
+        String? serverError;
         if (responseData is Map<String, dynamic>) {
           serverMessage = responseData['message'] as String?;
+          serverError = responseData['error'] as String?;
         }
 
         if (serverMessage != null && serverMessage.isNotEmpty) {
@@ -98,7 +100,9 @@ class ErrorHelper {
 
         // Mensajes específicos por código de estado
         if (statusCode == 400) {
-          return 'Solicitud inválida. Verifique los datos ingresados.';
+          return serverMessage?.isNotEmpty == true
+              ? serverMessage!
+              : 'Solicitud inválida. Verifique los datos ingresados.';
         }
         if (statusCode == 401) {
           return serverMessage ??
@@ -115,7 +119,14 @@ class ErrorHelper {
               'Cuenta bloqueada temporalmente por exceso de intentos.';
         }
         if (statusCode == 500) {
-          return 'Error del servidor. Por favor, intente más tarde.';
+          if (serverError != null && serverError.isNotEmpty) {
+            final msg = serverMessage?.isNotEmpty == true ? serverMessage! : 'Error del servidor.';
+            final detail = serverError.length > 80 ? '${serverError.substring(0, 80)}...' : serverError;
+            return '$msg $detail';
+          }
+          return serverMessage?.isNotEmpty == true
+              ? serverMessage!
+              : 'Error del servidor. Por favor, intente más tarde.';
         }
         return 'Error del servidor (${statusCode ?? 'desconocido'}). Por favor, intente nuevamente.';
 

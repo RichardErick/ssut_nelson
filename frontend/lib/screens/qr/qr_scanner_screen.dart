@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
@@ -282,45 +283,51 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     await _buscarPorCodigo(codigo);
   }
 
+  /// Selecciona foto (galería) o archivo (imagen/PDF). Foto o imagen → extrae QR. PDF → indica cómo usar captura.
   Future<void> _buscarDesdeImagen() async {
     final picker = ImagePicker();
     final file = await picker.pickImage(source: ImageSource.gallery);
     if (file == null) return;
+    await _procesarBytesComoImagenOPdf(await file.readAsBytes());
+  }
 
+  /// Permite elegir cualquier archivo: imagen (jpg, png, etc.) o PDF. Reconoce foto, PDF y código.
+  Future<void> _buscarDesdeArchivo() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.single;
+    final bytes = file.bytes;
+    if (bytes == null || bytes.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('No se pudo leer el archivo. Pruebe con otro.'),
+            backgroundColor: Colors.orange.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+    await _procesarBytesComoImagenOPdf(bytes);
+  }
+
+  Future<void> _procesarBytesComoImagenOPdf(Uint8List bytes) async {
     setState(() => _isSearching = true);
     try {
-      final bytes = await file.readAsBytes();
-
-      // Verificar si es un PDF
-      if (bytes.length > 4 &&
+      final esPdf = bytes.length > 4 &&
           bytes[0] == 0x25 &&
           bytes[1] == 0x50 &&
           bytes[2] == 0x44 &&
-          bytes[3] == 0x46) {
+          bytes[3] == 0x46;
+
+      if (esPdf) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.white),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Archivo PDF detectado. Para leer QR de PDFs, abra el PDF y tome una captura de pantalla del código QR, luego seleccione esa imagen.',
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.blue.shade700,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              duration: const Duration(seconds: 6),
-            ),
-          );
+          _mostrarMensajePdf();
         }
         return;
       }
@@ -338,8 +345,8 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'No se pudo leer un QR en la imagen. Asegúrese de que:\n• La imagen sea clara y bien iluminada\n• El código QR esté completo y visible\n• No sea un archivo PDF',
-                    maxLines: 4,
+                    'No se encontró un código QR en la imagen. Use una foto clara del QR o escriba el código abajo.',
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -372,7 +379,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error leyendo QR: $e'),
+            content: Text('Error leyendo archivo: ${ErrorHelper.getErrorMessage(e)}'),
             backgroundColor: Colors.red.shade600,
             behavior: SnackBarBehavior.floating,
           ),
@@ -383,6 +390,46 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         setState(() => _isSearching = false);
       }
     }
+  }
+
+  void _mostrarMensajePdf() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.picture_as_pdf_rounded, color: Colors.blue.shade700),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Buscar por PDF')),
+          ],
+        ),
+        content: const SingleChildScrollView(
+          child: Text(
+            'Para buscar un documento usando un PDF con código QR:\n\n'
+            '1. Abra el PDF en su visor.\n'
+            '2. Tome una captura de pantalla de la página donde está el código QR.\n'
+            '3. Pulse "Foto o archivo" y seleccione esa captura (imagen).\n\n'
+            'También puede escribir o pegar el código del documento en el cuadro de búsqueda.',
+            style: TextStyle(height: 1.4),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _buscarDesdeImagen();
+            },
+            icon: const Icon(Icons.photo_library_rounded, size: 20),
+            label: const Text('Seleccionar imagen'),
+          ),
+        ],
+      ),
+    );
   }
 
   String? _extraerQrDeBytes(Uint8List bytes) {
@@ -561,18 +608,18 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                       ),
                       const SizedBox(height: 32),
                       const Text(
-                        'Búsqueda por Código QR',
+                        'Búsqueda por código, foto o PDF',
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Ingrese el código QR del documento o pegue un link compartible para buscarlo rápidamente',
+                        'Escriba el código, pegue un link o suba una foto/PDF del QR para encontrar el documento',
                         style: TextStyle(
                           color: Colors.grey.shade600,
-                          fontSize: 16,
+                          fontSize: 15,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -618,9 +665,9 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          onPressed: _isSearching ? null : _buscarDesdeImagen,
+                          onPressed: _isSearching ? null : _buscarDesdeArchivo,
                           icon: const Icon(Icons.photo_library_rounded),
-                          label: const Text('Adjuntar foto QR'),
+                          label: const Text('Foto, PDF o archivo'),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
@@ -629,14 +676,23 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                           ),
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton.icon(
+                          onPressed: _isSearching ? null : _buscarDesdeImagen,
+                          icon: const Icon(Icons.image_rounded, size: 20),
+                          label: const Text('Solo imagen (galería)'),
+                        ),
+                      ),
                       const SizedBox(height: 24),
                       // Campo de entrada
                       TextField(
                         controller: _qrCodeController,
                         decoration: InputDecoration(
-                          labelText: 'Código QR o Link Compartible',
+                          labelText: 'Código o link del documento',
                           hintText:
-                              'Pegue el código QR o link del documento aquí',
+                              'Escriba o pegue el código, link compartible o URL',
                           prefixIcon: Container(
                             margin: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -746,7 +802,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Text(
-                                    'Instrucciones para usar códigos QR',
+                                    'Reconocimiento: código, foto o PDF',
                                     style: TextStyle(
                                       color: Colors.blue.shade900,
                                       fontSize: 16,
@@ -758,10 +814,9 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              '• Para archivos PDF: Abra el PDF, tome una captura de pantalla del QR y seleccione esa imagen\n'
-                              '• Para imágenes PNG/JPG: Seleccione directamente la imagen del QR\n'
-                              '• También puede copiar y pegar el código QR manualmente\n'
-                              '• Los links compartibles (DOC-SHARE:...) funcionan directamente',
+                              '• Código: escriba o pegue el código del documento o un link (DOC-SHARE:...)\n'
+                              '• Foto: seleccione una imagen (PNG/JPG) que contenga el código QR\n'
+                              '• PDF: use "Foto, PDF o archivo"; si elige un PDF, se le indicará cómo usar una captura del QR',
                               style: TextStyle(
                                 color: Colors.blue.shade800,
                                 fontSize: 13,

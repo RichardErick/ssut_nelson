@@ -119,14 +119,15 @@ public class MovimientoService : IMovimientoService
 
         await _context.SaveChangesAsync();
 
-        // Registrar movimiento de entrada
+        // Registrar movimiento de entrada (devolución)
         var movimientoEntrada = new Movimiento
         {
             DocumentoId = movimiento.DocumentoId,
             TipoMovimiento = "Entrada",
             AreaOrigenId = movimiento.AreaDestinoId,
             AreaDestinoId = movimiento.AreaOrigenId,
-            Observaciones = "Devolución de documento",
+            UsuarioId = movimiento.UsuarioId,
+            Observaciones = dto.Observaciones ?? "Devolución de documento",
             FechaMovimiento = DateTime.UtcNow,
             Estado = "Activo"
         };

@@ -67,12 +67,19 @@ class ApiService {
     }
   }
 
-  Future<Response> getBytes(String path, {Map<String, dynamic>? queryParameters}) async {
+  Future<Response> getBytes(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Duration? receiveTimeout,
+  }) async {
     try {
       return await _dio.get(
-        path, 
+        path,
         queryParameters: queryParameters,
-        options: Options(responseType: ResponseType.bytes),
+        options: Options(
+          responseType: ResponseType.bytes,
+          receiveTimeout: receiveTimeout,
+        ),
       );
     } catch (e) {
       rethrow;

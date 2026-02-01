@@ -51,6 +51,20 @@ class UsuarioService {
     }
   }
 
+  /// Rechazar solicitud de registro: borra la solicitud y deniega el registro (solo Admin).
+  Future<void> rechazarSolicitudRegistro(int id) async {
+    try {
+      final apiService = Provider.of<ApiService>(
+        navigatorKey.currentContext!,
+        listen: false,
+      );
+      await apiService.post('/usuarios/$id/rechazar');
+    } catch (e) {
+      print('Error al rechazar solicitud: $e');
+      rethrow;
+    }
+  }
+
   Future<Usuario> getById(int id) async {
     try {
       final apiService = Provider.of<ApiService>(

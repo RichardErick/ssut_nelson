@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaGestionDocumental.Data;
@@ -654,6 +655,12 @@ public class DocumentosController : ControllerBase
             query = query.Where(d => d.ResponsableId == filtros.ResponsableId.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(filtros.CodigoQR))
+        {
+            var qr = filtros.CodigoQR.Trim();
+            query = query.Where(d => d.CodigoQR != null && d.CodigoQR.Contains(qr));
+        }
+
         if (filtros.CarpetaId.HasValue)
         {
             query = query.Where(d => d.CarpetaId == filtros.CarpetaId.Value);
@@ -910,6 +917,7 @@ public class DocumentosController : ControllerBase
 
     // GET: api/documentos/anexos/{anexoId}/download
     [HttpGet("anexos/{anexoId}/download")]
+    [EnableCors("AllowFlutterApp")]
     public async Task<ActionResult> DescargarAnexo(int anexoId)
     {
         var anexo = await _context.Anexos.FirstOrDefaultAsync(a => a.Id == anexoId && a.Activo);
@@ -922,11 +930,31 @@ public class DocumentosController : ControllerBase
         var relativePath = anexo.UrlArchivo.Replace("/", Path.DirectorySeparatorChar.ToString());
         var fullPath = Path.Combine(_environment.ContentRootPath, relativePath);
         if (!System.IO.File.Exists(fullPath))
+        {
+            _logger.LogWarning("Anexo {AnexoId}: archivo no encontrado en {Path}", anexoId, fullPath);
             return NotFound(new { message = "No se encontro el archivo en el servidor" });
+        }
 
+        var extension = Path.GetExtension(anexo.NombreArchivo)?.ToLowerInvariant();
         var contentType = string.IsNullOrWhiteSpace(anexo.TipoContenido)
-            ? "application/octet-stream"
+            ? (extension == ".pdf" ? "application/pdf" : "application/octet-stream")
             : anexo.TipoContenido;
+
+        // Asegurar cabeceras CORS antes de enviar la respuesta (necesario para FileResult en cross-origin)
+        var origin = Request.Headers["Origin"].ToString();
+        Response.OnStarting(() =>
+        {
+            if (!string.IsNullOrWhiteSpace(origin))
+            {
+                Response.Headers["Access-Control-Allow-Origin"] = origin;
+                Response.Headers["Access-Control-Allow-Credentials"] = "true";
+            }
+            else
+            {
+                Response.Headers["Access-Control-Allow-Origin"] = "*";
+            }
+            return Task.CompletedTask;
+        });
 
         Response.Headers["Content-Disposition"] = $"inline; filename=\"{anexo.NombreArchivo}\"";
         var bytes = await System.IO.File.ReadAllBytesAsync(fullPath);

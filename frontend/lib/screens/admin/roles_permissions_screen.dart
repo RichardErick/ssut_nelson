@@ -786,13 +786,17 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                SizedBox(
-                  width: isDesktop ? 250 : double.infinity,
-                  child: DropdownButtonFormField<String?>(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final maxWidth = constraints.maxWidth;
+                final dropdownWidth = isDesktop ? 250.0 : (maxWidth > 0 ? maxWidth - 16 : 280.0);
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    SizedBox(
+                      width: dropdownWidth,
+                      child: DropdownButtonFormField<String?>(
                     value: _selectedRolFilter,
                     decoration: InputDecoration(
                       labelText: 'Filtrar por Rol',
@@ -805,17 +809,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                       ..._roles.map(
                         (rol) => DropdownMenuItem<String?>(
                           value: rol,
-                          child: Row(
-                            children: [
-                              Icon(_getRolIcon(rol), size: 18, color: _getRolColor(rol)),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _getRolDisplayName(rol),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            _getRolDisplayName(rol),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
                       ),
@@ -823,9 +820,9 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     onChanged: (value) => setState(() => _selectedRolFilter = value),
                   ),
                 ),
-                SizedBox(
-                  width: isDesktop ? 250 : double.infinity,
-                  child: DropdownButtonFormField<String?>(
+                    SizedBox(
+                      width: dropdownWidth,
+                      child: DropdownButtonFormField<String?>(
                     value: _selectedAreaFilter,
                     decoration: InputDecoration(
                       labelText: 'Filtrar por Área',
@@ -845,9 +842,9 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     onChanged: (value) => setState(() => _selectedAreaFilter = value),
                   ),
                 ),
-                SizedBox(
-                  width: isDesktop ? 200 : double.infinity,
-                  child: DropdownButtonFormField<bool?>(
+                    SizedBox(
+                      width: isDesktop ? 200.0 : dropdownWidth,
+                      child: DropdownButtonFormField<bool?>(
                     value: _selectedEstadoFilter,
                     decoration: InputDecoration(
                       labelText: 'Estado',
@@ -863,7 +860,9 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     onChanged: (value) => setState(() => _selectedEstadoFilter = value),
                   ),
                 ),
-              ],
+                  ],
+                );
+              },
             ),
             if (_usuariosFiltrados.length != _usuarios.length) ...[
               const SizedBox(height: 12),

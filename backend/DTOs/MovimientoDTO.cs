@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace SistemaGestionDocumental.DTOs;
 
 public class MovimientoDTO
@@ -30,7 +32,9 @@ public class CreateMovimientoDTO
 
 public class DevolverDocumentoDTO
 {
+    [JsonPropertyName("movimientoId")]
     public int MovimientoId { get; set; }
+    [JsonPropertyName("observaciones")]
     public string? Observaciones { get; set; }
 }
 
