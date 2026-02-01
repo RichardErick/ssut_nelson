@@ -37,30 +37,39 @@ class Carpeta {
     this.subcarpetas = const [],
   });
 
+  static int _intFromJson(Map<String, dynamic> json, String key, [String? keyPascal]) {
+    final v = json[key] ?? (keyPascal != null ? json[keyPascal] : null);
+    if (v == null) return 0;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v) ?? 0;
+    return 0;
+  }
+
   factory Carpeta.fromJson(Map<String, dynamic> json) {
-    final fechaCreacionRaw = json['fechaCreacion'];
+    final fechaCreacionRaw = json['fechaCreacion'] ?? json['FechaCreacion'];
     return Carpeta(
-      id: json['id'],
-      nombre: json['nombre'],
-      codigo: json['codigo'],
-      gestion: json['gestion']?.toString() ?? '',
-      descripcion: json['descripcion'],
-      carpetaPadreId: json['carpetaPadreId'],
-      carpetaPadreNombre: json['carpetaPadreNombre'],
-      activo: (json['activo'] ?? true) as bool,
+      id: json['id'] ?? json['Id'],
+      nombre: json['nombre']?.toString() ?? json['Nombre']?.toString() ?? '',
+      codigo: json['codigo']?.toString() ?? json['Codigo']?.toString(),
+      gestion: json['gestion']?.toString() ?? json['Gestion']?.toString() ?? '',
+      descripcion: json['descripcion']?.toString() ?? json['Descripcion']?.toString(),
+      carpetaPadreId: json['carpetaPadreId'] ?? json['CarpetaPadreId'],
+      carpetaPadreNombre: json['carpetaPadreNombre']?.toString() ?? json['CarpetaPadreNombre']?.toString(),
+      activo: (json['activo'] ?? json['Activo'] ?? true) as bool,
       fechaCreacion: fechaCreacionRaw != null
-          ? DateTime.parse(fechaCreacionRaw.toString())
+          ? DateTime.tryParse(fechaCreacionRaw.toString()) ?? DateTime.now()
           : DateTime.now(),
-      usuarioCreacionNombre: json['usuarioCreacionNombre'],
-      numeroSubcarpetas: json['numeroSubcarpetas'] ?? 0,
-      numeroDocumentos: json['numeroDocumentos'] ?? 0,
-      numeroCarpeta: json['numeroCarpeta'],
-      codigoRomano: json['codigoRomano'],
-      rangoInicio: json['rangoInicio'],
-      rangoFin: json['rangoFin'],
-      subcarpetas: json['subcarpetas'] != null
-          ? (json['subcarpetas'] as List)
-              .map((e) => Carpeta.fromJson(e))
+      usuarioCreacionNombre: json['usuarioCreacionNombre']?.toString() ?? json['UsuarioCreacionNombre']?.toString(),
+      numeroSubcarpetas: _intFromJson(json, 'numeroSubcarpetas', 'NumeroSubcarpetas'),
+      numeroDocumentos: _intFromJson(json, 'numeroDocumentos', 'NumeroDocumentos'),
+      numeroCarpeta: json['numeroCarpeta'] ?? json['NumeroCarpeta'],
+      codigoRomano: json['codigoRomano']?.toString() ?? json['CodigoRomano']?.toString(),
+      rangoInicio: json['rangoInicio'] ?? json['RangoInicio'],
+      rangoFin: json['rangoFin'] ?? json['RangoFin'],
+      subcarpetas: json['subcarpetas'] != null || json['Subcarpetas'] != null
+          ? ((json['subcarpetas'] ?? json['Subcarpetas']) as List)
+              .map((e) => Carpeta.fromJson(e as Map<String, dynamic>))
               .toList()
           : [],
     );

@@ -57,23 +57,32 @@ class Documento {
     this.palabrasClave = const [],
   });
 
+  static int? _parseInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v);
+    return null;
+  }
+
   factory Documento.fromJson(Map<String, dynamic> json) {
+    final v = (String key, [String? key2]) => json[key] ?? (key2 != null ? json[key2] : null);
     return Documento(
       id: json['id'],
-      idDocumento: json['idDocumento'] ?? '',
-      codigo: json['codigo'],
-      numeroCorrelativo: json['numeroCorrelativo'],
-      tipoDocumentoId: json['tipoDocumentoId'],
-      tipoDocumentoNombre: json['tipoDocumentoNombre'],
-      tipoDocumentoCodigo: json['tipoDocumentoCodigo'],
-      areaOrigenId: json['areaOrigenId'],
-      areaOrigenNombre: json['areaOrigenNombre'],
-      areaOrigenCodigo: json['areaOrigenCodigo'],
-      gestion: json['gestion'],
-      fechaDocumento: DateTime.parse(json['fechaDocumento']),
-      descripcion: json['descripcion'],
-      responsableId: json['responsableId'],
-      responsableNombre: json['responsableNombre'],
+      idDocumento: json['idDocumento'] ?? json['IdDocumento'] ?? '',
+      codigo: json['codigo'] ?? json['Codigo'] ?? '',
+      numeroCorrelativo: json['numeroCorrelativo'] ?? json['NumeroCorrelativo'] ?? '',
+      tipoDocumentoId: json['tipoDocumentoId'] ?? json['TipoDocumentoId'],
+      tipoDocumentoNombre: json['tipoDocumentoNombre'] ?? json['TipoDocumentoNombre'],
+      tipoDocumentoCodigo: json['tipoDocumentoCodigo'] ?? json['TipoDocumentoCodigo'],
+      areaOrigenId: json['areaOrigenId'] ?? json['AreaOrigenId'],
+      areaOrigenNombre: json['areaOrigenNombre'] ?? json['AreaOrigenNombre'],
+      areaOrigenCodigo: json['areaOrigenCodigo'] ?? json['AreaOrigenCodigo'],
+      gestion: json['gestion'] ?? json['Gestion'] ?? '',
+      fechaDocumento: DateTime.tryParse((json['fechaDocumento'] ?? json['FechaDocumento'] ?? '').toString()) ?? DateTime.now(),
+      descripcion: json['descripcion'] ?? json['Descripcion'],
+      responsableId: _parseInt(v('responsableId', 'ResponsableId')),
+      responsableNombre: json['responsableNombre']?.toString() ?? json['ResponsableNombre']?.toString(),
       codigoQR: json['codigoQR'],
       urlQR: json['urlQR'],
       ubicacionFisica: json['ubicacionFisica'],
@@ -84,8 +93,8 @@ class Documento {
       fechaActualizacion: json['fechaActualizacion'] != null 
           ? DateTime.parse(json['fechaActualizacion']) 
           : DateTime.parse(json['fechaRegistro']),
-      carpetaId: json['carpetaId'],
-      carpetaNombre: json['carpetaNombre'],
+      carpetaId: _parseInt(v('carpetaId', 'CarpetaId')),
+      carpetaNombre: json['carpetaNombre']?.toString() ?? json['CarpetaNombre']?.toString(),
       carpetaPadreNombre: json['carpetaPadreNombre'],
       palabrasClave: json['palabrasClave'] != null 
           ? List<String>.from(json['palabrasClave']) 

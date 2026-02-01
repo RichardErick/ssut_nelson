@@ -1,6 +1,13 @@
 # Resolver conflictos de merge (git pull)
 
-Cuando `git pull` dice **CONFLICT (content)** en algunos archivos:
+Cuando `git pull` dice **CONFLICT (content)** en algunos archivos, tienes que elegir qué versión queda en cada archivo.
+
+- **Quieres conservar los cambios hechos en tu máquina** (config, arreglos, por si no se subió bien) → usa la opción **"Conservar mis cambios"** más abajo.
+- **Quieres quedarte con lo que está en el repo** → usa la opción **"Quedarse con la versión del repo"**.
+
+---
+
+## Resolver a mano (elegir por archivo)
 
 1. Abre cada archivo que indique Git (ej. `frontend/COMO_HACER_GIT_PULL.md`, `frontend/lib/main.dart`, `frontend/lib/screens/notifications_screen.dart`).
 
@@ -21,6 +28,23 @@ Cuando `git pull` dice **CONFLICT (content)** en algunos archivos:
    git add frontend/COMO_HACER_GIT_PULL.md frontend/lib/main.dart frontend/lib/screens/notifications_screen.dart
    git commit -m "Resolviendo conflictos de merge"
    ```
+
+---
+
+## Opción rápida: conservar MIS cambios (versión de tu máquina)
+
+Si quieres **mantener lo que tienes en tu PC** (por si no se subió bien o son config/arreglos tuyos), en los archivos en conflicto usa **`--ours`** (tu versión):
+
+```powershell
+git checkout --ours frontend/COMO_HACER_GIT_PULL.md
+git checkout --ours frontend/lib/main.dart
+git checkout --ours frontend/lib/screens/notifications_screen.dart
+git add frontend/COMO_HACER_GIT_PULL.md frontend/lib/main.dart frontend/lib/screens/notifications_screen.dart
+git commit -m "Resolviendo conflictos: conservar versión local"
+```
+
+Después, si quieres que ese código esté también en el repo, haz **push** (si tienes permiso):  
+`git push origin main`.
 
 ---
 

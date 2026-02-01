@@ -47,12 +47,16 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
 
-  // Búsqueda avanzada: fecha, responsable, código QR
+  // Búsqueda avanzada: fecha, responsable, código QR (para vista documentos)
   DateTime? _fechaDesdeFilter;
   DateTime? _fechaHastaFilter;
   int? _responsableIdFilter;
   String _codigoQrFilter = '';
   final TextEditingController _codigoQrFilterController = TextEditingController();
+
+  /// Filtro por gestión en la vista Carpetas (solo aplica cuando _carpetaSeleccionada == null).
+  String? _gestionFilterCarpetas;
+  static const List<String> _gestionesCarpetas = ['2024', '2025', '2026'];
 
   @override
   bool get wantKeepAlive => true;
@@ -250,11 +254,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }
   }
 
-  /// Carpetas filtradas por búsqueda en tiempo real (nombre, código, gestión).
+  /// Carpetas filtradas por búsqueda y por gestión (vista Carpetas).
   List<Carpeta> get _carpetasFiltradas {
-    if (_consultaBusqueda.trim().isEmpty) return _carpetas;
+    var list = _carpetas;
+    if (_gestionFilterCarpetas != null && _gestionFilterCarpetas!.isNotEmpty) {
+      list = list.where((c) => c.gestion == _gestionFilterCarpetas).toList();
+    }
+    if (_consultaBusqueda.trim().isEmpty) return list;
     final query = _consultaBusqueda.toLowerCase().trim();
-    return _carpetas.where((c) {
+    return list.where((c) {
       return (c.nombre.toLowerCase().contains(query)) ||
           (c.codigo?.toLowerCase().contains(query) ?? false) ||
           (c.gestion.toLowerCase().contains(query));
@@ -1644,6 +1652,29 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
+  void _abrirFiltroCarpetas(ThemeData theme) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) => _DialogFiltroCarpetas(
+        gestionActual: _gestionFilterCarpetas,
+        gestiones: _gestionesCarpetas,
+        onAplicar: (gestion) {
+          setState(() => _gestionFilterCarpetas = gestion);
+          Navigator.pop(ctx);
+        },
+        onLimpiar: () {
+          setState(() {
+            _gestionFilterCarpetas = null;
+            _consultaBusqueda = '';
+            _searchController.clear();
+          });
+          Navigator.pop(ctx);
+        },
+      ),
+    );
+  }
+
   bool get _tieneFiltrosAvanzados =>
       _fechaDesdeFilter != null ||
       _fechaHastaFilter != null ||
@@ -1671,7 +1702,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 _responsableIdFilter = responsableId;
                 _codigoQrFilter = codigoQr;
               });
-              Navigator.pop(context);
+              if (context.mounted) Navigator.pop(context);
             },
             onLimpiar: () {
               setState(() {
@@ -1680,8 +1711,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 _responsableIdFilter = null;
                 _codigoQrFilter = '';
                 _codigoQrFilterController.clear();
+                _consultaBusqueda = '';
+                _searchController.clear();
+                _filtroSeleccionado = 'todos';
               });
-              Navigator.pop(context);
+              if (context.mounted) Navigator.pop(context);
             },
           ),
         ),
@@ -1690,11 +1724,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Widget _buildFilterButton(ThemeData theme) {
+    final enVistaCarpetas = _carpetaSeleccionada == null;
+    final tieneFiltro = enVistaCarpetas
+        ? (_gestionFilterCarpetas != null || _consultaBusqueda.trim().isNotEmpty)
+        : _tieneFiltrosAvanzados;
     return Container(
       height: 54,
       width: 54,
       decoration: BoxDecoration(
-        color: _tieneFiltrosAvanzados
+        color: tieneFiltro
             ? theme.colorScheme.primary.withOpacity(0.25)
             : theme.colorScheme.primary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
@@ -1704,7 +1742,13 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           Icons.tune_rounded,
           color: theme.colorScheme.primary,
         ),
-        onPressed: () => _abrirBusquedaAvanzada(theme),
+        onPressed: () {
+          if (enVistaCarpetas) {
+            _abrirFiltroCarpetas(theme);
+          } else {
+            _abrirBusquedaAvanzada(theme);
+          }
+        },
       ),
     );
   }
@@ -2550,6 +2594,71 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       label: const Text('Nuevo Documento'),
       backgroundColor: Colors.blue.shade700,
       heroTag: 'fab_documento',
+    );
+  }
+}
+
+/// Diálogo para filtrar carpetas por gestión (vista Carpetas).
+class _DialogFiltroCarpetas extends StatefulWidget {
+  const _DialogFiltroCarpetas({
+    required this.gestionActual,
+    required this.gestiones,
+    required this.onAplicar,
+    required this.onLimpiar,
+  });
+
+  final String? gestionActual;
+  final List<String> gestiones;
+  final void Function(String? gestion) onAplicar;
+  final VoidCallback onLimpiar;
+
+  @override
+  State<_DialogFiltroCarpetas> createState() => _DialogFiltroCarpetasState();
+}
+
+class _DialogFiltroCarpetasState extends State<_DialogFiltroCarpetas> {
+  late String? _gestion;
+
+  @override
+  void initState() {
+    super.initState();
+    _gestion = widget.gestionActual;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Filtrar carpetas'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('Gestión:', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String?>(
+            value: _gestion,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            items: [
+              const DropdownMenuItem<String?>(value: null, child: Text('Todas las gestiones')),
+              ...widget.gestiones.map((g) => DropdownMenuItem<String?>(value: g, child: Text('Gestión $g'))),
+            ],
+            onChanged: (v) => setState(() => _gestion = v),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: widget.onLimpiar,
+          child: const Text('Limpiar'),
+        ),
+        FilledButton(
+          onPressed: () => widget.onAplicar(_gestion),
+          child: const Text('Aplicar'),
+        ),
+      ],
     );
   }
 }
