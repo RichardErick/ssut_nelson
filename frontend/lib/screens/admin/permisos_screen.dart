@@ -51,6 +51,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
   Usuario? _usuarioSeleccionado;
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isLoadingPermisosUsuario = false;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -120,6 +121,43 @@ class _PermisosScreenState extends State<PermisosScreen> {
     }
   }
 
+  /// Carga los permisos reales del usuario desde la API (lo que está guardado en el sistema).
+  Future<void> _cargarPermisosUsuario(Usuario usuario) async {
+    if (!mounted) return;
+    setState(() => _isLoadingPermisosUsuario = true);
+    try {
+      final permisoService = Provider.of<PermisoService>(context, listen: false);
+      final entries = await permisoService.getPermisosUsuarioAdmin(usuario.id);
+      if (!mounted) return;
+      final mapa = <String, bool>{};
+      for (final codigo in _permisosDisponibles.keys) {
+        mapa[codigo] = false;
+      }
+      for (final entry in entries) {
+        final codigo = entry.permiso.codigo;
+        if (_permisosDisponibles.containsKey(codigo)) {
+          mapa[codigo] = entry.userHas;
+        }
+      }
+      setState(() {
+        _permisosActivos[usuario.nombreUsuario] = mapa;
+        _isLoadingPermisosUsuario = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingPermisosUsuario = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error cargando permisos: ${ErrorHelper.getErrorMessage(e)}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _seleccionarUsuario(Usuario usuario) {
     print('DEBUG: Seleccionando usuario: ${usuario.nombreCompleto}');
     print('DEBUG: Rol del usuario: "${usuario.rol}"');
@@ -129,26 +167,8 @@ class _PermisosScreenState extends State<PermisosScreen> {
       _usuarioSeleccionado = usuario;
     });
 
-    // Inicializar permisos activos si no existen
-    if (!_permisosActivos.containsKey(usuario.nombreUsuario)) {
-      _permisosActivos[usuario.nombreUsuario] = {};
-
-      // Inicializar todos los permisos del rol como ACTIVOS por defecto
-      final role = _parseRoleWithContext(
-        usuario.rol,
-        usuario.nombreUsuario,
-        usuario.nombreCompleto,
-      );
-      print('DEBUG: Rol parseado: $role');
-      final permisosRol = _permisosPorRol[role] ?? [];
-      print('DEBUG: Permisos del rol: $permisosRol');
-
-      for (final permiso in permisosRol) {
-        _permisosActivos[usuario.nombreUsuario]![permiso] =
-            true; // ACTIVO por defecto
-        print('DEBUG: Activando permiso: $permiso');
-      }
-    }
+    // Cargar permisos reales desde la API (persistidos en el sistema)
+    _cargarPermisosUsuario(usuario);
   }
 
   UserRole _parseRoleWithContext(
@@ -309,6 +329,8 @@ class _PermisosScreenState extends State<PermisosScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+        // Recargar permisos desde la API para reflejar lo guardado
+        await _cargarPermisosUsuario(_usuarioSeleccionado!);
       }
     } catch (e) {
       if (mounted) {
@@ -496,8 +518,6 @@ class _PermisosScreenState extends State<PermisosScreen> {
     }
 
     final usuario = _usuarioSeleccionado!;
-    final role = _parseRole(usuario.rol);
-    final permisosRol = _permisosPorRol[role] ?? [];
     final permisosUsuario = _permisosActivos[usuario.nombreUsuario] ?? {};
 
     return Container(
@@ -599,43 +619,19 @@ class _PermisosScreenState extends State<PermisosScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Mostrar solo los permisos que tiene el rol
-                  if (permisosRol.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.orange.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Colors.orange.shade700,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Este rol no tiene permisos de documentos asignados',
-                              style: GoogleFonts.inter(
-                                color: Colors.orange.shade700,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  if (_isLoadingPermisosUsuario)
+                    const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
                     )
                   else
                     Expanded(
                       child: ListView.builder(
-                        itemCount: permisosRol.length,
+                        itemCount: _permisosDisponibles.length,
                         itemBuilder: (context, index) {
-                          final permiso = permisosRol[index];
+                          final permiso = _permisosDisponibles.keys.elementAt(index);
                           final nombre =
                               _permisosDisponibles[permiso] ?? permiso;
-                          final estaActivo = permisosUsuario[permiso] ?? true;
+                          final estaActivo = permisosUsuario[permiso] ?? false;
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -687,7 +683,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
                       ),
                     ),
 
-                  if (permisosRol.isNotEmpty) ...[
+                  if (!_isLoadingPermisosUsuario) ...[
                     const SizedBox(height: 16),
                     // Botón guardar
                     SizedBox(

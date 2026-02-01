@@ -55,7 +55,13 @@ class AuthProvider extends ChangeNotifier {
   List<String> get permissions => _permissions;
 
   bool hasPermission(String permissionCode) {
-    // Verificar permisos basados en la matriz de roles específica
+    // Si el backend envió la lista de permisos efectivos (login), usarla tal cual
+    if (_permissions.isNotEmpty) {
+      final has = _permissions.contains(permissionCode);
+      print('DEBUG: Permiso "$permissionCode" (desde backend): $has');
+      return has;
+    }
+    // Fallback: matriz por rol (solo si no hay permisos desde backend)
     return _hasRoleBasedPermission(permissionCode);
   }
 

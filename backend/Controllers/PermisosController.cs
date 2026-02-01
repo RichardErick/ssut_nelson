@@ -79,13 +79,24 @@ public class PermisosController : ControllerBase
                 .Select(rp => rp.PermisoId)
                 .ToListAsync();
 
-            var permisosUsuarioIds = await _context.UsuarioPermisos
-                .Where(up => up.UsuarioId == usuarioId && up.Activo)
+            // Asignaciones explícitas al usuario (solo grants, no denegados)
+            var permisosUsuarioGrantedIds = await _context.UsuarioPermisos
+                .Where(up => up.UsuarioId == usuarioId && up.Activo && !up.Denegado)
                 .Select(up => up.PermisoId)
                 .ToListAsync();
 
+            // Permisos denegados explícitamente (revocados desde admin)
+            var permisosUsuarioDeniedIds = await _context.UsuarioPermisos
+                .Where(up => up.UsuarioId == usuarioId && up.Activo && up.Denegado)
+                .Select(up => up.PermisoId)
+                .ToListAsync();
+
+            var deniedSet = new HashSet<int>(permisosUsuarioDeniedIds);
+
+            // El usuario tiene el permiso si: (lo tiene por rol O asignado explícitamente) Y NO está denegado
             var permisoIds = permisosRolIds
-                .Union(permisosUsuarioIds)
+                .Union(permisosUsuarioGrantedIds)
+                .Where(id => !deniedSet.Contains(id))
                 .Distinct()
                 .ToList();
 
