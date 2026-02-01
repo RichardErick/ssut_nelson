@@ -821,55 +821,55 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             ? 'Cargando...'
             : _calcularRangoCorrelativos(docs);
 
-    return Flexible(
-      child: Column(
-        children: [
-          _buildCarpetaHeader(carpeta, rango, theme),
-          // Carpeta: solo subcarpetas. Subcarpeta: solo documentos.
-          if (esCarpeta) ...[
-            if (_estaCargandoSubcarpetas)
-              Container(
-                height: 4,
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                child: LinearProgressIndicator(
-                  backgroundColor: Colors.grey.shade200,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.blue.shade600,
-                  ),
+    // No usar Flexible aquí: ya estamos dentro de Expanded en el body; Flexible+Expanded competían.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildCarpetaHeader(carpeta, rango, theme),
+        // Carpeta: solo subcarpetas. Subcarpeta: solo documentos.
+        if (esCarpeta) ...[
+          if (_estaCargandoSubcarpetas)
+            Container(
+              height: 4,
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              child: LinearProgressIndicator(
+                backgroundColor: Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Colors.blue.shade600,
                 ),
-              )
-            else if (_subcarpetas.isNotEmpty)
-              _buildSubcarpetasSection(theme)
-            else
-              Expanded(child: _buildSoloSubcarpetasMessage(theme)),
-          ] else ...[
-            if (_estaCargandoSubcarpetas)
-              Container(
-                height: 4,
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                child: LinearProgressIndicator(
-                  backgroundColor: Colors.grey.shade200,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.blue.shade600,
-                  ),
+              ),
+            )
+          else if (_subcarpetas.isNotEmpty)
+            _buildSubcarpetasSection(theme)
+          else
+            Expanded(child: _buildSoloSubcarpetasMessage(theme)),
+        ] else ...[
+          if (_estaCargandoSubcarpetas)
+            Container(
+              height: 4,
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              child: LinearProgressIndicator(
+                backgroundColor: Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Colors.blue.shade600,
                 ),
-              )
-            else if (_subcarpetas.isNotEmpty)
-              _buildSubcarpetasSection(theme),
-            _buildViewControls(theme),
-            Expanded(
-              child:
-                  _estaCargandoDocumentosCarpeta
-                      ? _buildDocumentosLoading()
-                      : docs.isEmpty
-                      ? _buildDocumentosEmpty()
-                      : _vistaGrid
-                      ? _construirGridDocumentosCarpeta(docs, theme)
-                      : _construirListaDocumentos(docs, theme),
-            ),
-          ],
+              ),
+            )
+          else if (_subcarpetas.isNotEmpty)
+            _buildSubcarpetasSection(theme),
+          _buildViewControls(theme),
+          Expanded(
+            child:
+                _estaCargandoDocumentosCarpeta
+                    ? _buildDocumentosLoading()
+                    : docs.isEmpty
+                    ? _buildDocumentosEmpty()
+                    : _vistaGrid
+                    ? _construirGridDocumentosCarpeta(docs, theme)
+                    : _construirListaDocumentos(docs, theme),
+          ),
         ],
-      ),
+      ],
     );
   }
 

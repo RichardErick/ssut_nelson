@@ -568,22 +568,83 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
               : _buildPdfLoadingPlaceholder(theme),
           const SizedBox(height: 16),
         ] else ...[
-          TextButton.icon(
-            onPressed: _isUploadingAnexo ? null : _pickAndUploadAnexo,
-            icon: Icon(
-              Icons.add_circle_outline,
-              size: 18,
-              color: theme.colorScheme.primary,
-            ),
-            label: Text(
-              'Añadir PDF',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: theme.colorScheme.primary,
+          // Sin PDF: zona clara encima del QR para añadir/arrastrar PDF
+          InkWell(
+            onTap: _isUploadingAnexo ? null : _pickAndUploadAnexo,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.orange.shade300,
+                  width: 2,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.picture_as_pdf_outlined,
+                    size: 48,
+                    color: Colors.orange.shade700,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Este documento no tiene PDF',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.orange.shade900,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Arrastra un archivo aquí o haz clic para añadir',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.orange.shade800,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _isUploadingAnexo ? null : _pickAndUploadAnexo,
+                    icon: _isUploadingAnexo
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Icon(Icons.upload_file, size: 20, color: Colors.orange.shade900),
+                    label: Text(
+                      _isUploadingAnexo ? 'Subiendo...' : 'Añadir PDF',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange.shade900,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade100,
+                      foregroundColor: Colors.orange.shade900,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
         ],
         _buildQrCard(doc, theme),
         const SizedBox(height: 24),
@@ -2343,7 +2404,9 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
       final service = Provider.of<AnexoService>(context, listen: false);
       final anexo = await service.subirArchivo(widget.documento.id, file);
       if (mounted) {
+        // Actualización optimista: mostrar PDF al instante sin esperar _loadAnexos
         setState(() {
+          _anexos = [anexo];
           _previewPdfBytes = pdfBytes;
           _previewFileName = file.name;
         });
@@ -2351,7 +2414,8 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           'Anexo "${anexo.nombreArchivo}" cargado',
           background: AppTheme.colorExito,
         );
-        await _loadAnexos();
+        // Recargar anexos en segundo plano para mantener estado sincronizado
+        _loadAnexos();
       }
     } catch (e) {
       if (mounted) {
