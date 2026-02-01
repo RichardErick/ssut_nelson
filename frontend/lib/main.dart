@@ -24,6 +24,47 @@ import 'theme/app_theme.dart';
 void main() async {
   debugPrint('[MAIN] Iniciando app...');
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Mostrar errores en pantalla en lugar de pantalla en blanco (p. ej. en web)
+  FlutterError.onError = (details) {
+    debugPrint('[MAIN] FlutterError: ${details.exception}');
+    debugPrint('[MAIN] Stack: ${details.stack}');
+    FlutterError.presentError(details);
+  };
+  ErrorWidget.builder = (details) {
+    return Material(
+      child: Container(
+        color: Colors.white,
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  'Error al cargar la aplicación',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '${details.exception}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  };
+
   await initializeDateFormatting('es_BO', null);
   debugPrint('[MAIN] runApp(MyApp)');
   runApp(const MyApp());
