@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/permiso.dart';
 import '../../models/user_role.dart';
 import '../../models/usuario.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/permiso_service.dart';
 import '../../services/usuario_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
@@ -20,6 +22,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
   // Data
   List<Usuario> _usuarios = [];
   List<Usuario> _usuariosFiltrados = [];
+  List<Permiso> _permisosDisponiblesLista = [];
   
   // Permisos disponibles según la matriz SIMPLIFICADA
   final Map<String, String> _permisosDisponibles = {
@@ -80,12 +83,16 @@ class _PermisosScreenState extends State<PermisosScreen> {
     setState(() => _isLoading = true);
     try {
       final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      final permisoService = Provider.of<PermisoService>(context, listen: false);
+      
       final usuarios = await usuarioService.getAll();
+      final permisos = await permisoService.getAll();
       
       if (mounted) {
         setState(() {
           _usuarios = usuarios.where((u) => u.activo).toList();
           _usuariosFiltrados = List.from(_usuarios);
+          _permisosDisponiblesLista = permisos;
           _isLoading = false;
         });
         
@@ -206,16 +213,54 @@ class _PermisosScreenState extends State<PermisosScreen> {
     setState(() => _isSaving = true);
     
     try {
-      // Aquí iría la lógica para guardar en el backend
-      // Por ahora solo mostramos un mensaje de éxito
+      final permisoService = Provider.of<PermisoService>(context, listen: false);
+      final usuario = _usuarioSeleccionado!;
+      final permisosActivos = _permisosActivos[usuario.nombreUsuario] ?? {};
       
-      await Future.delayed(const Duration(seconds: 1)); // Simular llamada API
+      // Obtener los permisos del rol base para comparar
+      final permisosRol = _obtenerPermisosRol(usuario);
+      
+      int cambios = 0;
+      for (final codigo in _permisosDisponibles.keys) {
+        final activo = permisosActivos[codigo] ?? false;
+        final rolTienePermiso = permisosRol.contains(codigo);
+        
+        // Buscar el ID del permiso en el catálogo
+        final permiso = _permisosDisponiblesLista.firstWhere(
+          (p) => p.codigo == codigo,
+          orElse: () => Permiso(id: 0, codigo: codigo, nombre: '', descripcion: '', modulo: '', activo: true),
+        );
+        
+        if (permiso.id == 0) {
+          print('WARN: No se encontró ID para permiso $codigo');
+          continue;
+        }
+        
+        // Si el usuario debe tenerlo activo pero el rol NO lo tiene, asignar
+        if (activo && !rolTienePermiso) {
+          await permisoService.asignarPermiso(usuario.id, permiso.id);
+          cambios++;
+        }
+        // Si el usuario NO debe tenerlo activo pero el rol SÍ lo tiene, revocar (denegar)
+        else if (!activo && rolTienePermiso) {
+          await permisoService.revocarPermiso(usuario.id, permiso.id);
+          cambios++;
+        }
+        // Si ambos están de acuerdo con el rol, no hacer nada
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Permisos actualizados correctamente'),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Permisos actualizados ($cambios cambios aplicados)'),
+              ],
+            ),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -225,6 +270,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
           SnackBar(
             content: Text('Error guardando permisos: ${ErrorHelper.getErrorMessage(e)}'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }

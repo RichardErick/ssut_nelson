@@ -125,10 +125,7 @@ class AuthProvider extends ChangeNotifier {
         final userDataString = prefs.getString('user_data');
         final permissionsString = prefs.getString('user_permissions');
 
-        if (roleString != null) {
-          _role = _parseRole(roleString);
-        }
-
+        // Cargar datos de usuario primero (necesario para contexto de rol)
         if (userDataString != null) {
           try {
             _user = jsonDecode(userDataString);
@@ -145,6 +142,14 @@ class AuthProvider extends ChangeNotifier {
           if (username != null) {
             _user = {'nombreUsuario': username};
           }
+        }
+
+        // Parsear rol CON contexto del usuario (username y nombre completo)
+        if (roleString != null) {
+          final userUsername = (_user?['nombreUsuario'] as String?) ?? '';
+          final fullName = (_user?['nombreCompleto'] as String?) ?? '';
+          _role = _parseRoleWithContext(roleString, userUsername, fullName);
+          debugPrint('[AUTH] Rol parseado con contexto: $_role para usuario: $userUsername');
         }
 
         if (permissionsString != null) {
