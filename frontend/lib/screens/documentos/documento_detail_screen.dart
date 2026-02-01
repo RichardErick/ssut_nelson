@@ -23,6 +23,7 @@ import '../../services/movimiento_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/animated_card.dart';
+import 'documento_form_screen.dart';
 
 class DocumentoDetailScreen extends StatefulWidget {
   final Documento documento;
@@ -34,6 +35,8 @@ class DocumentoDetailScreen extends StatefulWidget {
 }
 
 class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
+  Documento? _documentoActual;
+
   String? _qrData;
   bool _isGeneratingQr = false;
   List<Anexo> _anexos = [];
@@ -149,9 +152,11 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     }
   }
 
+  Documento get _doc => _documentoActual ?? widget.documento;
+
   @override
   Widget build(BuildContext context) {
-    final doc = widget.documento;
+    final doc = _doc;
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
@@ -172,14 +177,14 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                       child: _buildLeftColumn(doc, dateFormat, theme),
                     ),
                     const SizedBox(width: 24),
-                    Expanded(flex: 3, child: _buildRightColumn(theme)),
+                    Expanded(flex: 3, child: _buildRightColumn(doc, theme)),
                   ],
                 )
                 : Column(
                   children: [
                     _buildLeftColumn(doc, dateFormat, theme),
                     const SizedBox(height: 24),
-                    _buildRightColumn(theme),
+                    _buildRightColumn(doc, theme),
                   ],
                 ),
       ),
@@ -239,10 +244,23 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         const SizedBox(width: 8),
         if (Provider.of<AuthProvider>(
           context,
-        ).hasPermission('editar_metadatos'))
+        ).hasPermission('editar_documento'))
           IconButton(
             icon: const Icon(Icons.edit_rounded),
-            onPressed: () {},
+            onPressed: () async {
+              final updated = await Navigator.of(context).push<bool>(
+                MaterialPageRoute<bool>(
+                  builder: (context) => DocumentoFormScreen(documento: widget.documento),
+                ),
+              );
+              if (updated == true && mounted) {
+                try {
+                  final doc = await Provider.of<DocumentoService>(context, listen: false)
+                      .getById(widget.documento.id);
+                  if (mounted) setState(() => _documentoActual = doc);
+                } catch (_) {}
+              }
+            },
             style: IconButton.styleFrom(
               backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
             ),
@@ -476,7 +494,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     );
   }
 
-  Widget _buildRightColumn(ThemeData theme) {
+  Widget _buildRightColumn(Documento doc, ThemeData theme) {
     final hasAnexos = _anexos.isNotEmpty;
     final hasPreview = _previewPdfBytes != null;
     return Column(
@@ -532,7 +550,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           ),
           const SizedBox(height: 8),
         ],
-        _buildQrCard(widget.documento, theme),
+        _buildQrCard(doc, theme),
         const SizedBox(height: 24),
         _buildHistorialMovimientos(theme),
       ],

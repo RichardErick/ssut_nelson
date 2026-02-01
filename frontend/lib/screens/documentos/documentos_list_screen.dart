@@ -737,7 +737,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         Flexible(
                           child: Text(
                             carpeta.carpetaPadreId == null
-                                ? '${carpeta.numeroSubcarpetas} subcarpetas'
+                                ? '${carpeta.numeroSubcarpetas} subcarpetas, ${carpeta.numeroDocumentos} documentos'
                                 : '${carpeta.numeroDocumentos} documentos',
                             style: GoogleFonts.inter(
                               fontSize: 12,
