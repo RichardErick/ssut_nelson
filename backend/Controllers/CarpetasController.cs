@@ -362,15 +362,16 @@ public class CarpetasController : ControllerBase
         if (carpeta == null)
             return NotFound(new { message = "Carpeta no encontrada" });
 
-        // Borrado normal: eliminar de la BD si no tiene subcarpetas ni documentos,
-        // para que se pueda volver a crear una carpeta con el mismo nombre/gestión.
+        // Borrado normal: eliminar de la BD. Solo bloqueamos si tiene subcarpetas o documentos ACTIVOS.
+        // Las inactivas no bloquean; al borrar la carpeta, la BD hace CASCADE en hijas (carpeta_padre_id).
         if (!hard)
         {
-            if (carpeta.Subcarpetas.Any())
-                return BadRequest(new { message = "No se puede eliminar una carpeta con subcarpetas" });
-
-            if (carpeta.Documentos.Any())
-                return BadRequest(new { message = "No se puede eliminar una carpeta con documentos" });
+            var tieneSubcarpetasActivas = carpeta.Subcarpetas.Any(s => s.Activo);
+            var tieneDocumentosActivos = carpeta.Documentos.Any(d => d.Activo);
+            if (tieneSubcarpetasActivas)
+                return BadRequest(new { message = "No se puede eliminar una carpeta con subcarpetas activas. Elimine primero las subcarpetas o use borrado en cascada." });
+            if (tieneDocumentosActivos)
+                return BadRequest(new { message = "No se puede eliminar una carpeta con documentos activos. Mueva o elimine los documentos primero." });
 
             _context.Carpetas.Remove(carpeta);
             await _context.SaveChangesAsync();

@@ -179,9 +179,9 @@ class DocumentosController extends ChangeNotifier {
     }
   }
 
-  /// Eliminar una carpeta (o subcarpeta)
+  /// Eliminar una carpeta (o subcarpeta). Borrado en BD (cascada si tiene contenido).
   Future<void> eliminarCarpeta(Carpeta carpeta) async {
-    await _carpetaService.delete(carpeta.id, hard: false);
+    await _carpetaService.delete(carpeta.id, hard: true);
     await cargarCarpetas();
     if (_carpetaSeleccionada != null &&
         _carpetaSeleccionada!.id == carpeta.id) {

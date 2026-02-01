@@ -39,9 +39,9 @@ class CarpetasController extends ChangeNotifier {
     }
   }
 
-  /// Eliminar carpeta
+  /// Eliminar carpeta (borrado real en BD, cascada si tiene subcarpetas/documentos).
   Future<void> eliminarCarpeta(Carpeta carpeta) async {
-    await _service.delete(carpeta.id, hard: false);
+    await _service.delete(carpeta.id, hard: true);
     await cargarCarpetas();
   }
 
