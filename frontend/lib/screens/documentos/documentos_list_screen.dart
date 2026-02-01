@@ -554,7 +554,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 360,
-        childAspectRatio: 0.72,
+        childAspectRatio: 0.78,
         crossAxisSpacing: 20,
         mainAxisSpacing: 20,
       ),
@@ -700,11 +700,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   // Información en chips
                   Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
+                    spacing: 5,
+                    runSpacing: 3,
                     children: [
                       _buildInfoChip('Gestión', gestionLine, Colors.blue),
                       _buildInfoChip('Nº', nroLine, Colors.green),
@@ -712,12 +712,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                       _buildInfoChip('Rango', rangoLine, Colors.orange),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   // Footer con estadísticas
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 12,
+                      vertical: 6,
+                      horizontal: 10,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.blue.shade50,
@@ -895,7 +895,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Widget _buildCarpetaHeader(Carpeta carpeta, String rango, ThemeData theme) {
-    final esSubcarpeta = carpeta.carpetaPadreId != null;
+    final esCarpeta = carpeta.carpetaPadreId == null;
+    final esSubcarpeta = !esCarpeta;
     final margin = esSubcarpeta ? 12.0 : 24.0;
     final padding = esSubcarpeta ? 12.0 : 24.0;
 
@@ -1045,8 +1046,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               SizedBox(width: esSubcarpeta ? 8 : 16),
               Expanded(
                 child: _buildCarpetaStat(
-                  'Documentos',
-                  '${_documentosCarpeta.length}',
+                  esCarpeta ? 'Docs (total)' : 'Documentos',
+                  esCarpeta
+                      ? '${_subcarpetas.fold<int>(0, (sum, sub) => sum + sub.numeroDocumentos)}'
+                      : '${_documentosCarpeta.length}',
                   Icons.description,
                   Colors.green,
                   compact: esSubcarpeta,
