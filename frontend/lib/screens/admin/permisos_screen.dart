@@ -252,13 +252,14 @@ class _PermisosScreenState extends State<PermisosScreen> {
     return _permisosPorRol[role] ?? [];
   }
 
-  void _togglePermiso(String permiso) {
+  void _togglePermiso(String permiso, bool nuevoValor) {
     if (_usuarioSeleccionado == null) return;
-
+    final username = _usuarioSeleccionado!.nombreUsuario;
+    if (!_permisosActivos.containsKey(username)) {
+      _permisosActivos[username] = {};
+    }
     setState(() {
-      final username = _usuarioSeleccionado!.nombreUsuario;
-      _permisosActivos[username]![permiso] =
-          !(_permisosActivos[username]![permiso] ?? false);
+      _permisosActivos[username]![permiso] = nuevoValor;
     });
   }
 
@@ -267,87 +268,75 @@ class _PermisosScreenState extends State<PermisosScreen> {
 
     setState(() => _isSaving = true);
 
-    try {
-      final permisoService = Provider.of<PermisoService>(
-        context,
-        listen: false,
+    final permisoService = Provider.of<PermisoService>(context, listen: false);
+    final usuario = _usuarioSeleccionado!;
+    final permisosActivos = _permisosActivos[usuario.nombreUsuario] ?? {};
+    final permisosRol = _obtenerPermisosRol(usuario);
+
+    int ok = 0;
+    int fail = 0;
+    for (final codigo in _permisosDisponibles.keys) {
+      final activo = permisosActivos[codigo] ?? false;
+      final rolTienePermiso = permisosRol.contains(codigo);
+
+      final permiso = _permisosDisponiblesLista.firstWhere(
+        (p) => p.codigo == codigo,
+        orElse: () => Permiso(
+          id: 0,
+          codigo: codigo,
+          nombre: '',
+          descripcion: '',
+          modulo: '',
+          activo: true,
+        ),
       );
-      final usuario = _usuarioSeleccionado!;
-      final permisosActivos = _permisosActivos[usuario.nombreUsuario] ?? {};
+      if (permiso.id == 0) continue;
 
-      // Obtener los permisos del rol base para comparar
-      final permisosRol = _obtenerPermisosRol(usuario);
-
-      int cambios = 0;
-      for (final codigo in _permisosDisponibles.keys) {
-        final activo = permisosActivos[codigo] ?? false;
-        final rolTienePermiso = permisosRol.contains(codigo);
-
-        // Buscar el ID del permiso en el catálogo
-        final permiso = _permisosDisponiblesLista.firstWhere(
-          (p) => p.codigo == codigo,
-          orElse:
-              () => Permiso(
-                id: 0,
-                codigo: codigo,
-                nombre: '',
-                descripcion: '',
-                modulo: '',
-                activo: true,
-              ),
-        );
-
-        if (permiso.id == 0) {
-          print('WARN: No se encontró ID para permiso $codigo');
-          continue;
-        }
-
-        // Si el usuario debe tenerlo activo pero el rol NO lo tiene, asignar
-        if (activo && !rolTienePermiso) {
+      try {
+        if (activo) {
           await permisoService.asignarPermiso(usuario.id, permiso.id);
-          cambios++;
-        }
-        // Si el usuario NO debe tenerlo activo pero el rol SÍ lo tiene, revocar (denegar)
-        else if (!activo && rolTienePermiso) {
+          ok++;
+        } else if (rolTienePermiso) {
           await permisoService.revocarPermiso(usuario.id, permiso.id);
-          cambios++;
+          ok++;
         }
-        // Si ambos están de acuerdo con el rol, no hacer nada
+      } catch (_) {
+        fail++;
       }
+    }
 
-      if (mounted) {
+    if (mounted) {
+      setState(() => _isSaving = false);
+      await _cargarPermisosUsuario(usuario);
+      if (fail == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 8),
-                Text('Permisos actualizados ($cambios cambios aplicados)'),
+                Text(ok > 0
+                    ? 'Permisos guardados correctamente'
+                    : 'Sin cambios que guardar'),
               ],
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
         );
-        // Recargar permisos desde la API para reflejar lo guardado
-        await _cargarPermisosUsuario(_usuarioSeleccionado!);
-      }
-    } catch (e) {
-      if (mounted) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Error guardando permisos: ${ErrorHelper.getErrorMessage(e)}',
+              'Se guardaron $ok; $fail fallaron. La lista se actualizó desde el servidor.',
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+    } else {
+      setState(() => _isSaving = false);
     }
   }
 
@@ -672,7 +661,9 @@ class _PermisosScreenState extends State<PermisosScreen> {
                               ),
                               trailing: Switch(
                                 value: estaActivo,
-                                onChanged: (value) => _togglePermiso(permiso),
+                                onChanged: _isSaving
+                                    ? null
+                                    : (value) => _togglePermiso(permiso, value),
                                 activeColor: Colors.green,
                                 inactiveThumbColor: Colors.red.shade300,
                                 inactiveTrackColor: Colors.red.shade100,
