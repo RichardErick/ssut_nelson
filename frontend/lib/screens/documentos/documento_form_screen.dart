@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/anexo.dart';
 import '../../models/carpeta.dart';
 import '../../models/documento.dart';
 import '../../models/usuario.dart';
@@ -47,6 +48,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
   int _nivelConfidencialidad = 1;
   PlatformFile? _pickedFile;
 
+  /// Anexos existentes del documento (solo en modo edición). Se cargan al abrir el formulario.
+  List<Anexo> _anexosExistentes = [];
+  bool _anexosExistentesLoaded = false;
+
   /// Error del servidor para el campo N° Correlativo (código). Se muestra en rojo debajo del campo.
   String? _numeroCorrelativoError;
 
@@ -73,9 +78,31 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
     _loadData();
     if (widget.documento != null) {
       _initFormData(widget.documento!);
+      _loadAnexosExistentes();
     } else {
       _gestionController.text = DateTime.now().year.toString();
       _carpetaId = widget.initialCarpetaId;
+    }
+  }
+
+  Future<void> _loadAnexosExistentes() async {
+    if (widget.documento == null) return;
+    try {
+      final service = Provider.of<AnexoService>(context, listen: false);
+      final list = await service.listarPorDocumento(widget.documento!.id);
+      if (mounted) {
+        setState(() {
+          _anexosExistentes = list;
+          _anexosExistentesLoaded = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _anexosExistentes = [];
+          _anexosExistentesLoaded = true;
+        });
+      }
     }
   }
 
@@ -108,7 +135,8 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
         listen: false,
       );
 
-      final usuariosFuture = usuarioService.getAll();
+      final incluirInactivos = widget.documento != null;
+      final usuariosFuture = usuarioService.getAll(incluirInactivos: incluirInactivos);
       final carpetasFuture = carpetaService.getAll(
         gestion:
             _gestionController.text.isNotEmpty
@@ -127,8 +155,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
 
       if (mounted) {
         setState(() {
-          _usuarios =
-              (results[0] as List<Usuario>).where((u) => u.activo).toList();
+          final todosUsuarios = results[0] as List<Usuario>;
+          _usuarios = incluirInactivos
+              ? todosUsuarios
+              : todosUsuarios.where((u) => u.activo).toList();
           _carpetas = results[1] as List<Carpeta>;
           _areas = (results[2] as List<Map<String, dynamic>>);
           _tiposDocumento = (results[3] as List<Map<String, dynamic>>);
@@ -693,71 +723,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
 
                       const SizedBox(height: 16),
 
-                      // SECCION: ADJUNTAR ARCHIVO (Simulada visualmente, funcional con click)
+                      // SECCION: ADJUNTAR ARCHIVO (en edición se muestra el PDF actual y se permite reemplazar)
                       _buildSectionTitle('Archivo Digital'),
                       const SizedBox(height: 16),
-                      InkWell(
-                        onTap: _pickFile,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 24,
-                            horizontal: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                _pickedFile != null
-                                    ? Colors.green.withOpacity(0.05)
-                                    : Colors.blue.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color:
-                                  _pickedFile != null
-                                      ? Colors.green.shade300
-                                      : Colors.blue.shade300,
-                              width: 1.5,
-                              style: BorderStyle.solid,
-                            ),
-                            // Dashed border effect simulation can be complex, solid is fine for now
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                _pickedFile != null
-                                    ? Icons.check_circle_outline
-                                    : Icons.cloud_upload_outlined,
-                                size: 40,
-                                color:
-                                    _pickedFile != null
-                                        ? Colors.green
-                                        : Colors.blue,
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                _pickedFile != null
-                                    ? 'Archivo seleccionado: ${_pickedFile!.name}'
-                                    : ' Haz clic para adjuntar PDF',
-                                style: GoogleFonts.poppins(
-                                  color:
-                                      _pickedFile != null
-                                          ? Colors.green.shade700
-                                          : Colors.blue.shade700,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (_pickedFile == null)
-                                Text(
-                                  '(Opcional) El archivo se subirá al guardar el documento',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      _buildArchivoDigitalSection(),
 
                       const SizedBox(height: 32),
                       SizedBox(
@@ -813,6 +782,154 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildArchivoDigitalSection() {
+    final isEditing = widget.documento != null;
+    final tienePdfActual = isEditing && _anexosExistentes.isNotEmpty;
+    final primerAnexo = tienePdfActual ? _anexosExistentes.first : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (tienePdfActual && !_anexosExistentesLoaded) ...[
+          const SizedBox(height: 12),
+          const Center(child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )),
+        ]
+        else if (tienePdfActual && primerAnexo != null) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.picture_as_pdf, color: Colors.red.shade700, size: 32),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'PDF actual',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        primerAnexo.nombreArchivo,
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue.shade900,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _pickFile,
+                  icon: const Icon(Icons.upload_file, size: 20),
+                  label: const Text('Reemplazar PDF'),
+                ),
+              ],
+            ),
+          ),
+          if (_pickedFile != null) const SizedBox(height: 12),
+        ],
+        if (_pickedFile != null) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.shade300),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green.shade700, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Nuevo archivo seleccionado',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _pickedFile!.name,
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade900,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _pickFile,
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Cambiar'),
+                ),
+              ],
+            ),
+          ),
+        ]
+        else if (!tienePdfActual) ...[
+          InkWell(
+            onTap: _pickFile,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade300, width: 1.5),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.cloud_upload_outlined, size: 40, color: Colors.blue.shade700),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Haz clic para adjuntar PDF',
+                    style: GoogleFonts.poppins(
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '(Opcional) El archivo se subirá al guardar el documento',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
