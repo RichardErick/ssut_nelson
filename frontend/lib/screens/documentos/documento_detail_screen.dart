@@ -250,13 +250,17 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
             onPressed: () async {
               final updated = await Navigator.of(context).push<bool>(
                 MaterialPageRoute<bool>(
-                  builder: (context) => DocumentoFormScreen(documento: widget.documento),
+                  builder:
+                      (context) =>
+                          DocumentoFormScreen(documento: widget.documento),
                 ),
               );
               if (updated == true && mounted) {
                 try {
-                  final doc = await Provider.of<DocumentoService>(context, listen: false)
-                      .getById(widget.documento.id);
+                  final doc = await Provider.of<DocumentoService>(
+                    context,
+                    listen: false,
+                  ).getById(widget.documento.id);
                   if (mounted) setState(() => _documentoActual = doc);
                 } catch (_) {}
               }
@@ -286,12 +290,43 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     DateFormat dateFormat,
     ThemeData theme,
   ) {
+    final puedeEditar = Provider.of<AuthProvider>(context).hasPermission('editar_documento');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildMainInfoCard(doc, theme),
         const SizedBox(height: 16),
         _buildDescriptionCard(doc, theme),
+        if (puedeEditar) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                final updated = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute<bool>(
+                    builder: (context) => DocumentoFormScreen(documento: widget.documento),
+                  ),
+                );
+                if (updated == true && mounted) {
+                  try {
+                    final docActualizado = await Provider.of<DocumentoService>(
+                      context,
+                      listen: false,
+                    ).getById(widget.documento.id);
+                    if (mounted) setState(() => _documentoActual = docActualizado);
+                  } catch (_) {}
+                }
+              },
+              icon: const Icon(Icons.edit_rounded, size: 20),
+              label: const Text('Editar documento'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                foregroundColor: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

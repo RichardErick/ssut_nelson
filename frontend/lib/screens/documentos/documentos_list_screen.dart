@@ -713,7 +713,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Footer con estadísticas
+                  // Footer: dos labels separados (subcarpetas y documentos)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       vertical: 6,
@@ -735,16 +735,31 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         ),
                         const SizedBox(width: 8),
                         Flexible(
-                          child: Text(
-                            carpeta.carpetaPadreId == null
-                                ? '${carpeta.numeroSubcarpetas} subcarpetas, ${carpeta.numeroDocumentos} documentos'
-                                : '${carpeta.numeroDocumentos} documentos',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blue.shade700,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (carpeta.carpetaPadreId == null) ...[
+                                Text(
+                                  '${carpeta.numeroSubcarpetas} subcarpetas',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blue.shade700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              Text(
+                                '${carpeta.numeroDocumentos} documentos',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue.shade700,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 8),

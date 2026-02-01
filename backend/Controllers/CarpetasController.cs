@@ -66,27 +66,73 @@ public class CarpetasController : ControllerBase
         var rangoMap = await ObtenerRangosCorrelativosAsync(carpetaIds, gestion);
         var numeroMap = await ObtenerNumerosCarpetaAsync(carpetaIds, gestion);
 
-        var result = carpetas.Select(c => new
+        // Para carpetas raíz: total de documentos en la carpeta + todas las subcarpetas
+        var raizIds = carpetas.Where(c => c.CarpetaPadreId == null).Select(c => c.Id).ToList();
+        var totalDocumentosPorRaiz = await ObtenerTotalDocumentosEnArbolAsync(raizIds);
+
+        var result = carpetas.Select(c =>
         {
-            c.Id,
-            c.Nombre,
-            c.Codigo,
-            c.Gestion,
-            c.Descripcion,
-            c.CarpetaPadreId,
-            c.CarpetaPadreNombre,
-            c.Activo,
-            c.FechaCreacion,
-            c.UsuarioCreacionNombre,
-            c.NumeroSubcarpetas,
-            c.NumeroDocumentos,
-            NumeroCarpeta = numeroMap.TryGetValue(c.Id, out var n) ? n : (int?)null,
-            CodigoRomano = numeroMap.TryGetValue(c.Id, out var rn) ? ToRoman(rn) : null,
-            RangoInicio = rangoMap.TryGetValue(c.Id, out var r) ? r.Inicio : null,
-            RangoFin = rangoMap.TryGetValue(c.Id, out var r2) ? r2.Fin : null
+            var numeroDocumentos = c.CarpetaPadreId == null && totalDocumentosPorRaiz.TryGetValue(c.Id, out var total)
+                ? total
+                : c.NumeroDocumentos;
+            return new
+            {
+                c.Id,
+                c.Nombre,
+                c.Codigo,
+                c.Gestion,
+                c.Descripcion,
+                c.CarpetaPadreId,
+                c.CarpetaPadreNombre,
+                c.Activo,
+                c.FechaCreacion,
+                c.UsuarioCreacionNombre,
+                c.NumeroSubcarpetas,
+                NumeroDocumentos = numeroDocumentos,
+                NumeroCarpeta = numeroMap.TryGetValue(c.Id, out var n) ? n : (int?)null,
+                CodigoRomano = numeroMap.TryGetValue(c.Id, out var rn) ? ToRoman(rn) : null,
+                RangoInicio = rangoMap.TryGetValue(c.Id, out var r) ? r.Inicio : null,
+                RangoFin = rangoMap.TryGetValue(c.Id, out var r2) ? r2.Fin : null
+            };
         });
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Para cada carpeta raíz, devuelve el total de documentos en esa carpeta y en todas sus subcarpetas.
+    /// </summary>
+    private async Task<Dictionary<int, int>> ObtenerTotalDocumentosEnArbolAsync(List<int> raizIds)
+    {
+        var result = new Dictionary<int, int>();
+        foreach (var raizId in raizIds)
+        {
+            var idsEnArbol = await ObtenerIdsCarpetaYDescendientesAsync(raizId);
+            var total = await _context.Documentos
+                .CountAsync(d => d.CarpetaId.HasValue && idsEnArbol.Contains(d.CarpetaId.Value));
+            result[raizId] = total;
+        }
+        return result;
+    }
+
+    private async Task<HashSet<int>> ObtenerIdsCarpetaYDescendientesAsync(int carpetaId)
+    {
+        var ids = new HashSet<int> { carpetaId };
+        var frontier = new List<int> { carpetaId };
+        while (frontier.Count > 0)
+        {
+            var children = await _context.Carpetas
+                .Where(c => c.CarpetaPadreId.HasValue && frontier.Contains(c.CarpetaPadreId.Value))
+                .Select(c => c.Id)
+                .ToListAsync();
+            frontier.Clear();
+            foreach (var id in children)
+            {
+                if (ids.Add(id))
+                    frontier.Add(id);
+            }
+        }
+        return ids;
     }
 
     // GET: api/carpetas/{id}

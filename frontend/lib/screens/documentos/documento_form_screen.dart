@@ -46,6 +46,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
   int? _carpetaId;
   int _nivelConfidencialidad = 1;
   PlatformFile? _pickedFile;
+
   /// Error del servidor para el campo N° Correlativo (código). Se muestra en rojo debajo del campo.
   String? _numeroCorrelativoError;
 
@@ -254,17 +255,18 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
           Navigator.pop(context, true);
         }
       } else {
-        // Actualizar
+        // Actualizar: si un dropdown quedó null porque el valor no estaba en la lista, conservar el del documento
+        final doc = widget.documento!;
         final dto = UpdateDocumentoDTO(
           numeroCorrelativo: _numeroCorrelativoController.text,
-          tipoDocumentoId: _tipoDocumentoId,
-          areaOrigenId: _areaOrigenId,
+          tipoDocumentoId: _tipoDocumentoId ?? doc.tipoDocumentoId,
+          areaOrigenId: _areaOrigenId ?? doc.areaOrigenId,
           gestion: _gestionController.text,
           fechaDocumento: _fechaDocumento,
           descripcion: _descripcionController.text,
-          responsableId: _responsableId,
+          responsableId: _responsableId ?? doc.responsableId,
           ubicacionFisica: _ubicacionFisicaController.text,
-          carpetaId: _carpetaId,
+          carpetaId: _carpetaId ?? doc.carpetaId,
           nivelConfidencialidad: _nivelConfidencialidad,
         );
         await documentoService.update(widget.documento!.id, dto);
@@ -292,9 +294,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
             e.response?.statusCode == 400 &&
             e.response?.data != null) {
           final data = e.response!.data;
-          serverMessage = (data is Map && data['message'] != null)
-              ? data['message'].toString()
-              : null;
+          serverMessage =
+              (data is Map && data['message'] != null)
+                  ? data['message'].toString()
+                  : null;
           if (serverMessage != null &&
               (serverMessage.toLowerCase().contains('código') ||
                   serverMessage.toLowerCase().contains('codigo') ||
@@ -467,9 +470,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         decoration: _inputDecoration('N° Correlativo').copyWith(
                           errorText: _numeroCorrelativoError,
                           errorStyle: const TextStyle(color: Colors.red),
-                          helperText: _numeroCorrelativoError == null
-                              ? 'Solo números, 1 a 6 dígitos. Formato del código: TIPO-AREA-GESTIÓN-####'
-                              : null,
+                          helperText:
+                              _numeroCorrelativoError == null
+                                  ? 'Solo números, 1 a 6 dígitos. Formato del código: TIPO-AREA-GESTIÓN-####'
+                                  : null,
                           helperMaxLines: 2,
                         ),
                         keyboardType: TextInputType.number,
@@ -499,7 +503,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           Expanded(
                             flex: 3,
                             child: DropdownButtonFormField<int>(
-                              value: _areaOrigenId,
+                              value:
+                                  _areas.any((a) => a['id'] == _areaOrigenId)
+                                      ? _areaOrigenId
+                                      : null,
                               isExpanded: true,
                               decoration: _inputDecoration('Área Origen'),
                               items:
@@ -519,7 +526,11 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                       ? null
                                       : (v) =>
                                           setState(() => _areaOrigenId = v),
-                              validator: (v) => v == null ? 'Seleccione un área de origen' : null,
+                              validator:
+                                  (v) =>
+                                      v == null
+                                          ? 'Seleccione un área de origen'
+                                          : null,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -531,7 +542,12 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                               keyboardType: TextInputType.number,
                               maxLength: 4,
                               validator:
-                                  (v) => v == null || v.trim().isEmpty || v.trim().length != 4 ? 'Ingrese un año de 4 dígitos (ej: 2025)' : null,
+                                  (v) =>
+                                      v == null ||
+                                              v.trim().isEmpty ||
+                                              v.trim().length != 4
+                                          ? 'Ingrese un año de 4 dígitos (ej: 2025)'
+                                          : null,
                               onChanged: (v) {
                                 if (v.length == 4)
                                   _loadData(); // Recargar carpetas al cambiar año
@@ -569,7 +585,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         decoration: _inputDecoration('Descripción / Asunto'),
                         maxLines: 3,
                         validator:
-                            (v) => v == null || v.trim().isEmpty ? FormValidators.requerido : null,
+                            (v) =>
+                                v == null || v.trim().isEmpty
+                                    ? FormValidators.requerido
+                                    : null,
                       ),
                       if (!ocultarSelectorCarpeta) ...[
                         if (_carpetas.isEmpty)
@@ -600,7 +619,13 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                             children: [
                               Expanded(
                                 child: DropdownButtonFormField<int>(
-                                  value: _carpetaId,
+                                  value:
+                                      _carpetaId == null ||
+                                              _carpetas.any(
+                                                (c) => c.id == _carpetaId,
+                                              )
+                                          ? _carpetaId
+                                          : null,
                                   decoration: _inputDecoration(
                                     'Carpeta de Archivo',
                                   ),
@@ -638,7 +663,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                       ],
 
                       DropdownButtonFormField<int>(
-                        value: _responsableId,
+                        value:
+                            _usuarios.any((u) => u.id == _responsableId)
+                                ? _responsableId
+                                : null,
                         decoration: _inputDecoration('Responsable *'),
                         items:
                             _usuarios
@@ -651,7 +679,8 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                 .toList(),
                         onChanged: (v) => setState(() => _responsableId = v),
                         validator:
-                            (v) => v == null ? 'Seleccione un responsable' : null,
+                            (v) =>
+                                v == null ? 'Seleccione un responsable' : null,
                       ),
                       const SizedBox(height: 16),
 
