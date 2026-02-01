@@ -79,13 +79,12 @@ void main() async {
 
       try {
         await initializeDateFormatting('es_BO', null);
-        debugPrint('[MAIN] runApp(MyApp)');
-        runApp(const MyApp());
-      } catch (e, st) {
-        debugPrint('[MAIN] Error en arranque: $e');
-        debugPrint('[MAIN] Stack: $st');
-        runApp(_ErrorApp('$e', st));
+        debugPrint('[MAIN] Fechas (es_BO) inicializadas');
+      } catch (e, _) {
+        debugPrint('[MAIN] Fechas no inicializadas (se usará formato por defecto): $e');
       }
+      debugPrint('[MAIN] runApp(MyApp)');
+      runApp(const MyApp());
     },
     (error, stack) {
       debugPrint('[MAIN] Error no capturado: $error');
