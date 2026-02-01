@@ -17,7 +17,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../models/anexo.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/data_provider.dart';
+import 'package:frontend/providers/data_provider.dart';
 import '../../models/documento.dart';
 import '../../services/anexo_service.dart';
 import '../../services/documento_service.dart';

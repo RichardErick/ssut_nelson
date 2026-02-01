@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../models/carpeta.dart';
 import '../../../models/user_role.dart';
 import '../../../providers/auth_provider.dart';
-import '../../../providers/data_provider.dart';
+import 'package:frontend/providers/data_provider.dart';
 import '../../../services/carpeta_service.dart';
 import '../../../controllers/carpetas/carpetas_controller.dart';
 import '../carpeta_form_screen.dart';

@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/carpeta.dart';
 import '../../utils/form_validators.dart';
-import '../../providers/data_provider.dart';
+import 'package:frontend/providers/data_provider.dart';
 import '../../services/carpeta_service.dart';
 
 class SubcarpetaFormScreen extends StatefulWidget {
