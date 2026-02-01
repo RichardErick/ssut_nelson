@@ -16,8 +16,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../models/anexo.dart';
 import '../../models/documento.dart';
 import '../../models/movimiento.dart';
-import 'package:frontend/providers/auth_provider.dart';
-import 'package:frontend/providers/data_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/anexo_service.dart';
 import '../../services/documento_service.dart';
 import '../../services/movimiento_service.dart';
@@ -552,7 +551,11 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                 color: theme.colorScheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.history_rounded, size: 20, color: theme.colorScheme.primary),
+              child: Icon(
+                Icons.history_rounded,
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
             ),
             const SizedBox(width: 12),
             Text(
@@ -574,11 +577,16 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.2),
+              ),
             ),
             child: Text(
               'No hay movimientos registrados para este documento.',
-              style: GoogleFonts.inter(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           )
         else
@@ -588,7 +596,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               'Mostrando los últimos 10 de ${_movimientos.length} movimientos.',
-              style: GoogleFonts.inter(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
       ],
@@ -638,20 +649,30 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
               children: [
                 Text(
                   m.tipoMovimiento,
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
                 if (m.usuarioNombre != null) ...[
                   const SizedBox(height: 2),
                   Text(
                     'Responsable: ${m.usuarioNombre}',
-                    style: GoogleFonts.inter(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
                 if (m.observaciones != null && m.observaciones!.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     m.observaciones!,
-                    style: GoogleFonts.inter(fontSize: 11, fontStyle: FontStyle.italic, color: theme.colorScheme.onSurfaceVariant),
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -659,12 +680,18 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                 const SizedBox(height: 4),
                 Text(
                   dateFormat.format(m.fechaMovimiento),
-                  style: GoogleFonts.inter(fontSize: 11, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
                 ),
                 if (m.fechaDevolucion != null)
                   Text(
                     'Devuelto: ${dateFormat.format(m.fechaDevolucion!)}',
-                    style: GoogleFonts.inter(fontSize: 11, color: Colors.green.shade700),
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: Colors.green.shade700,
+                    ),
                   ),
               ],
             ),
@@ -672,12 +699,18 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: m.estado == 'Devuelto' ? Colors.green.withOpacity(0.1) : theme.colorScheme.primary.withOpacity(0.1),
+              color:
+                  m.estado == 'Devuelto'
+                      ? Colors.green.withOpacity(0.1)
+                      : theme.colorScheme.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               m.estado,
-              style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -695,62 +728,64 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
       ),
-      child: _pdfPreviewError
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.error_outline_rounded,
-                  size: 48,
-                  color: theme.colorScheme.error,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No se pudo cargar el PDF',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurface,
+      child:
+          _pdfPreviewError
+              ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    size: 48,
+                    color: theme.colorScheme.error,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Compruebe que el archivo existe en el servidor y vuelva a intentar.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 16),
+                  Text(
+                    'No se pudo cargar el PDF',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                TextButton.icon(
-                  onPressed: _anexos.isEmpty
-                      ? null
-                      : () => _loadFirstPdfPreview(_anexos.first),
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Reintentar'),
-                ),
-              ],
-            )
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Cargando PDF adjunto...',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Compruebe que el archivo existe en el servidor y vuelva a intentar.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 20),
+                  TextButton.icon(
+                    onPressed:
+                        _anexos.isEmpty
+                            ? null
+                            : () => _loadFirstPdfPreview(_anexos.first),
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Reintentar'),
+                  ),
+                ],
+              )
+              : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Cargando PDF adjunto...',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
     );
   }
 
@@ -1994,9 +2029,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
 
       if (!mounted) return;
 
-      final dataProvider = Provider.of<DataProvider>(context, listen: false);
-      dataProvider.notifyDocumentoDeleted(doc.id);
-
+      // El listado se recarga al hacer pop(context, true) en _navegarAlDetalle
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
