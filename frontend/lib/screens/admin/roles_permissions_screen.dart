@@ -410,6 +410,32 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   }
 
   Future<void> _updateRol(Usuario usuario, String nuevoRol) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUserId = authProvider.user?['id'] as int?;
+
+    // Protección: no permitir cambiar el rol del usuario actual (evitar auto-bloqueo)
+    if (currentUserId != null && usuario.id == currentUserId) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('No puedes cambiar tu propio rol (riesgo de perder permisos de administrador)'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      return;
+    }
+
     try {
       final usuarioService = Provider.of<UsuarioService>(
         context,

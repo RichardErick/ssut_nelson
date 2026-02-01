@@ -30,6 +30,7 @@ class AuthProvider extends ChangeNotifier {
   String? get token => _token;
   Map<String, dynamic>? get user => _user;
   UserRole get role => _role;
+  int? get userId => _user?['id'] as int?;
 
   int _failedAttempts = 0;
   DateTime? _lockoutEndTime;
