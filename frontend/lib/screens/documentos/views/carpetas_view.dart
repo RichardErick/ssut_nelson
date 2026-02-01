@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/carpeta.dart';
-import '../../../models/user_role.dart';
 import '../../../providers/auth_provider.dart';
 import 'package:frontend/providers/data_provider.dart';
 import '../../../services/carpeta_service.dart';
@@ -51,7 +50,8 @@ class _CarpetasViewState extends State<CarpetasView> {
     super.initState();
     final carpetaService = Provider.of<CarpetaService>(context, listen: false);
     _controller = CarpetasController(service: carpetaService);
-    _controller.cargarCarpetas();
+    // Cargar carpetas de la gestión mostrada en el dropdown (p. ej. 2025)
+    _controller.cambiarGestion(_gestionSeleccionada);
   }
 
   @override
@@ -122,6 +122,7 @@ class _CarpetasViewState extends State<CarpetasView> {
                       onChanged: (value) {
                         if (value != null) {
                           setState(() => _gestionSeleccionada = value);
+                          _controller.cambiarGestion(value);
                         }
                       },
                     ),

@@ -31,7 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
     try {
       final usuarioService = Provider.of<UsuarioService>(context, listen: false);
-      final usuario = await usuarioService.getCurrent();
+      final usuario = await usuarioService.getCurrent(context);
       if (mounted) {
         setState(() {
           _usuario = usuario;

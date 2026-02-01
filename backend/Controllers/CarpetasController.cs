@@ -344,6 +344,21 @@ public class CarpetasController : ControllerBase
 
             if (documentos.Count > 0)
             {
+                var docIds = documentos.Select(d => d.Id).ToList();
+                // Eliminar dependencias antes que documentos (por si la BD no tiene ON DELETE CASCADE)
+                var anexos = await _context.Anexos.Where(a => docIds.Contains(a.DocumentoId)).ToListAsync();
+                var movimientos = await _context.Movimientos.Where(m => docIds.Contains(m.DocumentoId)).ToListAsync();
+                var historiales = await _context.HistorialesDocumento.Where(h => docIds.Contains(h.DocumentoId)).ToListAsync();
+                var alertasDoc = await _context.Alertas.Where(a => a.DocumentoId.HasValue && docIds.Contains(a.DocumentoId.Value)).ToListAsync();
+                var docPalabras = await _context.DocumentoPalabrasClaves.Where(dpc => docIds.Contains(dpc.DocumentoId)).ToListAsync();
+
+                _context.Anexos.RemoveRange(anexos);
+                _context.Movimientos.RemoveRange(movimientos);
+                _context.HistorialesDocumento.RemoveRange(historiales);
+                _context.Alertas.RemoveRange(alertasDoc);
+                _context.DocumentoPalabrasClaves.RemoveRange(docPalabras);
+                await _context.SaveChangesAsync();
+
                 _context.Documentos.RemoveRange(documentos);
                 await _context.SaveChangesAsync();
             }

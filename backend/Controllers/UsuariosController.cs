@@ -73,6 +73,7 @@ public class UsuariosController : ControllerBase
                 u.AreaId,
                 AreaNombre = u.Area != null ? u.Area.Nombre : null,
                 u.Activo,
+                u.SolicitudRechazada,
                 u.UltimoAcceso,
                 u.FechaRegistro,
                 u.FechaActualizacion
@@ -242,6 +243,16 @@ public class UsuariosController : ControllerBase
         usuario.Activo = dto.Activo;
         usuario.FechaActualizacion = DateTime.UtcNow;
 
+        // Si se aprueba al usuario, quitar las notificaciones pendientes de "Nuevo Registro de Usuario"
+        if (dto.Activo)
+        {
+            var referencia = "(UsuarioId: " + id + ")";
+            var alertasAprobacion = await _context.Alertas
+                .Where(a => a.Titulo == "Nuevo Registro de Usuario" && a.Mensaje != null && a.Mensaje.Contains(referencia))
+                .ToListAsync();
+            _context.Alertas.RemoveRange(alertasAprobacion);
+        }
+
         await _context.SaveChangesAsync();
 
         // Notificar al usuario (si aplica)
@@ -386,6 +397,14 @@ public class UsuariosController : ControllerBase
             .ToListAsync();
         _context.UsuarioPermisos.RemoveRange(permisosUsuario);
         usuario.Activo = false;
+        usuario.SolicitudRechazada = true;
+
+        // Quitar las notificaciones pendientes de "Nuevo Registro de Usuario" para este usuario
+        var referencia = "(UsuarioId: " + id + ")";
+        var alertasRechazo = await _context.Alertas
+            .Where(a => a.Titulo == "Nuevo Registro de Usuario" && a.Mensaje != null && a.Mensaje.Contains(referencia))
+            .ToListAsync();
+        _context.Alertas.RemoveRange(alertasRechazo);
 
         try
         {

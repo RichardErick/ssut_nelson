@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
@@ -22,52 +24,74 @@ import 'services/usuario_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
-  debugPrint('[MAIN] Iniciando app...');
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Mostrar errores en pantalla en lugar de pantalla en blanco (p. ej. en web)
-  FlutterError.onError = (details) {
-    debugPrint('[MAIN] FlutterError: ${details.exception}');
-    debugPrint('[MAIN] Stack: ${details.stack}');
-    FlutterError.presentError(details);
-  };
-  ErrorWidget.builder = (details) {
-    return Material(
-      child: Container(
-        color: Colors.white,
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                Text(
-                  'Error al cargar la aplicación',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
-                  ),
+  // Capturar errores asíncronos no manejados
+  runZonedGuarded(
+    () async {
+      debugPrint('[MAIN] Iniciando app...');
+
+      FlutterError.onError = (details) {
+        debugPrint('[MAIN] FlutterError: ${details.exception}');
+        debugPrint('[MAIN] Stack: ${details.stack}');
+        FlutterError.presentError(details);
+      };
+      ErrorWidget.builder = (details) {
+        return Material(
+          child: Container(
+            color: Colors.white,
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error al cargar la aplicación',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '${details.exception}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  '${details.exception}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
-    );
-  };
+        );
+      };
 
-  await initializeDateFormatting('es_BO', null);
-  debugPrint('[MAIN] runApp(MyApp)');
-  runApp(const MyApp());
+      try {
+        await initializeDateFormatting('es_BO', null);
+        debugPrint('[MAIN] runApp(MyApp)');
+        runApp(const MyApp());
+      } catch (e, st) {
+        debugPrint('[MAIN] Error en arranque: $e');
+        debugPrint('[MAIN] Stack: $st');
+        runApp(_ErrorApp('$e', st));
+      }
+    },
+    (error, stack) {
+      debugPrint('[MAIN] Error no capturado: $error');
+      debugPrint('[MAIN] Stack: $stack');
+    },
+  );
 }
 
 // Navigator key global para los servicios
@@ -126,6 +150,81 @@ class MyApp extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+/// Pantalla de error si falla el arranque (evita pantalla en blanco).
+class _ErrorApp extends StatelessWidget {
+  final String message;
+  final StackTrace? stack;
+
+  const _ErrorApp(this.message, [this.stack]);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 72,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Error al iniciar la aplicación',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      message,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (stack != null) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        '$stack',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                        maxLines: 10,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Revisa la consola del navegador (F12) para más detalles.\n'
+                      'Asegúrate de que el backend esté en http://localhost:5000',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

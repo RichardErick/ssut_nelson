@@ -35,14 +35,12 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  /// Solo los roles que acepta el backend (AdministradorSistema, AdministradorDocumentos, Contador, Gerente).
   final List<String> _roles = [
     'AdministradorSistema',
-    'Administrador',
     'AdministradorDocumentos',
-    'ArchivoCentral',
-    'TramiteDocumentario',
-    'Usuario',
-    'Supervisor',
+    'Contador',
+    'Gerente',
   ];
 
   @override
@@ -328,7 +326,11 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
       'inactivos': _usuarios.where((u) => !u.activo).length,
     };
     for (final rol in _roles) {
-      stats['rol_$rol'] = _usuarios.where((u) => u.rol == rol).length;
+      if (rol == 'AdministradorSistema') {
+        stats['rol_$rol'] = _usuarios.where((u) => u.rol == rol || u.rol == 'Administrador').length;
+      } else {
+        stats['rol_$rol'] = _usuarios.where((u) => u.rol == rol).length;
+      }
     }
     return stats;
   }
@@ -343,7 +345,11 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
       }).toList();
     }
     if (_selectedRolFilter != null) {
-      filtered = filtered.where((usuario) => usuario.rol == _selectedRolFilter).toList();
+      filtered = filtered.where((usuario) {
+        if (usuario.rol == _selectedRolFilter) return true;
+        if (_selectedRolFilter == 'AdministradorSistema' && usuario.rol == 'Administrador') return true;
+        return false;
+      }).toList();
     }
     if (_selectedAreaFilter != null) {
       final areaId = int.tryParse(_selectedAreaFilter!);
@@ -456,7 +462,8 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: _roles.map((rol) {
-            final isSelected = usuario.rol == rol;
+            final isSelected = usuario.rol == rol ||
+                (usuario.rol == 'Administrador' && rol == 'AdministradorSistema');
             return InkWell(
               onTap: () {
                 if (!isSelected) {
@@ -508,19 +515,14 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   String _getRolDisplayName(String rol) {
     switch (rol) {
       case 'AdministradorSistema':
-        return 'Administrador del Sistema';
       case 'Administrador':
-        return 'Administrador';
+        return 'Administrador del Sistema';
       case 'AdministradorDocumentos':
         return 'Administrador de Documentos';
-      case 'ArchivoCentral':
-        return 'Archivo Central';
-      case 'TramiteDocumentario':
-        return 'Trámite Documentario';
-      case 'Supervisor':
-        return 'Supervisor';
-      case 'Usuario':
-        return 'Usuario';
+      case 'Contador':
+        return 'Contador';
+      case 'Gerente':
+        return 'Gerente';
       default:
         return rol;
     }
@@ -529,19 +531,14 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   IconData _getRolIcon(String rol) {
     switch (rol) {
       case 'AdministradorSistema':
-        return Icons.security;
       case 'Administrador':
-        return Icons.admin_panel_settings;
+        return Icons.security;
       case 'AdministradorDocumentos':
         return Icons.folder_shared;
-      case 'ArchivoCentral':
-        return Icons.inventory_2;
-      case 'TramiteDocumentario':
-        return Icons.assignment;
-      case 'Supervisor':
-        return Icons.supervisor_account;
-      case 'Usuario':
-        return Icons.person;
+      case 'Contador':
+        return Icons.calculate;
+      case 'Gerente':
+        return Icons.business;
       default:
         return Icons.person_outline;
     }
@@ -550,18 +547,13 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   Color _getRolColor(String rol) {
     switch (rol) {
       case 'AdministradorSistema':
-        return Colors.deepPurple;
       case 'Administrador':
-        return Colors.red;
+        return Colors.deepPurple;
       case 'AdministradorDocumentos':
         return Colors.orange;
-      case 'ArchivoCentral':
-        return Colors.teal;
-      case 'TramiteDocumentario':
-        return Colors.indigo;
-      case 'Supervisor':
+      case 'Contador':
         return Colors.blue;
-      case 'Usuario':
+      case 'Gerente':
         return Colors.green;
       default:
         return Colors.grey;

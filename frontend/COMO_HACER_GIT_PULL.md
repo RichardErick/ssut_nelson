@@ -1,4 +1,38 @@
-# Cómo hacer git pull cuando hay cambios locales
+# Cómo hacer git pull / push (Git)
+
+## Push rechazado: "Updates were rejected... fetch first"
+
+Si al hacer **git push** te sale:
+- *"Updates were rejected because the remote contains work that you do not have locally"*
+- *"If you want to integrate the remote changes, use 'git pull' before pushing again"*
+
+**Pasos (Brayan / quien tenga el repo clonado):**
+
+```powershell
+cd "C:\Users\Brayan Cortez\Desktop\SSUT\Sistema_info_web_gest\Sistema_info_web_gestion"
+
+# 1. Traer los cambios del remoto y mezclar con tu commit local
+git pull origin main
+
+# Si pide mensaje de merge, guarda y cierra el editor (en VS Code: guardar y cerrar el archivo).
+
+# 2. Subir todo (tus cambios + los del remoto ya mezclados)
+git push origin main
+```
+
+Si **git pull** muestra **conflictos** (Conflict in ...):
+1. Abre los archivos que indique.
+2. Busca las marcas `<<<<<<<`, `=======`, `>>>>>>>` y deja la versión correcta (o combina a mano).
+3. Guarda, luego:
+```powershell
+git add .
+git commit -m "Resolviendo conflictos de merge"
+git push origin main
+```
+
+---
+
+## Cambios locales que bloquean el merge (pull)
 
 Si ves errores como:
 - *"Your local changes would be overwritten by merge"*

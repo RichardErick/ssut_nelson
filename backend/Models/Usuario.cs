@@ -46,6 +46,12 @@ public class Usuario
     [Column("activo")]
     public bool Activo { get; set; } = true;
 
+    /// <summary>
+    /// True si un administrador rechazó la solicitud de registro; no se muestra en "pendientes".
+    /// </summary>
+    [Column("solicitud_rechazada")]
+    public bool SolicitudRechazada { get; set; } = false;
+
     [Column("ultimo_acceso")]
     public DateTime? UltimoAcceso { get; set; }
 

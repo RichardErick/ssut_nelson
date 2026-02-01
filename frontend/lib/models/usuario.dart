@@ -7,6 +7,8 @@ class Usuario {
   final int? areaId;
   final String? areaNombre;
   final bool activo;
+  /// True si un admin rechazó la solicitud de registro; no se muestra en pendientes.
+  final bool solicitudRechazada;
   final DateTime? ultimoAcceso;
   final int intentosFallidos;
   final DateTime? bloqueadoHasta;
@@ -22,6 +24,7 @@ class Usuario {
     this.areaId,
     this.areaNombre,
     required this.activo,
+    this.solicitudRechazada = false,
     this.ultimoAcceso,
     required this.intentosFallidos,
     this.bloqueadoHasta,
@@ -30,26 +33,28 @@ class Usuario {
   });
 
   factory Usuario.fromJson(Map<String, dynamic> json) {
+    dynamic v(String a, [String? b]) => json[a] ?? (b != null ? json[b] : null);
+    String? s(String a, [String? b]) => v(a, b)?.toString();
+    DateTime? parseDate(dynamic x) => x == null ? null : DateTime.tryParse(x.toString());
+    final idRaw = v('id', 'Id');
+    final id = idRaw is int ? idRaw : (int.tryParse(idRaw?.toString() ?? '') ?? 0);
+    final fechaReg = parseDate(v('fechaRegistro', 'FechaRegistro'));
+    final fechaAct = parseDate(v('fechaActualizacion', 'FechaActualizacion'));
     return Usuario(
-      id: json['id'],
-      nombreUsuario: json['nombreUsuario'],
-      nombreCompleto: json['nombreCompleto'],
-      email: json['email'],
-      rol: json['rol'] ?? 'Contador', // Rol por defecto
-      areaId: json['areaId'],
-      areaNombre: json['areaNombre'],
-      activo: json['activo'] ?? true,
-      ultimoAcceso:
-          json['ultimoAcceso'] != null
-              ? DateTime.parse(json['ultimoAcceso'])
-              : null,
-      intentosFallidos: json['intentosFallidos'] ?? 0,
-      bloqueadoHasta:
-          json['bloqueadoHasta'] != null
-              ? DateTime.parse(json['bloqueadoHasta'])
-              : null,
-      fechaRegistro: DateTime.parse(json['fechaRegistro']),
-      fechaActualizacion: DateTime.parse(json['fechaActualizacion']),
+      id: id,
+      nombreUsuario: s('nombreUsuario', 'NombreUsuario') ?? '',
+      nombreCompleto: s('nombreCompleto', 'NombreCompleto') ?? '',
+      email: s('email', 'Email') ?? '',
+      rol: s('rol', 'Rol') ?? 'Contador',
+      areaId: v('areaId', 'AreaId') is int ? v('areaId', 'AreaId') as int? : int.tryParse(s('areaId', 'AreaId') ?? ''),
+      areaNombre: s('areaNombre', 'AreaNombre'),
+      activo: v('activo', 'Activo') == true,
+      solicitudRechazada: v('solicitudRechazada', 'SolicitudRechazada') == true,
+      ultimoAcceso: parseDate(v('ultimoAcceso', 'UltimoAcceso')),
+      intentosFallidos: (v('intentosFallidos', 'IntentosFallidos') is int) ? v('intentosFallidos', 'IntentosFallidos') as int : (int.tryParse(s('intentosFallidos', 'IntentosFallidos') ?? '0') ?? 0),
+      bloqueadoHasta: parseDate(v('bloqueadoHasta', 'BloqueadoHasta')),
+      fechaRegistro: fechaReg ?? DateTime.now(),
+      fechaActualizacion: fechaAct ?? DateTime.now(),
     );
   }
 

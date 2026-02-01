@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../main.dart';
@@ -79,19 +80,19 @@ class UsuarioService {
     }
   }
 
-  Future<Usuario> getCurrent() async {
+  /// Obtiene el usuario actual (perfil). Pasa [context] desde la pantalla para cargar con el contexto correcto.
+  Future<Usuario> getCurrent([BuildContext? context]) async {
     try {
-      final apiService = Provider.of<ApiService>(
-        navigatorKey.currentContext!,
-        listen: false,
-      );
+      final ctx = context ?? navigatorKey.currentContext;
+      if (ctx == null) throw Exception('No hay contexto disponible para cargar el perfil');
+      final apiService = Provider.of<ApiService>(ctx, listen: false);
       final meResponse = await apiService.get('/auth/me');
-      final data = meResponse.data as Map<String, dynamic>;
-      final idRaw = data['id'];
+      final data = meResponse.data is Map<String, dynamic> ? meResponse.data as Map<String, dynamic> : Map<String, dynamic>.from(meResponse.data as Map);
+      final idRaw = data['id'] ?? data['Id'];
       final id = idRaw is int ? idRaw : int.tryParse(idRaw?.toString() ?? '');
-      if (id != null) {
+      if (id != null && id > 0) {
         final response = await apiService.get('/usuarios/$id');
-        return Usuario.fromJson(response.data);
+        return Usuario.fromJson(response.data is Map<String, dynamic> ? response.data as Map<String, dynamic> : Map<String, dynamic>.from(response.data as Map));
       }
       return Usuario.fromJson(data);
     } catch (e) {
