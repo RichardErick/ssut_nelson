@@ -123,24 +123,38 @@ class AuthProvider extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         final roleString = prefs.getString('user_role');
         final userDataString = prefs.getString('user_data');
+        final userNameString = prefs.getString('user_name');
         final permissionsString = prefs.getString('user_permissions');
+
+        // 🔍 LOGGING EXHAUSTIVO para diagnosticar problema de cambio de usuario
+        debugPrint('[AUTH] ==================== DATOS ALMACENADOS ====================');
+        debugPrint('[AUTH] user_role: $roleString');
+        debugPrint('[AUTH] user_name: $userNameString');
+        debugPrint('[AUTH] user_data: $userDataString');
+        debugPrint('[AUTH] user_permissions length: ${permissionsString?.length ?? 0}');
+        debugPrint('[AUTH] ==========================================================');
 
         // Cargar datos de usuario primero (necesario para contexto de rol)
         if (userDataString != null) {
           try {
             _user = jsonDecode(userDataString);
+            debugPrint('[AUTH] ✅ user_data parseado: id=${_user?['id']}, nombreUsuario=${_user?['nombreUsuario']}, nombreCompleto=${_user?['nombreCompleto']}');
           } catch (e) {
+            debugPrint('[AUTH] ❌ Error parseando user_data: $e');
             // Fallback for old data format or persistent errors
             final username = prefs.getString('user_name');
             if (username != null) {
               _user = {'nombreUsuario': username};
+              debugPrint('[AUTH] ⚠️ Usando fallback con user_name: $username');
             }
           }
         } else {
+          debugPrint('[AUTH] ⚠️ user_data es NULL, usando fallback');
           // Fallback if user_data is missing
           final username = prefs.getString('user_name');
           if (username != null) {
             _user = {'nombreUsuario': username};
+            debugPrint('[AUTH] Fallback user_name: $username');
           }
         }
 
@@ -149,7 +163,7 @@ class AuthProvider extends ChangeNotifier {
           final userUsername = (_user?['nombreUsuario'] as String?) ?? '';
           final fullName = (_user?['nombreCompleto'] as String?) ?? '';
           _role = _parseRoleWithContext(roleString, userUsername, fullName);
-          debugPrint('[AUTH] Rol parseado con contexto: $_role para usuario: $userUsername');
+          debugPrint('[AUTH] ✅ Rol parseado con contexto: $_role para usuario: $userUsername (fullName: $fullName)');
         }
 
         if (permissionsString != null) {
