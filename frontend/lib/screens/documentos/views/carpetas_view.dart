@@ -20,21 +20,18 @@ class CarpetasView extends StatefulWidget {
 
 class _CarpetasViewState extends State<CarpetasView> {
   late CarpetasController _controller;
-  String _gestionSeleccionada = '2025';
-  
+
   // Constantes para módulos
   static const String _moduloEgresos = 'Comprobante de Egreso';
   static const String _moduloIngresos = 'Comprobante de Ingreso';
   static const List<String> _gestionesVisibles = ['2024', '2025', '2026'];
 
-  bool get _hasMainFolder {
-    final carpetas = _getCarpetasForGestion(_gestionSeleccionada);
-    return carpetas.any((c) => c.carpetaPadreId == null);
-  }
+  /// Carpeta visible según la gestión seleccionada en el controlador (única fuente de verdad).
+  List<Carpeta> get _carpetasVisibles =>
+      _controller.carpetas.where((c) => c.gestion == _controller.gestion).toList();
 
-  List<Carpeta> _getCarpetasForGestion(String gestion) {
-    return _controller.carpetas.where((c) => c.gestion == gestion).toList();
-  }
+  bool get _hasMainFolder =>
+      _carpetasVisibles.any((c) => c.carpetaPadreId == null);
 
   void _abrirCarpeta(Carpeta carpeta) {
     Navigator.push(
@@ -50,8 +47,8 @@ class _CarpetasViewState extends State<CarpetasView> {
     super.initState();
     final carpetaService = Provider.of<CarpetaService>(context, listen: false);
     _controller = CarpetasController(service: carpetaService);
-    // Cargar carpetas de la gestión mostrada en el dropdown (p. ej. 2025)
-    _controller.cambiarGestion(_gestionSeleccionada);
+    // Cargar carpetas para la gestión inicial (2025)
+    _controller.cambiarGestion('2025');
   }
 
   @override
@@ -102,11 +99,13 @@ class _CarpetasViewState extends State<CarpetasView> {
               appBar: AppBar(
                 title: Text('Gestión Documental', style: GoogleFonts.poppins()),
                 actions: [
-                  // Filter by gestion
+                  // Filtro por gestión: el valor viene del controlador para que siempre aplique.
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: DropdownButton<String>(
-                      value: _gestionSeleccionada,
+                      value: _gestionesVisibles.contains(_controller.gestion)
+                          ? _controller.gestion
+                          : _gestionesVisibles.first,
                       dropdownColor: Colors.white,
                       style: GoogleFonts.poppins(
                         color: Colors.blue.shade900,
@@ -120,10 +119,7 @@ class _CarpetasViewState extends State<CarpetasView> {
                         );
                       }).toList(),
                       onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _gestionSeleccionada = value);
-                          _controller.cambiarGestion(value);
-                        }
+                        if (value != null) _controller.cambiarGestion(value);
                       },
                     ),
                   ),
@@ -162,7 +158,7 @@ class _CarpetasViewState extends State<CarpetasView> {
   }
 
   Widget _buildModularView() {
-    final carpetas = _getCarpetasForGestion(_gestionSeleccionada);
+    final carpetas = _carpetasVisibles;
 
     // Separate by modules
     final carpetaEgresos = carpetas
@@ -284,7 +280,7 @@ class _CarpetasViewState extends State<CarpetasView> {
               Icon(Icons.analytics_outlined, color: Colors.blue.shade700, size: 28),
               const SizedBox(width: 12),
               Text(
-                'Resumen de Gestión $_gestionSeleccionada',
+                'Resumen de Gestión ${_controller.gestion}',
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,

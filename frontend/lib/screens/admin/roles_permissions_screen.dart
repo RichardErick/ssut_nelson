@@ -3,9 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../providers/auth_provider.dart';
 import '../../models/area.dart';
 import '../../models/usuario.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/usuario_service.dart';
 import '../../theme/app_theme.dart';
@@ -51,7 +51,11 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
       if (!authProvider.canManageUserPermissions) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Acceso denegado: Requiere permiso de administrador del sistema')),
+          const SnackBar(
+            content: Text(
+              'Acceso denegado: Requiere permiso de administrador del sistema',
+            ),
+          ),
         );
       }
     });
@@ -61,7 +65,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
 
   Future<void> _createUsuario(CreateUsuarioDTO dto) async {
     try {
-      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      final usuarioService = Provider.of<UsuarioService>(
+        context,
+        listen: false,
+      );
       await usuarioService.create(dto);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -90,28 +97,34 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   Future<void> _confirmDeleteUsuario(Usuario usuario) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Eliminar usuario'),
-        content: Text(
-          'Se desactivará el usuario "${usuario.nombreCompleto}" (eliminación lógica). ¿Continuar?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text('Eliminar usuario'),
+            content: Text(
+              'Se desactivará el usuario "${usuario.nombreCompleto}" (eliminación lógica). ¿Continuar?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Eliminar'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
     );
     if (confirmed != true) return;
     try {
-      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      final usuarioService = Provider.of<UsuarioService>(
+        context,
+        listen: false,
+      );
       await usuarioService.deleteUsuario(usuario.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -147,121 +160,131 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
 
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Nuevo usuario'),
-          content: SizedBox(
-            width: 420,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nombreUsuarioController,
-                    decoration: const InputDecoration(
-                      labelText: 'Usuario',
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
+      builder:
+          (dialogContext) => StatefulBuilder(
+            builder:
+                (context, setStateDialog) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: nombreCompletoController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre completo',
-                      prefixIcon: Icon(Icons.badge_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Contraseña',
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: rol,
-                    decoration: const InputDecoration(
-                      labelText: 'Rol',
-                      prefixIcon: Icon(Icons.admin_panel_settings_outlined),
-                    ),
-                    items: _roles
-                        .map(
-                          (r) => DropdownMenuItem(
-                            value: r,
-                            child: Text(_getRolDisplayName(r)),
+                  title: const Text('Nuevo usuario'),
+                  content: SizedBox(
+                    width: 420,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextField(
+                            controller: nombreUsuarioController,
+                            decoration: const InputDecoration(
+                              labelText: 'Usuario',
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
                           ),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setStateDialog(() => rol = v);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<int?>(
-                    value: areaId,
-                    decoration: const InputDecoration(
-                      labelText: 'Área (opcional)',
-                      prefixIcon: Icon(Icons.business_outlined),
-                    ),
-                    items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('Sin área')),
-                      ..._areas.map(
-                        (a) => DropdownMenuItem<int?>(
-                          value: a.id,
-                          child: Text(a.nombre),
-                        ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: nombreCompletoController,
+                            decoration: const InputDecoration(
+                              labelText: 'Nombre completo',
+                              prefixIcon: Icon(Icons.badge_outlined),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: emailController,
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                              prefixIcon: Icon(Icons.email_outlined),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: passwordController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Contraseña',
+                              prefixIcon: Icon(Icons.lock_outline),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: rol,
+                            decoration: const InputDecoration(
+                              labelText: 'Rol',
+                              prefixIcon: Icon(
+                                Icons.admin_panel_settings_outlined,
+                              ),
+                            ),
+                            items:
+                                _roles
+                                    .map(
+                                      (r) => DropdownMenuItem(
+                                        value: r,
+                                        child: Text(_getRolDisplayName(r)),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (v) {
+                              if (v == null) return;
+                              setStateDialog(() => rol = v);
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<int?>(
+                            value: areaId,
+                            decoration: const InputDecoration(
+                              labelText: 'Área (opcional)',
+                              prefixIcon: Icon(Icons.business_outlined),
+                            ),
+                            items: [
+                              const DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text('Sin área'),
+                              ),
+                              ..._areas.map(
+                                (a) => DropdownMenuItem<int?>(
+                                  value: a.id,
+                                  child: Text(a.nombre),
+                                ),
+                              ),
+                            ],
+                            onChanged: (v) => setStateDialog(() => areaId = v),
+                          ),
+                          const SizedBox(height: 8),
+                          SwitchListTile(
+                            value: activo,
+                            onChanged: (v) => setStateDialog(() => activo = v),
+                            title: const Text('Activo'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ],
                       ),
-                    ],
-                    onChanged: (v) => setStateDialog(() => areaId = v),
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  SwitchListTile(
-                    value: activo,
-                    onChanged: (v) => setStateDialog(() => activo = v),
-                    title: const Text('Activo'),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ],
-              ),
-            ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Cancelar'),
+                    ),
+                    FilledButton(
+                      onPressed: () {
+                        final dto = CreateUsuarioDTO(
+                          nombreUsuario: nombreUsuarioController.text,
+                          nombreCompleto: nombreCompletoController.text,
+                          email: emailController.text,
+                          password: passwordController.text,
+                          rol: rol,
+                          areaId: areaId,
+                          activo: activo,
+                        );
+                        Navigator.pop(dialogContext);
+                        _createUsuario(dto);
+                      },
+                      child: const Text('Crear'),
+                    ),
+                  ],
+                ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final dto = CreateUsuarioDTO(
-                  nombreUsuario: nombreUsuarioController.text,
-                  nombreCompleto: nombreCompletoController.text,
-                  email: emailController.text,
-                  password: passwordController.text,
-                  rol: rol,
-                  areaId: areaId,
-                  activo: activo,
-                );
-                Navigator.pop(dialogContext);
-                _createUsuario(dto);
-              },
-              child: const Text('Crear'),
-            ),
-          ],
-        ),
-      ),
     ).then((_) {
       nombreUsuarioController.dispose();
       nombreCompletoController.dispose();
@@ -288,7 +311,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
       setState(() => _isLoading = true);
     }
     try {
-      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      final usuarioService = Provider.of<UsuarioService>(
+        context,
+        listen: false,
+      );
       final apiService = Provider.of<ApiService>(context, listen: false);
       final usuariosFuture = usuarioService.getAll();
       final areasResponse = await apiService.get('/areas');
@@ -297,7 +323,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
       if (mounted) {
         setState(() {
           _usuarios = usuarios;
-          _areas = (areasResponse.data as List).map((json) => Area.fromJson(json)).toList();
+          _areas =
+              (areasResponse.data as List)
+                  .map((json) => Area.fromJson(json))
+                  .toList();
           _isLoading = false;
           _isRefreshing = false;
         });
@@ -327,7 +356,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     };
     for (final rol in _roles) {
       if (rol == 'AdministradorSistema') {
-        stats['rol_$rol'] = _usuarios.where((u) => u.rol == rol || u.rol == 'Administrador').length;
+        stats['rol_$rol'] =
+            _usuarios
+                .where((u) => u.rol == rol || u.rol == 'Administrador')
+                .length;
       } else {
         stats['rol_$rol'] = _usuarios.where((u) => u.rol == rol).length;
       }
@@ -338,34 +370,51 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   List<Usuario> get _usuariosFiltrados {
     var filtered = _usuarios;
     if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((usuario) {
-        return usuario.nombreCompleto.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            usuario.nombreUsuario.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            usuario.email.toLowerCase().contains(_searchQuery.toLowerCase());
-      }).toList();
+      filtered =
+          filtered.where((usuario) {
+            return usuario.nombreCompleto.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ||
+                usuario.nombreUsuario.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ||
+                usuario.email.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                );
+          }).toList();
     }
     if (_selectedRolFilter != null) {
-      filtered = filtered.where((usuario) {
-        if (usuario.rol == _selectedRolFilter) return true;
-        if (_selectedRolFilter == 'AdministradorSistema' && usuario.rol == 'Administrador') return true;
-        return false;
-      }).toList();
+      filtered =
+          filtered.where((usuario) {
+            if (usuario.rol == _selectedRolFilter) return true;
+            if (_selectedRolFilter == 'AdministradorSistema' &&
+                usuario.rol == 'Administrador')
+              return true;
+            return false;
+          }).toList();
     }
     if (_selectedAreaFilter != null) {
       final areaId = int.tryParse(_selectedAreaFilter!);
       if (areaId != null) {
-        filtered = filtered.where((usuario) => usuario.areaId == areaId).toList();
+        filtered =
+            filtered.where((usuario) => usuario.areaId == areaId).toList();
       }
     }
     if (_selectedEstadoFilter != null) {
-      filtered = filtered.where((usuario) => usuario.activo == _selectedEstadoFilter).toList();
+      filtered =
+          filtered
+              .where((usuario) => usuario.activo == _selectedEstadoFilter)
+              .toList();
     }
     return filtered;
   }
 
   Future<void> _updateRol(Usuario usuario, String nuevoRol) async {
     try {
-      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      final usuarioService = Provider.of<UsuarioService>(
+        context,
+        listen: false,
+      );
       await usuarioService.updateRol(usuario.id, nuevoRol);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -398,7 +447,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
 
   Future<void> _toggleEstado(Usuario usuario) async {
     try {
-      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      final usuarioService = Provider.of<UsuarioService>(
+        context,
+        listen: false,
+      );
       await usuarioService.updateEstado(usuario.id, !usuario.activo);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -432,83 +484,116 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   void _showRolDialog(Usuario usuario) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: _getRolColor(usuario.rol).withOpacity(0.2),
-              child: Icon(_getRolIcon(usuario.rol), color: _getRolColor(usuario.rol)),
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    usuario.nombreCompleto,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            title: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: _getRolColor(usuario.rol).withOpacity(0.2),
+                  child: Icon(
+                    _getRolIcon(usuario.rol),
+                    color: _getRolColor(usuario.rol),
                   ),
-                  Text(
-                    'Cambiar rol',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _roles.map((rol) {
-            final isSelected = usuario.rol == rol ||
-                (usuario.rol == 'Administrador' && rol == 'AdministradorSistema');
-            return InkWell(
-              onTap: () {
-                if (!isSelected) {
-                  Navigator.pop(context);
-                  _updateRol(usuario, rol);
-                }
-              },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isSelected ? _getRolColor(rol).withOpacity(0.1) : Colors.transparent,
-                  border: Border.all(
-                    color: isSelected ? _getRolColor(rol) : Colors.grey.shade300,
-                    width: isSelected ? 2 : 1,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
-                  children: [
-                    Icon(_getRolIcon(rol), color: _getRolColor(rol), size: 24),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _getRolDisplayName(rol),
-                        style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          color: isSelected ? _getRolColor(rol) : null,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        usuario.nombreCompleto,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    if (isSelected) Icon(Icons.check_circle, color: _getRolColor(rol), size: 20),
-                  ],
+                      Text(
+                        'Cambiar rol',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children:
+                  _roles.map((rol) {
+                    final isSelected =
+                        usuario.rol == rol ||
+                        (usuario.rol == 'Administrador' &&
+                            rol == 'AdministradorSistema');
+                    return InkWell(
+                      onTap: () {
+                        if (!isSelected) {
+                          Navigator.pop(context);
+                          _updateRol(usuario, rol);
+                        }
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color:
+                              isSelected
+                                  ? _getRolColor(rol).withOpacity(0.1)
+                                  : Colors.transparent,
+                          border: Border.all(
+                            color:
+                                isSelected
+                                    ? _getRolColor(rol)
+                                    : Colors.grey.shade300,
+                            width: isSelected ? 2 : 1,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _getRolIcon(rol),
+                              color: _getRolColor(rol),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _getRolDisplayName(rol),
+                                style: TextStyle(
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                  color: isSelected ? _getRolColor(rol) : null,
+                                ),
+                              ),
+                            ),
+                            if (isSelected)
+                              Icon(
+                                Icons.check_circle,
+                                color: _getRolColor(rol),
+                                size: 20,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
               ),
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -622,7 +707,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
               const SizedBox(height: 8),
               Text(
                 'Administre roles y permisos de usuarios del sistema',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: isDesktop ? 16 : 14),
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: isDesktop ? 16 : 14,
+                ),
               ),
             ],
           ),
@@ -670,28 +758,59 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
 
   Widget _buildStatisticsCards(ThemeData theme, bool isDesktop) {
     final stats = _estadisticas;
-    final cardWidth = isDesktop ? 200.0 : (MediaQuery.of(context).size.width - 64) / 2;
+    final cardWidth =
+        isDesktop ? 200.0 : (MediaQuery.of(context).size.width - 64) / 2;
     int index = 0;
     return Wrap(
       spacing: 16,
       runSpacing: 16,
       children: [
-        _buildStatCard('Total Usuarios', stats['total']!.toString(), Icons.people, AppTheme.colorPrimario, cardWidth, index++),
-        _buildStatCard('Activos', stats['activos']!.toString(), Icons.check_circle, Colors.green, cardWidth, index++),
-        _buildStatCard('Inactivos', stats['inactivos']!.toString(), Icons.cancel, Colors.red, cardWidth, index++),
-        ..._roles.map((rol) => _buildStatCard(
-          _getRolDisplayName(rol),
-          stats['rol_$rol']!.toString(),
-          _getRolIcon(rol),
-          _getRolColor(rol),
+        _buildStatCard(
+          'Total Usuarios',
+          stats['total']!.toString(),
+          Icons.people,
+          AppTheme.colorPrimario,
           cardWidth,
           index++,
-        )),
+        ),
+        _buildStatCard(
+          'Activos',
+          stats['activos']!.toString(),
+          Icons.check_circle,
+          Colors.green,
+          cardWidth,
+          index++,
+        ),
+        _buildStatCard(
+          'Inactivos',
+          stats['inactivos']!.toString(),
+          Icons.cancel,
+          Colors.red,
+          cardWidth,
+          index++,
+        ),
+        ..._roles.map(
+          (rol) => _buildStatCard(
+            _getRolDisplayName(rol),
+            stats['rol_$rol']!.toString(),
+            _getRolIcon(rol),
+            _getRolColor(rol),
+            cardWidth,
+            index++,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, double width, int animIndex) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    double width,
+    int animIndex,
+  ) {
     return AnimatedCard(
       delay: Duration(milliseconds: animIndex * 100),
       child: Container(
@@ -754,13 +873,16 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     decoration: InputDecoration(
                       hintText: 'Buscar por nombre, usuario o email...',
                       prefixIcon: const Icon(Icons.search),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () => _searchController.clear(),
-                            )
-                          : null,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      suffixIcon:
+                          _searchQuery.isNotEmpty
+                              ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () => _searchController.clear(),
+                              )
+                              : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       filled: true,
                       fillColor: theme.colorScheme.surface,
                     ),
@@ -772,7 +894,9 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     icon: const Icon(Icons.filter_alt_off),
                     onPressed: _clearFilters,
                     tooltip: 'Limpiar filtros',
-                    style: IconButton.styleFrom(backgroundColor: theme.colorScheme.errorContainer),
+                    style: IconButton.styleFrom(
+                      backgroundColor: theme.colorScheme.errorContainer,
+                    ),
                   ),
                 ],
               ],
@@ -781,7 +905,8 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
             LayoutBuilder(
               builder: (context, constraints) {
                 final maxWidth = constraints.maxWidth;
-                final dropdownWidth = isDesktop ? 250.0 : (maxWidth > 0 ? maxWidth - 16 : 280.0);
+                final dropdownWidth =
+                    isDesktop ? 250.0 : (maxWidth > 0 ? maxWidth - 16 : 280.0);
                 return Wrap(
                   spacing: 16,
                   runSpacing: 16,
@@ -789,69 +914,99 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     SizedBox(
                       width: dropdownWidth,
                       child: DropdownButtonFormField<String?>(
-                    value: _selectedRolFilter,
-                    decoration: InputDecoration(
-                      labelText: 'Filtrar por Rol',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: theme.colorScheme.surface,
-                    ),
-                    items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('Todos los roles')),
-                      ..._roles.map(
-                        (rol) => DropdownMenuItem<String?>(
-                          value: rol,
-                          child: Text(
-                            _getRolDisplayName(rol),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
+                        value: _selectedRolFilter,
+                        decoration: InputDecoration(
+                          labelText: 'Filtrar por Rol',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          filled: true,
+                          fillColor: theme.colorScheme.surface,
                         ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Todos los roles'),
+                          ),
+                          ..._roles.map(
+                            (rol) => DropdownMenuItem<String?>(
+                              value: rol,
+                              child: Text(
+                                _getRolDisplayName(rol),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged:
+                            (value) =>
+                                setState(() => _selectedRolFilter = value),
                       ),
-                    ],
-                    onChanged: (value) => setState(() => _selectedRolFilter = value),
-                  ),
-                ),
+                    ),
                     SizedBox(
                       width: dropdownWidth,
                       child: DropdownButtonFormField<String?>(
-                    value: _selectedAreaFilter,
-                    decoration: InputDecoration(
-                      labelText: 'Filtrar por Área',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: theme.colorScheme.surface,
-                    ),
-                    items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('Todas las áreas')),
-                      ..._areas.map(
-                        (area) => DropdownMenuItem<String?>(
-                          value: area.id.toString(),
-                          child: Text(area.nombre, overflow: TextOverflow.ellipsis),
+                        value: _selectedAreaFilter,
+                        decoration: InputDecoration(
+                          labelText: 'Filtrar por Área',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: theme.colorScheme.surface,
                         ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Todas las áreas'),
+                          ),
+                          ..._areas.map(
+                            (area) => DropdownMenuItem<String?>(
+                              value: area.id.toString(),
+                              child: Text(
+                                area.nombre,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged:
+                            (value) =>
+                                setState(() => _selectedAreaFilter = value),
                       ),
-                    ],
-                    onChanged: (value) => setState(() => _selectedAreaFilter = value),
-                  ),
-                ),
+                    ),
                     SizedBox(
                       width: isDesktop ? 200.0 : dropdownWidth,
                       child: DropdownButtonFormField<bool?>(
-                    value: _selectedEstadoFilter,
-                    decoration: InputDecoration(
-                      labelText: 'Estado',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: theme.colorScheme.surface,
+                        value: _selectedEstadoFilter,
+                        decoration: InputDecoration(
+                          labelText: 'Estado',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: theme.colorScheme.surface,
+                        ),
+                        items: const [
+                          DropdownMenuItem<bool?>(
+                            value: null,
+                            child: Text('Todos'),
+                          ),
+                          DropdownMenuItem<bool?>(
+                            value: true,
+                            child: Text('Activos'),
+                          ),
+                          DropdownMenuItem<bool?>(
+                            value: false,
+                            child: Text('Inactivos'),
+                          ),
+                        ],
+                        onChanged:
+                            (value) =>
+                                setState(() => _selectedEstadoFilter = value),
+                      ),
                     ),
-                    items: const [
-                      DropdownMenuItem<bool?>(value: null, child: Text('Todos')),
-                      DropdownMenuItem<bool?>(value: true, child: Text('Activos')),
-                      DropdownMenuItem<bool?>(value: false, child: Text('Inactivos')),
-                    ],
-                    onChanged: (value) => setState(() => _selectedEstadoFilter = value),
-                  ),
-                ),
                   ],
                 );
               },
@@ -907,17 +1062,20 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
           childAspectRatio: isDesktop ? 1.0 : 0.85,
         ),
         itemCount: _usuariosFiltrados.length,
-        itemBuilder: (context, index) => _buildUserCardGrid(_usuariosFiltrados[index], theme),
+        itemBuilder:
+            (context, index) =>
+                _buildUserCardGrid(_usuariosFiltrados[index], theme),
       );
     }
     return Column(
-      children: _usuariosFiltrados.asMap().entries.map((entry) {
-        return AnimatedCard(
-          delay: Duration(milliseconds: entry.key * 50),
-          margin: const EdgeInsets.only(bottom: 12),
-          child: _buildUserCard(entry.value, theme, isDesktop),
-        );
-      }).toList(),
+      children:
+          _usuariosFiltrados.asMap().entries.map((entry) {
+            return AnimatedCard(
+              delay: Duration(milliseconds: entry.key * 50),
+              margin: const EdgeInsets.only(bottom: 12),
+              child: _buildUserCard(entry.value, theme, isDesktop),
+            );
+          }).toList(),
     );
   }
 
@@ -928,7 +1086,8 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
         children: [
           CircleAvatar(
             radius: isDesktop ? 30 : 24,
-            backgroundColor: usuario.activo ? theme.colorScheme.primary : Colors.grey,
+            backgroundColor:
+                usuario.activo ? theme.colorScheme.primary : Colors.grey,
             child: Text(
               usuario.nombreCompleto[0].toUpperCase(),
               style: TextStyle(
@@ -944,7 +1103,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
               bottom: 0,
               child: Container(
                 padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
                 child: const Icon(Icons.block, color: Colors.white, size: 12),
               ),
             ),
@@ -968,7 +1130,11 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(_getRolIcon(usuario.rol), size: 14, color: _getRolColor(usuario.rol)),
+                Icon(
+                  _getRolIcon(usuario.rol),
+                  size: 14,
+                  color: _getRolColor(usuario.rol),
+                ),
                 const SizedBox(width: 6),
                 Text(
                   _getRolDisplayName(usuario.rol),
@@ -1005,75 +1171,80 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
           ],
         ),
       ),
-      trailing: isDesktop
-          ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () => _showRolDialog(usuario),
-                  tooltip: 'Cambiar rol',
-                  color: theme.colorScheme.primary,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _confirmDeleteUsuario(usuario),
-                  tooltip: 'Eliminar',
-                  color: theme.colorScheme.error,
-                ),
-                Switch(
-                  value: usuario.activo,
-                  onChanged: (_) => _toggleEstado(usuario),
-                ),
-              ],
-            )
-          : PopupMenuButton<String>(
-              onSelected: (value) {
-                switch (value) {
-                  case 'rol':
-                    _showRolDialog(usuario);
-                    break;
-                  case 'estado':
-                    _toggleEstado(usuario);
-                    break;
-                  case 'eliminar':
-                    _confirmDeleteUsuario(usuario);
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem<String>(
-                  value: 'rol',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit, size: 18),
-                      SizedBox(width: 8),
-                      Text('Cambiar rol'),
-                    ],
+      trailing:
+          isDesktop
+              ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _showRolDialog(usuario),
+                    tooltip: 'Cambiar rol',
+                    color: theme.colorScheme.primary,
                   ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'estado',
-                  child: Row(
-                    children: [
-                      Icon(usuario.activo ? Icons.block : Icons.check_circle, size: 18),
-                      const SizedBox(width: 8),
-                      Text(usuario.activo ? 'Desactivar' : 'Activar'),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _confirmDeleteUsuario(usuario),
+                    tooltip: 'Eliminar',
+                    color: theme.colorScheme.error,
                   ),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'eliminar',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline, size: 18),
-                      SizedBox(width: 8),
-                      Text('Eliminar'),
-                    ],
+                  Switch(
+                    value: usuario.activo,
+                    onChanged: (_) => _toggleEstado(usuario),
                   ),
-                ),
-              ],
-            ),
+                ],
+              )
+              : PopupMenuButton<String>(
+                onSelected: (value) {
+                  switch (value) {
+                    case 'rol':
+                      _showRolDialog(usuario);
+                      break;
+                    case 'estado':
+                      _toggleEstado(usuario);
+                      break;
+                    case 'eliminar':
+                      _confirmDeleteUsuario(usuario);
+                      break;
+                  }
+                },
+                itemBuilder:
+                    (context) => [
+                      const PopupMenuItem<String>(
+                        value: 'rol',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 18),
+                            SizedBox(width: 8),
+                            Text('Cambiar rol'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'estado',
+                        child: Row(
+                          children: [
+                            Icon(
+                              usuario.activo ? Icons.block : Icons.check_circle,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(usuario.activo ? 'Desactivar' : 'Activar'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'eliminar',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, size: 18),
+                            SizedBox(width: 8),
+                            Text('Eliminar'),
+                          ],
+                        ),
+                      ),
+                    ],
+              ),
     );
   }
 
@@ -1093,7 +1264,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                 children: [
                   CircleAvatar(
                     radius: 35,
-                    backgroundColor: usuario.activo ? theme.colorScheme.primary : Colors.grey,
+                    backgroundColor:
+                        usuario.activo
+                            ? theme.colorScheme.primary
+                            : Colors.grey,
                     child: Text(
                       usuario.nombreCompleto[0].toUpperCase(),
                       style: const TextStyle(
@@ -1109,8 +1283,15 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                       bottom: 0,
                       child: Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                        child: const Icon(Icons.block, color: Colors.white, size: 14),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.block,
+                          color: Colors.white,
+                          size: 14,
+                        ),
                       ),
                     ),
                 ],
@@ -1118,7 +1299,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
               const SizedBox(height: 12),
               Text(
                 usuario.nombreCompleto,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
