@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/providers/data_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import '../../../controllers/carpetas/carpetas_controller.dart';
 import '../../../models/carpeta.dart';
 import '../../../providers/auth_provider.dart';
-import 'package:frontend/providers/data_provider.dart';
 import '../../../services/carpeta_service.dart';
-import '../../../controllers/carpetas/carpetas_controller.dart';
 import '../carpeta_form_screen.dart';
 import '../documentos_list_screen.dart';
 
@@ -28,7 +28,9 @@ class _CarpetasViewState extends State<CarpetasView> {
 
   /// Carpeta visible según la gestión seleccionada en el controlador (única fuente de verdad).
   List<Carpeta> get _carpetasVisibles =>
-      _controller.carpetas.where((c) => c.gestion == _controller.gestion).toList();
+      _controller.carpetas
+          .where((c) => c.gestion == _controller.gestion)
+          .toList();
 
   bool get _hasMainFolder =>
       _carpetasVisibles.any((c) => c.carpetaPadreId == null);
@@ -37,7 +39,8 @@ class _CarpetasViewState extends State<CarpetasView> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => DocumentosListScreen(initialCarpetaId: carpeta.id),
+        builder:
+            (context) => DocumentosListScreen(initialCarpetaId: carpeta.id),
       ),
     ).then((_) => _controller.cargarCarpetas());
   }
@@ -68,13 +71,13 @@ class _CarpetasViewState extends State<CarpetasView> {
     if (result == true) {
       // Reload data
       await _controller.cargarCarpetas();
-      
+
       // Notificar al DataProvider para actualizaciones en tiempo real
       if (mounted) {
         final dataProvider = Provider.of<DataProvider>(context, listen: false);
         dataProvider.refresh();
       }
-      
+
       // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -103,21 +106,23 @@ class _CarpetasViewState extends State<CarpetasView> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: DropdownButton<String>(
-                      value: _gestionesVisibles.contains(_controller.gestion)
-                          ? _controller.gestion
-                          : _gestionesVisibles.first,
+                      value:
+                          _gestionesVisibles.contains(_controller.gestion)
+                              ? _controller.gestion
+                              : _gestionesVisibles.first,
                       dropdownColor: Colors.white,
                       style: GoogleFonts.poppins(
                         color: Colors.blue.shade900,
                         fontWeight: FontWeight.bold,
                       ),
                       underline: Container(),
-                      items: _gestionesVisibles.map((gestion) {
-                        return DropdownMenuItem(
-                          value: gestion,
-                          child: Text('Gestión $gestion'),
-                        );
-                      }).toList(),
+                      items:
+                          _gestionesVisibles.map((gestion) {
+                            return DropdownMenuItem(
+                              value: gestion,
+                              child: Text('Gestión $gestion'),
+                            );
+                          }).toList(),
                       onChanged: (value) {
                         if (value != null) _controller.cambiarGestion(value);
                       },
@@ -132,24 +137,28 @@ class _CarpetasViewState extends State<CarpetasView> {
                   ),
                 ],
               ),
-              floatingActionButton: (_controller.carpetas.isEmpty || !_hasMainFolder) && 
-                  Provider.of<AuthProvider>(context).hasPermission('crear_carpeta')
-                  ? FloatingActionButton.extended(
-                      onPressed: () => _crearCarpeta(),
-                      icon: const Icon(Icons.create_new_folder),
-                      label: const Text('Crear Módulo'),
-                      backgroundColor: Colors.amber.shade800,
-                    )
-                  : null,
-              body: _controller.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : RefreshIndicator(
-                      onRefresh: () async {
-                        await _controller.cargarCarpetas();
-                        dataProvider.refresh();
-                      },
-                      child: _buildModularView(),
-                    ),
+              floatingActionButton:
+                  (_controller.carpetas.isEmpty || !_hasMainFolder) &&
+                          Provider.of<AuthProvider>(
+                            context,
+                          ).hasPermission('crear_carpeta')
+                      ? FloatingActionButton.extended(
+                        onPressed: () => _crearCarpeta(),
+                        icon: const Icon(Icons.create_new_folder),
+                        label: const Text('Crear Módulo'),
+                        backgroundColor: Colors.amber.shade800,
+                      )
+                      : null,
+              body:
+                  _controller.isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : RefreshIndicator(
+                        onRefresh: () async {
+                          await _controller.cargarCarpetas();
+                          dataProvider.refresh();
+                        },
+                        child: _buildModularView(),
+                      ),
             );
           },
         );
@@ -161,12 +170,10 @@ class _CarpetasViewState extends State<CarpetasView> {
     final carpetas = _carpetasVisibles;
 
     // Separate by modules
-    final carpetaEgresos = carpetas
-        .where((c) => c.nombre == _moduloEgresos)
-        .firstOrNull;
-    final carpetaIngresos = carpetas
-        .where((c) => c.nombre == _moduloIngresos)
-        .firstOrNull;
+    final carpetaEgresos =
+        carpetas.where((c) => c.nombre == _moduloEgresos).firstOrNull;
+    final carpetaIngresos =
+        carpetas.where((c) => c.nombre == _moduloIngresos).firstOrNull;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -188,7 +195,11 @@ class _CarpetasViewState extends State<CarpetasView> {
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.folder_special, color: Colors.white, size: 24),
+                child: const Icon(
+                  Icons.folder_special,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 16),
               Column(
@@ -213,7 +224,7 @@ class _CarpetasViewState extends State<CarpetasView> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 24),
 
           // Grid de módulos mejorado
@@ -223,7 +234,8 @@ class _CarpetasViewState extends State<CarpetasView> {
             crossAxisCount: MediaQuery.of(context).size.width > 800 ? 2 : 1,
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
-            childAspectRatio: MediaQuery.of(context).size.width > 800 ? 2.2 : 1.4,
+            childAspectRatio:
+                MediaQuery.of(context).size.width > 800 ? 2.2 : 1.4,
             children: [
               // Módulo Egresos
               if (carpetaEgresos != null)
@@ -234,7 +246,7 @@ class _CarpetasViewState extends State<CarpetasView> {
                   Icons.trending_up,
                   'Comprobantes de salida de dinero',
                 ),
-              
+
               // Módulo Ingresos
               if (carpetaIngresos != null)
                 _buildModernModuloCard(
@@ -256,8 +268,14 @@ class _CarpetasViewState extends State<CarpetasView> {
   }
 
   Widget _buildStatsHeader(List<Carpeta> carpetas) {
-    final totalSubcarpetas = carpetas.fold<int>(0, (sum, c) => sum + c.subcarpetas.length);
-    final totalDocumentos = carpetas.fold<int>(0, (sum, c) => sum + c.numeroDocumentos);
+    final totalSubcarpetas = carpetas.fold<int>(
+      0,
+      (sum, c) => sum + c.subcarpetas.length,
+    );
+    final totalDocumentos = carpetas.fold<int>(
+      0,
+      (sum, c) => sum + c.numeroDocumentos,
+    );
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -265,10 +283,7 @@ class _CarpetasViewState extends State<CarpetasView> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.blue.shade50,
-            Colors.indigo.shade50,
-          ],
+          colors: [Colors.blue.shade50, Colors.indigo.shade50],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.blue.shade100),
@@ -277,7 +292,11 @@ class _CarpetasViewState extends State<CarpetasView> {
         children: [
           Row(
             children: [
-              Icon(Icons.analytics_outlined, color: Colors.blue.shade700, size: 28),
+              Icon(
+                Icons.analytics_outlined,
+                color: Colors.blue.shade700,
+                size: 28,
+              ),
               const SizedBox(width: 12),
               Text(
                 'Resumen de Gestión ${_controller.gestion}',
@@ -292,11 +311,32 @@ class _CarpetasViewState extends State<CarpetasView> {
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildStatCard('Módulos', '${carpetas.length}', Icons.folder, Colors.blue)),
+              Expanded(
+                child: _buildStatCard(
+                  'Módulos',
+                  '${carpetas.length}',
+                  Icons.folder,
+                  Colors.blue,
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: _buildStatCard('Subcarpetas', '$totalSubcarpetas', Icons.folder_open, Colors.orange)),
+              Expanded(
+                child: _buildStatCard(
+                  'Subcarpetas',
+                  '$totalSubcarpetas',
+                  Icons.folder_open,
+                  Colors.orange,
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: _buildStatCard('Documentos', '$totalDocumentos', Icons.description, Colors.green)),
+              Expanded(
+                child: _buildStatCard(
+                  'Documentos',
+                  '$totalDocumentos',
+                  Icons.description,
+                  Colors.green,
+                ),
+              ),
             ],
           ),
         ],
@@ -304,7 +344,12 @@ class _CarpetasViewState extends State<CarpetasView> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -339,10 +384,7 @@ class _CarpetasViewState extends State<CarpetasView> {
           ),
           Text(
             label,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
+            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -350,9 +392,9 @@ class _CarpetasViewState extends State<CarpetasView> {
   }
 
   Widget _buildModernModuloCard(
-    String nombre, 
-    Carpeta carpeta, 
-    Color color, 
+    String nombre,
+    Carpeta carpeta,
+    Color color,
     IconData icon,
     String descripcion,
   ) {
@@ -385,10 +427,7 @@ class _CarpetasViewState extends State<CarpetasView> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      color.withOpacity(0.1),
-                      color.withOpacity(0.05),
-                    ],
+                    colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
                   ),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(24),
@@ -450,16 +489,23 @@ class _CarpetasViewState extends State<CarpetasView> {
                         ),
                         child: IconButton(
                           onPressed: () => _confirmarEliminarCarpeta(carpeta),
-                          icon: Icon(Icons.delete_outline, color: Colors.red.shade600, size: 18),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: Colors.red.shade600,
+                            size: 18,
+                          ),
                           tooltip: 'Eliminar módulo',
                           padding: const EdgeInsets.all(8),
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 36,
+                          ),
                         ),
                       ),
                   ],
                 ),
               ),
-              
+
               // Contenido del módulo
               Expanded(
                 child: Padding(
@@ -488,9 +534,9 @@ class _CarpetasViewState extends State<CarpetasView> {
                           ),
                         ],
                       ),
-                      
+
                       const Spacer(),
-                      
+
                       // Botón de acción
                       Container(
                         width: double.infinity,
@@ -517,7 +563,11 @@ class _CarpetasViewState extends State<CarpetasView> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.folder_open, color: Colors.white, size: 18),
+                                  const Icon(
+                                    Icons.folder_open,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Abrir Módulo',
@@ -544,7 +594,12 @@ class _CarpetasViewState extends State<CarpetasView> {
     );
   }
 
-  Widget _buildModuleStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildModuleStatItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -566,10 +621,7 @@ class _CarpetasViewState extends State<CarpetasView> {
           ),
           Text(
             label,
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              color: Colors.grey.shade600,
-            ),
+            style: GoogleFonts.inter(fontSize: 10, color: Colors.grey.shade600),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -613,10 +665,7 @@ class _CarpetasViewState extends State<CarpetasView> {
           const SizedBox(height: 8),
           Text(
             'Crea tu primer módulo para comenzar a organizar documentos',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            style: GoogleFonts.inter(fontSize: 14, color: Colors.grey.shade500),
             textAlign: TextAlign.center,
           ),
         ],
@@ -627,27 +676,28 @@ class _CarpetasViewState extends State<CarpetasView> {
   Future<void> _confirmarEliminarCarpeta(Carpeta carpeta) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar carpeta'),
-        content: Text(
-          '¿Estás seguro de eliminar la carpeta "${carpeta.nombre}"?\n\n'
-          'Se eliminarán también sus subcarpetas y documentos (borrado permanente).',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Eliminar carpeta'),
+            content: Text(
+              '¿Estás seguro de eliminar la carpeta "${carpeta.nombre}"?\n\n'
+              'Se eliminarán también sus subcarpetas y documentos (borrado permanente).',
             ),
-            child: const Text('Sí, Borrar'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Sí, Borrar'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (confirm == true) {
@@ -659,11 +709,11 @@ class _CarpetasViewState extends State<CarpetasView> {
     try {
       await _controller.eliminarCarpeta(carpeta);
       if (!mounted) return;
-      
+
       // Notificar al DataProvider para actualizaciones en tiempo real
       final dataProvider = Provider.of<DataProvider>(context, listen: false);
       dataProvider.notifyCarpetaDeleted(carpeta.id);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Carpeta eliminada exitosamente'),

@@ -17,7 +17,7 @@ git pull origin main
 # Si pide mensaje de merge, guarda y cierra el editor (en VS Code: guardar y cerrar el archivo).
 
 # 2. Subir todo (tus cambios + los del remoto ya mezclados)
-git push origin main
+git push  main origin
 ```
 
 Si **git pull** muestra **conflictos** (Conflict in ...):
