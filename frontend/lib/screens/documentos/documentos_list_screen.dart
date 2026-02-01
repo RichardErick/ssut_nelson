@@ -1135,8 +1135,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Widget _buildSubcarpetasSection(ThemeData theme) {
+    // Altura suficiente para cabecera (~52px) + tarjeta subcarpeta (148px) sin overflow
+    const double cardHeight = 148;
+    const double sectionHeight = 52 + cardHeight; // 200
     return Container(
-      height: 160,
+      height: sectionHeight,
       margin: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1151,21 +1154,25 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   size: 20,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'Subcarpetas',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade800,
+                Flexible(
+                  child: Text(
+                    'Subcarpetas',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade800,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Text(
                   '${_subcarpetas.length} carpetas',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: Colors.grey.shade600,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -1192,10 +1199,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final canDelete = authProvider.hasPermission('borrar_documento');
 
-    return Container(
+    return SizedBox(
       width: 200,
       height: 148,
-      decoration: BoxDecoration(
+      child: Container(
+        decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -1211,10 +1219,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             spreadRadius: -3,
           ),
         ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
           onTap: () => _abrirCarpeta(sub),
           borderRadius: BorderRadius.circular(20),
           child: Padding(
@@ -1222,12 +1230,13 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Header con icono y botón de borrar
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
@@ -1247,7 +1256,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                       child: const Icon(
                         Icons.folder_shared_rounded,
                         color: Colors.white,
-                        size: 20,
+                        size: 18,
                       ),
                     ),
                     const Spacer(),
@@ -1264,11 +1273,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                             onTap: () => _confirmarEliminarCarpeta(sub),
                             borderRadius: BorderRadius.circular(10),
                             child: Padding(
-                              padding: const EdgeInsets.all(6),
+                              padding: const EdgeInsets.all(4),
                               child: Icon(
                                 Icons.delete_outline,
                                 color: Colors.red.shade600,
-                                size: 16,
+                                size: 14,
                               ),
                             ),
                           ),
@@ -1277,26 +1286,28 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   ],
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 // Nombre de la subcarpeta
-                Text(
-                  sub.nombre,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
-                    height: 1.2,
+                Flexible(
+                  child: Text(
+                    sub.nombre,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade800,
+                      height: 1.2,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 // Información del rango
                 if (sub.rangoInicio != null && sub.rangoFin != null)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 6,
-                      vertical: 3,
+                      vertical: 2,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.orange.shade100,
@@ -1310,14 +1321,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         fontWeight: FontWeight.w600,
                         color: Colors.orange.shade800,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                const Spacer(),
+                const SizedBox(height: 6),
                 // Footer con estadísticas
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    vertical: 6,
-                    horizontal: 10,
+                    vertical: 4,
+                    horizontal: 8,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.green.shade50,
@@ -1326,6 +1338,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.description,
@@ -1333,12 +1346,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         color: Colors.green.shade600,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        '${sub.numeroDocumentos} docs',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.green.shade700,
+                      Flexible(
+                        child: Text(
+                          '${sub.numeroDocumentos} docs',
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.green.shade700,
+                          ),
                         ),
                       ),
                     ],
@@ -1348,6 +1364,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             ),
           ),
         ),
+      ),
       ),
     );
   }
