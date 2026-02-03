@@ -28,7 +28,6 @@ class DocumentoFormScreen extends StatefulWidget {
 }
 
 class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
-  static const String _nombreCarpetaPermitida = 'Comprobante de Egreso';
   final _formKey = GlobalKey<FormState>();
   AutovalidateMode _autoValidateMode = AutovalidateMode.disabled;
   bool _isLoading = true;
@@ -389,87 +388,6 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
     }
   }
 
-  Future<void> _crearNuevaCarpeta() async {
-    if (_carpetas.any((c) => c.nombre == _nombreCarpetaPermitida)) {
-      _showSnack(
-        'La carpeta Comprobante de Egreso ya existe',
-        background: Colors.orange,
-      );
-      return;
-    }
-    final nombreController = TextEditingController(
-      text: _nombreCarpetaPermitida,
-    );
-    final codigoController = TextEditingController();
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Nueva Carpeta'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nombreController,
-                  decoration: const InputDecoration(labelText: 'Nombre *'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: codigoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Código (Opcional)',
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (nombreController.text.isEmpty) return;
-                  try {
-                    final carpetaService = Provider.of<CarpetaService>(
-                      context,
-                      listen: false,
-                    );
-                    await carpetaService.create(
-                      CreateCarpetaDTO(
-                        nombre: nombreController.text,
-                        codigo:
-                            codigoController.text.isEmpty
-                                ? null
-                                : codigoController.text,
-                        gestion: _gestionController.text,
-                        descripcion: '',
-                      ),
-                    );
-                    if (context.mounted) {
-                      Navigator.pop(context, true);
-                      _showSnack('Carpeta creada', background: Colors.green);
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                    }
-                  }
-                },
-                child: const Text('Crear'),
-              ),
-            ],
-          ),
-    );
-
-    if (result == true) {
-      await _loadData(); // Recargar carpetas
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.documento != null;
@@ -658,74 +576,35 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                     : null,
                       ),
                       if (!ocultarSelectorCarpeta) ...[
-                        if (_carpetas.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: ElevatedButton.icon(
-                                onPressed: _crearNuevaCarpeta,
-                                icon: const Icon(Icons.create_new_folder),
-                                label: const Text('Crear carpeta'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.amber.shade800,
-                                  foregroundColor: Colors.white,
-                                  textStyle: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
+                        DropdownButtonFormField<int>(
+                          value:
+                              _carpetaId == null ||
+                                      _carpetas.any(
+                                        (c) => c.id == _carpetaId,
+                                      )
+                                  ? _carpetaId
+                                  : null,
+                          decoration: _inputDecoration(
+                            'Carpeta de Archivo',
+                          ),
+                          isExpanded: true,
+                          items: [
+                            const DropdownMenuItem<int>(
+                              value: null,
+                              child: Text('Sin carpeta asignada'),
+                            ),
+                            ..._carpetas.map(
+                              (c) => DropdownMenuItem<int>(
+                                value: c.id,
+                                child: Text(
+                                  '${c.nombre} (${c.codigo ?? "-"})',
                                 ),
                               ),
                             ),
-                          )
-                        else
-                          Row(
-                            children: [
-                              Expanded(
-                                child: DropdownButtonFormField<int>(
-                                  value:
-                                      _carpetaId == null ||
-                                              _carpetas.any(
-                                                (c) => c.id == _carpetaId,
-                                              )
-                                          ? _carpetaId
-                                          : null,
-                                  decoration: _inputDecoration(
-                                    'Carpeta de Archivo',
-                                  ),
-                                  isExpanded: true,
-                                  items: [
-                                    const DropdownMenuItem<int>(
-                                      value: null,
-                                      child: Text('Sin carpeta asignada'),
-                                    ),
-                                    ..._carpetas.map(
-                                      (c) => DropdownMenuItem<int>(
-                                        value: c.id,
-                                        child: Text(
-                                          '${c.nombre} (${c.codigo ?? "-"})',
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                  onChanged:
-                                      (v) => setState(() => _carpetaId = v),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                onPressed: _crearNuevaCarpeta,
-                                icon: const Icon(
-                                  Icons.create_new_folder,
-                                  color: Colors.blue,
-                                ),
-                                tooltip: 'Nueva Carpeta',
-                              ),
-                            ],
-                          ),
+                          ],
+                          onChanged:
+                              (v) => setState(() => _carpetaId = v),
+                        ),
                         const SizedBox(height: 16),
                       ],
 
@@ -751,7 +630,30 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // SSUT: Estado (solo edición) y Nivel (ubicación quitada del form)
+                      // Número de estante y Ubicación (Caja)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _numeroEstanteController,
+                              decoration: _inputDecoration('Número de estante'),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: TextFormField(
+                              controller: _ubicacionFisicaController,
+                              decoration: _inputDecoration('Ubicación (Caja, etc.)'),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Estado (solo edición) y Nivel
                       Row(
                         children: [
                           if (widget.documento != null)
