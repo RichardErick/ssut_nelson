@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/carpeta.dart';
-import '../../utils/form_validators.dart';
 import 'package:frontend/providers/data_provider.dart';
 import '../../services/carpeta_service.dart';
 
@@ -27,8 +26,6 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
   final _formKey = GlobalKey<FormState>();
   
   // Controladores. Referencia: Comprobantes de Egreso / Comprobantes de Ingreso. Gestión en vez de romano.
-  final _nombreController = TextEditingController();
-  final _descripcionController = TextEditingController();
   final _gestionController = TextEditingController(); // Gestión (año): 2021, 2024, etc.
 
   // Rangos
@@ -40,7 +37,6 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
   @override
   void initState() {
     super.initState();
-    _nombreController.text = 'Rango Documental';
     WidgetsBinding.instance.addPostFrameCallback((_) => _cargarGestionPadre());
   }
 
@@ -58,8 +54,6 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
 
   @override
   void dispose() {
-    _nombreController.dispose();
-    _descripcionController.dispose();
     _gestionController.dispose();
     _rangoInicioController.dispose();
     _rangoFinController.dispose();
@@ -68,17 +62,6 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
 
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
-
-    // Validación previa de nombre duplicado
-    if (await _verificarNombreDuplicado()) {
-      _mostrarDialogoError(
-        'Nombre Duplicado',
-        'Ya existe una carpeta con el nombre "${_nombreController.text}" en esta carpeta.\n\nPor favor, elija un nombre diferente.',
-        Icons.folder_copy_outlined,
-        Colors.orange,
-      );
-      return;
-    }
 
     setState(() => _isLoading = true);
 
@@ -114,7 +97,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
         return;
       }
 
-      // Gestión: la del formulario (o heredar de carpeta padre si está vacía y hay padre)
+      // Gestión (fecha): la del formulario o heredar de carpeta padre
       String gestion;
       if (_gestionController.text.trim().length == 4) {
         gestion = _gestionController.text.trim();
@@ -127,11 +110,27 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
         return;
       }
 
+      // Nombre auto: "Rango X-Y (gestión)" o "Carpeta gestión"
+      final nombre = (rInicio != null && rFin != null)
+          ? 'Rango $rInicio-$rFin ($gestion)'
+          : 'Carpeta $gestion';
+
+      if (await _verificarNombreDuplicadoCon(nombre)) {
+        _mostrarDialogoError(
+          'Nombre Duplicado',
+          'Ya existe una carpeta con ese rango y gestión. Elija otro rango o año.',
+          Icons.folder_copy_outlined,
+          Colors.orange,
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
       final dto = CreateCarpetaDTO(
-        nombre: _nombreController.text,
+        nombre: nombre,
         codigo: null,
         gestion: gestion,
-        descripcion: _descripcionController.text.isNotEmpty ? _descripcionController.text : null,
+        descripcion: null,
         carpetaPadreId: widget.carpetaPadreId,
         rangoInicio: rInicio,
         rangoFin: rFin,
@@ -163,7 +162,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
             errorMessage.contains('UNIQUE constraint failed')) {
           _mostrarDialogoError(
             'Carpeta Duplicada',
-            'Ya existe una carpeta con el nombre "${_nombreController.text}" en esta carpeta.\n\nPor favor, elija un nombre diferente.',
+            'Ya existe una carpeta con ese rango y gestión en esta carpeta.\n\nPor favor, elija otro rango o año.',
             Icons.folder_copy_outlined,
             Colors.orange,
           );
@@ -240,21 +239,17 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
     );
   }
 
-  Future<bool> _verificarNombreDuplicado() async {
+  Future<bool> _verificarNombreDuplicadoCon(String nombre) async {
+    if (nombre.isEmpty) return false;
     try {
       final carpetaService = Provider.of<CarpetaService>(context, listen: false);
       final subcarpetas = await carpetaService.getAll();
-      
-      // Filtrar: mismas carpetas hermanas (mismo padre; null = raíz)
       final subcarpetasHermanas = subcarpetas
           .where((c) => c.carpetaPadreId == widget.carpetaPadreId)
           .toList();
-      
-      // Verificar si ya existe una con el mismo nombre
-      return subcarpetasHermanas.any((c) => 
-          c.nombre.toLowerCase().trim() == _nombreController.text.toLowerCase().trim());
+      return subcarpetasHermanas.any((c) =>
+          c.nombre.toLowerCase().trim() == nombre.toLowerCase().trim());
     } catch (e) {
-      // Si hay error verificando, permitir continuar (el backend manejará el error)
       return false;
     }
   }
@@ -411,9 +406,9 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                         
                         const SizedBox(height: 24),
 
-                        // Gestión (año) destacada al inicio
+                        // Gestión (fecha / año)
                         _buildFormField(
-                          label: 'Gestión',
+                          label: 'Gestión (año)',
                           controller: _gestionController,
                           icon: Icons.calendar_today,
                           hint: 'Ej: 2024, 2025',
@@ -424,30 +419,9 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                             return null;
                           },
                         ),
-                        
                         const SizedBox(height: 24),
-
-                        // Nombre de la carpeta (pantalla principal)
-                        _buildFormField(
-                          label: 'Nombre de la Carpeta',
-                          controller: _nombreController,
-                          icon: Icons.folder,
-                          hint: 'Ej: Rango 1-50, Carpeta A, Documentos Enero',
-                          validator: (v) => v == null || v.trim().isEmpty ? FormValidators.requerido : null,
-                        ),
-                        
-                        const SizedBox(height: 24),
-
-                        // Sección Rango de Documentos (Gestión ya está arriba)
+                        // Rango
                         _buildSectionHeader('Rango de Documentos', Icons.format_list_numbered, Colors.green),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Define el rango numérico. Referencia: Comprobantes de Egreso / Comprobantes de Ingreso.',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
                         const SizedBox(height: 16),
                         Row(
                           children: [
@@ -471,17 +445,6 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                               ),
                             ),
                           ],
-                        ),
-                        
-                        const SizedBox(height: 24),
-
-                        // Descripción
-                        _buildFormField(
-                          label: 'Descripción / Observaciones',
-                          controller: _descripcionController,
-                          icon: Icons.notes,
-                          hint: 'Información adicional sobre esta carpeta...',
-                          maxLines: 3,
                         ),
                       ],
                     ),

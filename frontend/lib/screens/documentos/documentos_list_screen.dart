@@ -91,6 +91,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         // Set state directly
         _carpetaSeleccionada = carpeta;
         _estaCargandoCarpetas = false;
+        // Cargar lista de carpetas para el panel lateral
+        await _cargarCarpetas();
+        if (!mounted) return;
         // Load content
         await _abrirCarpeta(carpeta);
       }
@@ -517,52 +520,159 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       return const Center(child: CircularProgressIndicator());
     }
     final carpetas = _carpetasFiltradas;
+
+    // Header: título "Carpetas" + botón "Agregar carpeta" (más intuitivo)
+    final headerCarpetas = Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+      child: Row(
+        children: [
+          Icon(Icons.folder_rounded, color: Colors.blue.shade700, size: 28),
+          const SizedBox(width: 12),
+          Text(
+            'Carpetas',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const Spacer(),
+          FilledButton.icon(
+            onPressed: () => _abrirAgregarCarpeta(),
+            icon: const Icon(Icons.add, size: 20),
+            label: const Text('Agregar carpeta'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.blue.shade700,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+
     if (_carpetas.isEmpty) {
-      return EmptyState(
-        icon: Icons.folder_open_outlined,
-        title: 'No hay carpetas',
-        subtitle: 'Cree su primera carpeta para comenzar',
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          headerCarpetas,
+          Expanded(
+            child: EmptyState(
+              icon: Icons.folder_open_outlined,
+              title: 'No hay carpetas',
+              subtitle: 'Cree la primera con el botón de abajo (rango y fecha).',
+              action: FilledButton.icon(
+                onPressed: () => _abrirAgregarCarpeta(),
+                icon: const Icon(Icons.add_rounded, size: 22),
+                label: const Text('Agregar carpeta'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  minimumSize: const Size(0, 48),
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
     if (carpetas.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.search_off_rounded,
-                size: 56,
-                color: Colors.grey.shade400,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Ninguna carpeta coincide con "$_consultaBusqueda"',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.grey.shade700,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          headerCarpetas,
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.search_off_rounded,
+                      size: 56,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _consultaBusqueda.trim().isEmpty
+                          ? 'Ninguna carpeta con el filtro actual'
+                          : 'Ninguna carpeta coincide con "$_consultaBusqueda"',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Pruebe otro filtro o búsqueda, o agregue una carpeta.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: () => _abrirAgregarCarpeta(),
+                      icon: const Icon(Icons.add_rounded, size: 22),
+                      label: const Text('Agregar carpeta'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.blue.shade700,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        minimumSize: const Size(0, 48),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       );
     }
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 360,
-        childAspectRatio: 0.78,
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 20,
-      ),
-      itemCount: carpetas.length,
-      itemBuilder: (context, index) {
-        final c = carpetas[index];
-        return _buildCarpetaCard(c, theme);
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        headerCarpetas,
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 360,
+              childAspectRatio: 0.78,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
+            ),
+            itemCount: carpetas.length,
+            itemBuilder: (context, index) {
+              final c = carpetas[index];
+              return _buildCarpetaCard(c, theme);
+            },
+          ),
+        ),
+      ],
     );
+  }
+
+  /// Abre el formulario de carpeta (solo rango y fecha).
+  Future<void> _abrirAgregarCarpeta() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SubcarpetaFormScreen(
+          carpetaPadreId: null,
+          carpetaPadreNombre: 'Carpeta principal',
+        ),
+      ),
+    );
+    if (result == true && mounted) {
+      await _cargarCarpetas();
+      final dataProvider = Provider.of<DataProvider>(context, listen: false);
+      dataProvider.refresh();
+      if (mounted) {
+        setState(() {});
+        _mostrarSnackBarExito('Carpeta creada correctamente.');
+      }
+    }
   }
 
   Widget _buildCarpetaCard(Carpeta carpeta, ThemeData theme) {
@@ -794,13 +904,13 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         _estaCargandoDocumentosCarpeta
             ? 'Cargando...'
             : _calcularRangoCorrelativos(docs);
+    final width = MediaQuery.of(context).size.width;
+    final mostrarPanelLateral = width >= 900;
 
-    // No usar Flexible aquí: ya estamos dentro de Expanded en el body; Flexible+Expanded competían.
-    return Column(
+    final contenidoPrincipal = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildCarpetaHeader(carpeta, rango, theme),
-        // SSUT: solo carpeta principal; carpeta y subcarpeta muestran directamente documentos.
+        _buildCarpetaHeader(carpeta, rango, theme, mostrarMenuDrawer: !mostrarPanelLateral),
         _buildViewControls(theme),
         Expanded(
           child:
@@ -814,6 +924,220 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         ),
       ],
     );
+
+    final panelCarpetas = _buildPanelCarpetasLateral(theme);
+
+    if (mostrarPanelLateral) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          panelCarpetas,
+          Expanded(child: contenidoPrincipal),
+        ],
+      );
+    }
+
+    return Scaffold(
+      body: contenidoPrincipal,
+      drawer: Drawer(
+        child: panelCarpetas,
+      ),
+    );
+  }
+
+  /// Panel lateral de carpetas (lista + botón Agregar carpeta). Visible dentro de una carpeta.
+  Widget _buildPanelCarpetasLateral(ThemeData theme) {
+    var carpetas = _carpetas
+        .where((c) => c.carpetaPadreId == null)
+        .where((c) =>
+            _gestionFilterCarpetas == null ||
+            _gestionFilterCarpetas!.isEmpty ||
+            c.gestion == _gestionFilterCarpetas)
+        .toList();
+    if (_consultaBusqueda.trim().isNotEmpty) {
+      final q = _consultaBusqueda.toLowerCase().trim();
+      carpetas = carpetas
+          .where((c) =>
+              c.nombre.toLowerCase().contains(q) ||
+              (c.codigo?.toLowerCase().contains(q) ?? false) ||
+              c.gestion.toLowerCase().contains(q))
+          .toList();
+    }
+    final width = MediaQuery.of(context).size.width;
+    final esDrawer = width < 900;
+    final panelWidth = esDrawer ? null : 280.0;
+
+    Widget header = Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      child: Row(
+        children: [
+          Icon(Icons.folder_rounded, color: Colors.blue.shade700, size: 24),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Carpetas',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (esDrawer) Navigator.pop(context);
+              await _abrirAgregarCarpeta();
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.blue.shade700,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: const Size(0, 36),
+            ),
+            child: const Icon(Icons.add, size: 20),
+          ),
+        ],
+      ),
+    );
+
+    final noHayNinguna = _carpetas.isEmpty;
+
+    Widget listContent;
+    if (_estaCargandoCarpetas) {
+      listContent = Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                'Cargando carpetas...',
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else if (carpetas.isEmpty) {
+      listContent = Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                noHayNinguna ? Icons.folder_open_outlined : Icons.search_off_rounded,
+                size: 56,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                noHayNinguna
+                    ? 'No hay carpetas'
+                    : 'Sin resultados',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                noHayNinguna
+                    ? 'Cree la primera con el botón de abajo.'
+                    : 'Pruebe otro filtro o búsqueda, o agregue una carpeta.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () async {
+                  if (esDrawer) Navigator.pop(context);
+                  await _abrirAgregarCarpeta();
+                },
+                icon: const Icon(Icons.add_rounded, size: 22),
+                label: const Text('Agregar carpeta'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  minimumSize: const Size(0, 48),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      listContent = ListView.builder(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+        itemCount: carpetas.length,
+        itemBuilder: (context, index) {
+          final c = carpetas[index];
+          final seleccionada = _carpetaSeleccionada?.id == c.id;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Material(
+              color: seleccionada ? Colors.blue.shade50 : null,
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                onTap: () {
+                  if (esDrawer) Navigator.pop(context);
+                  _abrirCarpeta(c);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    children: [
+                      Icon(
+                        seleccionada ? Icons.folder_open_rounded : Icons.folder_rounded,
+                        size: 20,
+                        color: seleccionada ? Colors.blue.shade700 : Colors.amber.shade700,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          c.nombre,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: seleccionada ? FontWeight.w600 : null,
+                            color: seleccionada ? Colors.blue.shade800 : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    final panel = Container(
+      width: panelWidth,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          right: BorderSide(color: theme.dividerColor.withOpacity(0.5)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          header,
+          const Divider(height: 1),
+          Expanded(child: listContent),
+        ],
+      ),
+    );
+
+    if (esDrawer) {
+      return panel;
+    }
+    return panel;
   }
 
   /// Mensaje cuando estamos en una carpeta (sin subcarpetas aún): aquí solo se agregan subcarpetas.
@@ -852,7 +1176,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
-  Widget _buildCarpetaHeader(Carpeta carpeta, String rango, ThemeData theme) {
+  Widget _buildCarpetaHeader(Carpeta carpeta, String rango, ThemeData theme, {bool mostrarMenuDrawer = false}) {
     final esCarpeta = carpeta.carpetaPadreId == null;
     final esSubcarpeta = !esCarpeta;
     final margin = esSubcarpeta ? 12.0 : 24.0;
@@ -882,6 +1206,27 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         children: [
           Row(
             children: [
+              if (mostrarMenuDrawer)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                    icon: Icon(Icons.menu_rounded, size: 22, color: Colors.blue.shade700),
+                    padding: const EdgeInsets.all(10),
+                    tooltip: 'Ver carpetas',
+                  ),
+                ),
               // Botón de regreso
               Container(
                 decoration: BoxDecoration(
