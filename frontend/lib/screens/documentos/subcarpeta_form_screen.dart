@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/carpeta.dart';
+import '../../utils/form_validators.dart';
 import 'package:frontend/providers/data_provider.dart';
+import 'package:intl/intl.dart';
 import '../../services/carpeta_service.dart';
 
 class SubcarpetaFormScreen extends StatefulWidget {
@@ -24,13 +26,13 @@ class SubcarpetaFormScreen extends StatefulWidget {
 
 class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  
-  // Controladores. Referencia: Comprobantes de Egreso / Comprobantes de Ingreso. Gestión en vez de romano.
-  final _gestionController = TextEditingController(); // Gestión (año): 2021, 2024, etc.
 
-  // Rangos
+  final _nombreController = TextEditingController();
+  final _gestionController = TextEditingController(); // Gestión (año): 2024, 2025, etc.
   final _rangoInicioController = TextEditingController();
   final _rangoFinController = TextEditingController();
+
+  DateTime? _fecha; // Fecha de la carpeta (opcional)
 
   bool _isLoading = false;
 
@@ -54,6 +56,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
 
   @override
   void dispose() {
+    _nombreController.dispose();
     _gestionController.dispose();
     _rangoInicioController.dispose();
     _rangoFinController.dispose();
@@ -110,15 +113,17 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
         return;
       }
 
-      // Nombre auto: "Rango X-Y (gestión)" o "Carpeta gestión"
-      final nombre = (rInicio != null && rFin != null)
-          ? 'Rango $rInicio-$rFin ($gestion)'
-          : 'Carpeta $gestion';
+      final nombre = _nombreController.text.trim();
+      if (nombre.isEmpty) {
+        _mostrarDialogoError('Nombre requerido', 'Ingrese el nombre de la carpeta.', Icons.folder, Colors.orange);
+        setState(() => _isLoading = false);
+        return;
+      }
 
       if (await _verificarNombreDuplicadoCon(nombre)) {
         _mostrarDialogoError(
           'Nombre Duplicado',
-          'Ya existe una carpeta con ese rango y gestión. Elija otro rango o año.',
+          'Ya existe una carpeta con ese nombre en esta ubicación. Elija otro nombre.',
           Icons.folder_copy_outlined,
           Colors.orange,
         );
@@ -126,11 +131,16 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
         return;
       }
 
+      String? descripcion;
+      if (_fecha != null) {
+        descripcion = 'Fecha: ${DateFormat('dd/MM/yyyy').format(_fecha!)}';
+      }
+
       final dto = CreateCarpetaDTO(
         nombre: nombre,
         codigo: null,
         gestion: gestion,
-        descripcion: null,
+        descripcion: descripcion,
         carpetaPadreId: widget.carpetaPadreId,
         rangoInicio: rInicio,
         rangoFin: rFin,
@@ -406,7 +416,16 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                         
                         const SizedBox(height: 24),
 
-                        // Gestión (fecha / año)
+                        // Nombre
+                        _buildFormField(
+                          label: 'Nombre',
+                          controller: _nombreController,
+                          icon: Icons.folder,
+                          hint: 'Ej: Comprobantes 2025, Rango 1-50',
+                          validator: (v) => v == null || v.trim().isEmpty ? FormValidators.requerido : null,
+                        ),
+                        const SizedBox(height: 24),
+                        // Gestión (año)
                         _buildFormField(
                           label: 'Gestión (año)',
                           controller: _gestionController,
@@ -445,6 +464,45 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 24),
+                        // Fecha
+                        _buildSectionHeader('Fecha', Icons.event, Colors.teal),
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _fecha ?? DateTime.now(),
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2030),
+                            );
+                            if (picked != null && mounted) setState(() => _fecha = picked);
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              hintText: 'Seleccionar fecha (opcional)',
+                              prefixIcon: Icon(Icons.calendar_month, size: 20, color: Colors.grey.shade600),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              filled: true,
+                              fillColor: Colors.grey.shade50,
+                            ),
+                            child: Text(
+                              _fecha == null
+                                  ? ''
+                                  : DateFormat('dd/MM/yyyy').format(_fecha!),
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: _fecha == null ? Colors.grey : Colors.grey.shade800,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),

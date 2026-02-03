@@ -142,19 +142,19 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }
   }
 
-  Future<void> _cargarCarpetas() async {
+  /// [todasLasGestiones] true = cargar todas (sin filtro año), para que al crear una carpeta el panel se actualice.
+  Future<void> _cargarCarpetas({bool todasLasGestiones = false}) async {
     setState(() => _estaCargandoCarpetas = true);
     try {
       final carpetaService = Provider.of<CarpetaService>(
         context,
         listen: false,
       );
-      // Solo cargar carpetas de la gestión actual para reducir tiempo de carga
-      final gestion = DateTime.now().year.toString();
-      final todasLasCarpetas = await carpetaService.getAll(gestion: gestion);
+      final todasLasCarpetas = await carpetaService.getAll(
+        gestion: todasLasGestiones ? null : DateTime.now().year.toString(),
+      );
       if (!mounted) return;
       setState(() {
-        // SOLO mostrar las carpetas raíz (las que no tienen padre)
         _carpetas =
             todasLasCarpetas.where((c) => c.carpetaPadreId == null).toList();
         _estaCargandoCarpetas = false;
@@ -461,17 +461,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       print('DEBUG: Documento creado exitosamente, manteniendo vista actual');
       final subcarpetaId = carpeta.id;
 
-      // Solo recargar los documentos de la subcarpeta actual para no cambiar de vista
       await _cargarDocumentosCarpeta(subcarpetaId);
-      // No recargar subcarpetas ni cambiar _carpetaSeleccionada: así te quedas en la misma pantalla
-      await _cargarCarpetas();
+      if (!mounted) return;
+      await _cargarCarpetas(todasLasGestiones: true);
 
-      if (mounted) {
-        final dataProvider = Provider.of<DataProvider>(context, listen: false);
-        dataProvider.refresh();
-        setState(() {});
-        _mostrarSnackBarExito('Documento agregado correctamente.');
-      }
+      if (!mounted) return;
+      final dataProvider = Provider.of<DataProvider>(context, listen: false);
+      dataProvider.refresh();
+      setState(() {});
+      _mostrarSnackBarExito('Documento agregado correctamente.');
     }
   }
 
@@ -665,13 +663,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       ),
     );
     if (result == true && mounted) {
-      await _cargarCarpetas();
+      await _cargarCarpetas(todasLasGestiones: true);
+      if (!mounted) return;
       final dataProvider = Provider.of<DataProvider>(context, listen: false);
       dataProvider.refresh();
-      if (mounted) {
-        setState(() {});
-        _mostrarSnackBarExito('Carpeta creada correctamente.');
-      }
+      setState(() {});
+      _mostrarSnackBarExito('Carpeta creada correctamente.');
     }
   }
 
