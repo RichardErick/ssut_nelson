@@ -2430,17 +2430,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }
   }
 
-  Future<void> _abrirNuevoDocumento() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const DocumentoFormScreen()),
-    );
-    if (result == true) {
-      cargarDocumentos();
-      _cargarCarpetas();
-    }
-  }
-
   Future<void> _abrirDocumentoEnCarpeta(Carpeta carpeta) async {
     final result = await Navigator.push(
       context,
@@ -2455,12 +2444,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }
   }
 
-  /// Abre el formulario con N° Correlativo y Clasificación y Contenido (form de documento).
-  Future<void> _abrirNuevaCarpeta() async {
-    print(
-      'DEBUG: Abriendo formulario de documento (N° correlativo, Clasificación y Contenido)',
-    );
-
+  /// Abre el formulario Nuevo Documento (N° Correlativo y Clasificación y Contenido).
+  Future<void> _abrirNuevoDocumento() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -2695,21 +2680,18 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     // Nivel 1: Vista principal - form con N° Correlativo y Clasificación y Contenido
     if (_carpetaSeleccionada == null) {
       return FloatingActionButton.extended(
-        onPressed: () => _abrirNuevaCarpeta(),
-        icon: const Icon(Icons.add_circle_outline_rounded),
+        onPressed: () => _abrirNuevoDocumento(),
+        icon: const Icon(Icons.add),
         label: const Text('Nuevo Documento'),
         backgroundColor: Colors.blue.shade700,
         heroTag: 'fab_documento_raiz',
       );
     }
 
-    // Nivel 2 y 3: SSUT solo carpeta principal; dentro de cualquier carpeta se muestra "Nuevo Documento".
-    print(
-      'DEBUG FAB: Dentro de carpeta "${_carpetaSeleccionada!.nombre}", mostrando Nuevo Documento',
-    );
+    // Nivel 2 y 3: dentro de carpeta - Nuevo Documento
     return FloatingActionButton.extended(
       onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
-      icon: const Icon(Icons.add_circle_outline_rounded),
+      icon: const Icon(Icons.add),
       label: const Text('Nuevo Documento'),
       backgroundColor: Colors.blue.shade700,
       heroTag: 'fab_documento',
