@@ -71,7 +71,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
     if (await _verificarNombreDuplicado()) {
       _mostrarDialogoError(
         'Nombre Duplicado',
-        'Ya existe una subcarpeta con el nombre "${_nombreController.text}" en esta carpeta.\n\nPor favor, elija un nombre diferente.',
+        'Ya existe una carpeta con el nombre "${_nombreController.text}" en esta carpeta.\n\nPor favor, elija un nombre diferente.',
         Icons.folder_copy_outlined,
         Colors.orange,
       );
@@ -135,7 +135,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
         dataProvider.refresh();
         
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Subcarpeta creada exitosamente'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Carpeta creada exitosamente'), backgroundColor: Colors.green),
         );
         Navigator.pop(context, true); // Retornar true para recargar
       }
@@ -152,8 +152,8 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
             errorMessage.contains('unique constraint') ||
             errorMessage.contains('UNIQUE constraint failed')) {
           _mostrarDialogoError(
-            'Subcarpeta Duplicada',
-            'Ya existe una subcarpeta con el nombre "${_nombreController.text}" en esta carpeta.\n\nPor favor, elija un nombre diferente.',
+            'Carpeta Duplicada',
+            'Ya existe una carpeta con el nombre "${_nombreController.text}" en esta carpeta.\n\nPor favor, elija un nombre diferente.',
             Icons.folder_copy_outlined,
             Colors.orange,
           );
@@ -173,7 +173,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
           );
         } else {
           _mostrarDialogoError(
-            'No se pudo crear la subcarpeta',
+            'No se pudo crear la carpeta',
             'Revise los datos e intente de nuevo. Si el problema continúa, contacte al administrador.',
             Icons.error_outline_rounded,
             Colors.red,
@@ -255,7 +255,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: Text(
-          'Nueva Subcarpeta',
+          'Nueva Carpeta',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.white,
@@ -318,7 +318,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Subcarpeta de Archivo',
+                                'Carpeta de Archivo',
                                 style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blue.shade900,
@@ -389,7 +389,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Información de la Subcarpeta',
+                              'Información de la Carpeta',
                               style: GoogleFonts.poppins(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -401,12 +401,12 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                         
                         const SizedBox(height: 24),
 
-                        // Nombre de la subcarpeta
+                        // Nombre de la carpeta (pantalla principal)
                         _buildFormField(
-                          label: 'Nombre de la Subcarpeta',
+                          label: 'Nombre de la Carpeta',
                           controller: _nombreController,
                           icon: Icons.folder,
-                          hint: 'Ej: Rango 1-50, Subcarpeta A, Documentos Enero',
+                          hint: 'Ej: Rango 1-50, Carpeta A, Documentos Enero',
                           validator: (v) => v == null || v.trim().isEmpty ? FormValidators.requerido : null,
                         ),
                         
@@ -469,7 +469,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                           label: 'Descripción / Observaciones',
                           controller: _descripcionController,
                           icon: Icons.notes,
-                          hint: 'Información adicional sobre esta subcarpeta...',
+                          hint: 'Información adicional sobre esta carpeta...',
                           maxLines: 3,
                         ),
                       ],
@@ -507,7 +507,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                               const Icon(Icons.save_rounded, color: Colors.white, size: 24),
                               const SizedBox(width: 12),
                               Text(
-                                'Crear Subcarpeta',
+                                'Crear Carpeta',
                                 style: GoogleFonts.poppins(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
