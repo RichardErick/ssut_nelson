@@ -7,14 +7,15 @@ import 'package:frontend/providers/data_provider.dart';
 import '../../services/carpeta_service.dart';
 
 class SubcarpetaFormScreen extends StatefulWidget {
-  final int carpetaPadreId;
+  /// null = carpeta principal (raíz); no null = carpeta hija
+  final int? carpetaPadreId;
   final String carpetaPadreNombre;
   final Carpeta? subcarpetaExistente; // Para edición futura si se requiere
 
   const SubcarpetaFormScreen({
     super.key, 
-    required this.carpetaPadreId,
-    required this.carpetaPadreNombre,
+    this.carpetaPadreId,
+    this.carpetaPadreNombre = 'Carpeta principal',
     this.subcarpetaExistente
   });
 
@@ -44,9 +45,10 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
   }
 
   Future<void> _cargarGestionPadre() async {
+    if (widget.carpetaPadreId == null) return;
     try {
       final service = Provider.of<CarpetaService>(context, listen: false);
-      final carpetaPadre = await service.getById(widget.carpetaPadreId);
+      final carpetaPadre = await service.getById(widget.carpetaPadreId!);
       if (mounted && _gestionController.text.isEmpty) {
         _gestionController.text = carpetaPadre.gestion;
         setState(() {});
@@ -112,10 +114,18 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
         return;
       }
 
-      // Gestión: la del formulario (o heredar de carpeta padre si está vacía)
-      final gestion = _gestionController.text.trim().length == 4
-          ? _gestionController.text.trim()
-          : (await carpetaService.getById(widget.carpetaPadreId)).gestion;
+      // Gestión: la del formulario (o heredar de carpeta padre si está vacía y hay padre)
+      String gestion;
+      if (_gestionController.text.trim().length == 4) {
+        gestion = _gestionController.text.trim();
+      } else if (widget.carpetaPadreId != null) {
+        final carpetaPadre = await carpetaService.getById(widget.carpetaPadreId!);
+        gestion = carpetaPadre.gestion;
+      } else {
+        _mostrarDialogoError('Gestión requerida', 'Ingrese el año de gestión (4 dígitos).', Icons.calendar_today, Colors.orange);
+        setState(() => _isLoading = false);
+        return;
+      }
 
       final dto = CreateCarpetaDTO(
         nombre: _nombreController.text,
@@ -235,7 +245,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
       final carpetaService = Provider.of<CarpetaService>(context, listen: false);
       final subcarpetas = await carpetaService.getAll();
       
-      // Filtrar subcarpetas de la misma carpeta padre
+      // Filtrar: mismas carpetas hermanas (mismo padre; null = raíz)
       final subcarpetasHermanas = subcarpetas
           .where((c) => c.carpetaPadreId == widget.carpetaPadreId)
           .toList();

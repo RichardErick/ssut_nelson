@@ -15,7 +15,6 @@ import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_shimmer.dart';
-import 'carpeta_form_screen.dart';
 import 'documento_detail_screen.dart';
 import 'documento_form_screen.dart';
 import 'subcarpeta_form_screen.dart';
@@ -2457,11 +2456,16 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Future<void> _abrirNuevaCarpeta() async {
-    print('DEBUG: Abriendo formulario de nueva carpeta');
+    print('DEBUG: Abriendo formulario de nueva carpeta (form de subcarpeta)');
 
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const CarpetaFormScreen()),
+      MaterialPageRoute(
+        builder: (context) => const SubcarpetaFormScreen(
+          carpetaPadreId: null,
+          carpetaPadreNombre: 'Carpeta principal',
+        ),
+      ),
     );
 
     // Si se creó una carpeta exitosamente, actualizar la vista
