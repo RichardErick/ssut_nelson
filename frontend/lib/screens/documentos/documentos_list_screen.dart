@@ -46,12 +46,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
 
-  // Búsqueda avanzada: fecha, responsable, código QR (para vista documentos)
+  // Búsqueda avanzada: número comprobante, fecha, responsable, código QR (vista documentos)
+  String _numeroComprobanteFilter = '';
   DateTime? _fechaDesdeFilter;
   DateTime? _fechaHastaFilter;
   int? _responsableIdFilter;
   String _codigoQrFilter = '';
   final TextEditingController _codigoQrFilterController =
+      TextEditingController();
+  final TextEditingController _numeroComprobanteFilterController =
       TextEditingController();
 
   /// Filtro por gestión en la vista Carpetas (solo aplica cuando _carpetaSeleccionada == null).
@@ -115,6 +118,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   void dispose() {
     _searchController.dispose();
     _codigoQrFilterController.dispose();
+    _numeroComprobanteFilterController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -171,15 +175,20 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     setState(() => _estaCargandoDocumentosCarpeta = true);
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
-      final documentos = await service.buscar(
-        BusquedaDocumentoDTO(
-          carpetaId: carpetaId,
-          page: 1,
-          pageSize: 50,
-          orderBy: 'fechaDocumento',
-          orderDirection: 'DESC',
-        ),
+      final n = _numeroComprobanteFilter.trim();
+      final dto = BusquedaDocumentoDTO(
+        carpetaId: carpetaId,
+        numeroCorrelativo: n.isEmpty ? null : n,
+        fechaDesde: _fechaDesdeFilter,
+        fechaHasta: _fechaHastaFilter,
+        responsableId: _responsableIdFilter,
+        codigoQR: _codigoQrFilter.trim().isEmpty ? null : _codigoQrFilter.trim(),
+        page: 1,
+        pageSize: 100,
+        orderBy: 'fechaDocumento',
+        orderDirection: 'DESC',
       );
+      final documentos = await service.buscar(dto);
       if (mounted) {
         setState(() {
           _documentosCarpeta = documentos.items;
@@ -279,7 +288,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }).toList();
   }
 
-  /// Documentos de la carpeta actual filtrados por búsqueda y filtros avanzados (fecha, responsable, QR).
+  /// Documentos de la carpeta actual. Filtros avanzados (número comprobante, fecha, responsable, QR) se aplican en el API; aquí solo búsqueda por texto y estado.
   List<Documento> get _documentosCarpetaFiltrados {
     var filtrados = _documentosCarpeta;
     if (_consultaBusqueda.trim().isNotEmpty) {
@@ -292,49 +301,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 (doc.descripcion ?? '').toLowerCase().contains(query);
           }).toList();
     }
-    if (_fechaDesdeFilter != null) {
-      final desde = DateTime(
-        _fechaDesdeFilter!.year,
-        _fechaDesdeFilter!.month,
-        _fechaDesdeFilter!.day,
-      );
-      filtrados =
-          filtrados.where((doc) {
-            final docDate = DateTime(
-              doc.fechaDocumento.year,
-              doc.fechaDocumento.month,
-              doc.fechaDocumento.day,
-            );
-            return !docDate.isBefore(desde);
-          }).toList();
-    }
-    if (_fechaHastaFilter != null) {
-      final hasta = DateTime(
-        _fechaHastaFilter!.year,
-        _fechaHastaFilter!.month,
-        _fechaHastaFilter!.day,
-      );
-      filtrados =
-          filtrados.where((doc) {
-            final docDate = DateTime(
-              doc.fechaDocumento.year,
-              doc.fechaDocumento.month,
-              doc.fechaDocumento.day,
-            );
-            return !docDate.isAfter(hasta);
-          }).toList();
-    }
-    if (_responsableIdFilter != null) {
+    if (_filtroSeleccionado != 'todos') {
       filtrados =
           filtrados
-              .where((doc) => doc.responsableId == _responsableIdFilter)
-              .toList();
-    }
-    if (_codigoQrFilter.trim().isNotEmpty) {
-      final qr = _codigoQrFilter.toLowerCase().trim();
-      filtrados =
-          filtrados
-              .where((doc) => (doc.codigoQR ?? '').toLowerCase().contains(qr))
+              .where((doc) => doc.estado.toLowerCase() == _filtroSeleccionado)
               .toList();
     }
     return filtrados;
@@ -1831,6 +1801,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Widget _buildDocumentosEmpty() {
+    final conFiltros = _tieneFiltrosAvanzados;
     return Center(
       child: Container(
         padding: const EdgeInsets.all(48),
@@ -1844,14 +1815,14 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
-                Icons.description_outlined,
+                conFiltros ? Icons.search_off_rounded : Icons.description_outlined,
                 size: 64,
                 color: Colors.grey.shade400,
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              'Sin documentos',
+              conFiltros ? 'Sin coincidencias' : 'Sin documentos',
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -1860,7 +1831,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Agregue el primer documento a esta carpeta',
+              conFiltros
+                  ? 'No se encontraron documentos con los criterios ingresados.\nPruebe ajustar el número de comprobante, fecha o responsable.'
+                  : 'Agregue el primer documento a esta carpeta',
               style: GoogleFonts.inter(
                 fontSize: 14,
                 color: Colors.grey.shade500,
@@ -2150,6 +2123,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   bool get _tieneFiltrosAvanzados =>
+      _numeroComprobanteFilter.trim().isNotEmpty ||
       _fechaDesdeFilter != null ||
       _fechaHastaFilter != null ||
       _responsableIdFilter != null ||
@@ -2157,6 +2131,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   void _abrirBusquedaAvanzada(ThemeData theme) {
     _codigoQrFilterController.text = _codigoQrFilter;
+    _numeroComprobanteFilterController.text = _numeroComprobanteFilter;
     showDialog(
       context: context,
       barrierColor: Colors.black54,
@@ -2166,21 +2141,28 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               constraints: const BoxConstraints(maxWidth: 440),
               child: _FiltrosAvanzadosSheet(
                 theme: theme,
+                numeroComprobanteController: _numeroComprobanteFilterController,
                 fechaDesde: _fechaDesdeFilter,
                 fechaHasta: _fechaHastaFilter,
                 responsableId: _responsableIdFilter,
                 codigoQrController: _codigoQrFilterController,
-                onAplicar: (fechaDesde, fechaHasta, responsableId, codigoQr) {
+                onAplicar: (numeroComprobante, fechaDesde, fechaHasta, responsableId, codigoQr) {
                   setState(() {
+                    _numeroComprobanteFilter = numeroComprobante;
                     _fechaDesdeFilter = fechaDesde;
                     _fechaHastaFilter = fechaHasta;
                     _responsableIdFilter = responsableId;
                     _codigoQrFilter = codigoQr;
                   });
                   if (context.mounted) Navigator.pop(context);
+                  if (context.mounted && _carpetaSeleccionada != null) {
+                    _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+                  }
                 },
                 onLimpiar: () {
                   setState(() {
+                    _numeroComprobanteFilter = '';
+                    _numeroComprobanteFilterController.clear();
                     _fechaDesdeFilter = null;
                     _fechaHastaFilter = null;
                     _responsableIdFilter = null;
@@ -2191,6 +2173,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     _filtroSeleccionado = 'todos';
                   });
                   if (context.mounted) Navigator.pop(context);
+                  if (context.mounted && _carpetaSeleccionada != null) {
+                    _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+                  }
                 },
               ),
             ),
@@ -3126,10 +3111,11 @@ class _DialogFiltroCarpetasState extends State<_DialogFiltroCarpetas> {
   }
 }
 
-/// Bottom sheet para búsqueda avanzada: fecha, responsable, código QR.
+/// Bottom sheet para búsqueda avanzada: número comprobante, fecha, responsable, código QR.
 class _FiltrosAvanzadosSheet extends StatefulWidget {
   const _FiltrosAvanzadosSheet({
     required this.theme,
+    required this.numeroComprobanteController,
     required this.fechaDesde,
     required this.fechaHasta,
     required this.responsableId,
@@ -3139,11 +3125,13 @@ class _FiltrosAvanzadosSheet extends StatefulWidget {
   });
 
   final ThemeData theme;
+  final TextEditingController numeroComprobanteController;
   final DateTime? fechaDesde;
   final DateTime? fechaHasta;
   final int? responsableId;
   final TextEditingController codigoQrController;
   final void Function(
+    String numeroComprobante,
     DateTime? fechaDesde,
     DateTime? fechaHasta,
     int? responsableId,
@@ -3232,14 +3220,14 @@ class _FiltrosAvanzadosSheetState extends State<_FiltrosAvanzadosSheet> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Filtre por fecha, responsable o código QR',
+                'Filtre por fecha, responsable y número de comprobante',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 24),
-              // Fecha desde
+              // 1. FECHA (desde / hasta)
               Row(
                 children: [
                   Expanded(
@@ -3304,7 +3292,7 @@ class _FiltrosAvanzadosSheetState extends State<_FiltrosAvanzadosSheet> {
                 ],
               ),
               const SizedBox(height: 16),
-              // Responsable
+              // 2. RESPONSABLE
               if (_loadingUsuarios)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
@@ -3345,7 +3333,26 @@ class _FiltrosAvanzadosSheetState extends State<_FiltrosAvanzadosSheet> {
                   onChanged: (v) => setState(() => _responsableId = v),
                 ),
               const SizedBox(height: 16),
-              // Código QR
+              // 3. NÚMERO DE COMPROBANTE
+              TextFormField(
+                controller: widget.numeroComprobanteController,
+                decoration: InputDecoration(
+                  labelText: 'Número de comprobante',
+                  hintText: 'Ej: 1, 5, 10',
+                  prefixIcon: const Icon(Icons.numbers_rounded),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+              // Código QR (opcional)
               TextFormField(
                 controller: widget.codigoQrController,
                 decoration: InputDecoration(
@@ -3362,7 +3369,7 @@ class _FiltrosAvanzadosSheetState extends State<_FiltrosAvanzadosSheet> {
                 ),
                 onChanged: (_) => setState(() {}),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
@@ -3384,6 +3391,7 @@ class _FiltrosAvanzadosSheetState extends State<_FiltrosAvanzadosSheet> {
                     child: FilledButton.icon(
                       onPressed: () {
                         widget.onAplicar(
+                          widget.numeroComprobanteController.text.trim(),
                           _fechaDesde,
                           _fechaHasta,
                           _responsableId,

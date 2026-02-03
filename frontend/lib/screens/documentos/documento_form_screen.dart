@@ -448,7 +448,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ),
                       const SizedBox(height: 16),
 
-                      // 1. Número comprobante(s)
+                      // 1. Número comprobante(s) — máximo 10 dígitos, solo números
                       TextFormField(
                         controller: _numeroCorrelativoController,
                         decoration: _inputDecoration('Número comprobante(s)').copyWith(
@@ -456,12 +456,12 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           errorStyle: const TextStyle(color: Colors.red),
                           helperText:
                               _numeroCorrelativoError == null
-                                  ? 'Solo número del 1 al 10'
+                                  ? 'Máximo 10 dígitos, solo números'
                                   : null,
                           helperMaxLines: 1,
                         ),
                         keyboardType: TextInputType.number,
-                        maxLength: 2,
+                        maxLength: 10,
                         onChanged: (_) {
                           if (_numeroCorrelativoError != null) {
                             setState(() => _numeroCorrelativoError = null);
@@ -473,11 +473,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           }
                           final digits = v.replaceAll(RegExp(r'\D'), '');
                           if (digits.isEmpty) {
-                            return 'Ingrese solo número (1 al 10)';
+                            return 'Solo números';
                           }
-                          final num = int.tryParse(digits);
-                          if (num == null || num < 1 || num > 10) {
-                            return 'Debe ser un número del 1 al 10';
+                          if (digits.length > 10) {
+                            return 'Máximo 10 dígitos';
                           }
                           return null;
                         },

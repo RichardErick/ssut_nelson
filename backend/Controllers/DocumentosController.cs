@@ -10,6 +10,7 @@ using SistemaGestionDocumental.Models;
 
 using SistemaGestionDocumental.Services;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace SistemaGestionDocumental.Controllers;
@@ -240,8 +241,10 @@ public class DocumentosController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(correlativoDigits))
         {
-            if (!int.TryParse(correlativoDigits, out var numCorrelativo) || numCorrelativo < 1 || numCorrelativo > 10)
-                return BadRequest(new { message = "El número correlativo debe ser del 1 al 10" });
+            if (correlativoDigits.Length > 10)
+                return BadRequest(new { message = "El número de comprobante debe tener máximo 10 dígitos" });
+            if (!correlativoDigits.All(char.IsDigit))
+                return BadRequest(new { message = "El número de comprobante debe contener solo números" });
         }
 
         if (string.IsNullOrWhiteSpace(gestion) || !Regex.IsMatch(gestion, @"^[0-9]{4}$"))
@@ -286,7 +289,7 @@ public class DocumentosController : ControllerBase
         {
             correlativoFormateado = (forzarCorrelativoAuto || string.IsNullOrWhiteSpace(correlativoDigits))
                 ? (await ObtenerSiguienteCorrelativoAsync(carpetaId, gestion)).PadLeft(4, '0')
-                : correlativoDigits.PadLeft(4, '0');
+                : (correlativoDigits.Length >= 4 ? correlativoDigits : correlativoDigits.PadLeft(4, '0'));
         }
         catch (InvalidOperationException ex)
         {
@@ -454,9 +457,11 @@ public class DocumentosController : ControllerBase
         if (!string.IsNullOrWhiteSpace(dto.NumeroCorrelativo))
         {
             var digits = Regex.Replace(dto.NumeroCorrelativo.Trim(), @"\D", "");
-            if (!int.TryParse(digits, out var numCorrelativo) || numCorrelativo < 1 || numCorrelativo > 10)
-                return BadRequest(new { message = "El número correlativo debe ser del 1 al 10" });
-            documento.NumeroCorrelativo = digits.PadLeft(4, '0');
+            if (digits.Length > 10)
+                return BadRequest(new { message = "El número de comprobante debe tener máximo 10 dígitos" });
+            if (digits.Length > 0 && !digits.All(char.IsDigit))
+                return BadRequest(new { message = "El número de comprobante debe contener solo números" });
+            documento.NumeroCorrelativo = digits.Length >= 4 ? digits : digits.PadLeft(4, '0');
         }
 
         if (dto.TipoDocumentoId.HasValue)
