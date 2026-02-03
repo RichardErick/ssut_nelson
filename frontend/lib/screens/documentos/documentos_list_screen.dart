@@ -2913,26 +2913,27 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         context,
         listen: false,
       );
-      // Siempre usamos hard delete para carpetas por ahora según requerimiento de UX
-      await carpetaService.delete(carpeta.id, hard: true);
+      final idEliminado = carpeta.id;
+      final eraLaCarpetaActual = _carpetaSeleccionada?.id == idEliminado;
+
+      await carpetaService.delete(idEliminado, hard: true);
 
       if (!mounted) return;
 
-      // Notificar al DataProvider
       final dataProvider = Provider.of<DataProvider>(context, listen: false);
-      dataProvider.notifyCarpetaDeleted(carpeta.id);
+      dataProvider.notifyCarpetaDeleted(idEliminado);
 
-      // Actualizar listas
-      if (carpeta.carpetaPadreId != null) {
+      // Si estábamos dentro de la carpeta eliminada (o de una hija), volver a lista de carpetas
+      if (eraLaCarpetaActual) {
+        setState(() => _carpetaSeleccionada = null);
+      } else if (carpeta.carpetaPadreId != null) {
         await _cargarSubcarpetas(carpeta.carpetaPadreId!);
-      } else {
-        setState(() {
-          _carpetaSeleccionada =
-              null; // Regresar si estábamos viendo esta carpeta
-        });
       }
-      await _cargarCarpetas();
 
+      // Recargar lista completa de carpetas para que la UI refleje el borrado
+      await _cargarCarpetas(todasLasGestiones: true);
+
+      if (!mounted) return;
       _mostrarSnackBarExito('Carpeta eliminada correctamente.');
     } catch (e) {
       if (!mounted) return;
@@ -3023,33 +3024,23 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Widget? _buildFloatingActionButton() {
-    print('DEBUG FAB: Ejecutando _buildFloatingActionButton()');
-    print('DEBUG FAB: _carpetaSeleccionada = ${_carpetaSeleccionada?.nombre}');
-    print('DEBUG FAB: _carpetaSeleccionada?.id = ${_carpetaSeleccionada?.id}');
-    print(
-      'DEBUG FAB: _carpetaSeleccionada?.carpetaPadreId = ${_carpetaSeleccionada?.carpetaPadreId}',
-    );
-
     final authProvider = Provider.of<AuthProvider>(context);
 
-    // Verificar permisos primero
-    if (!authProvider.hasPermission('subir_documento')) {
-      print('DEBUG FAB: Sin permisos de subir_documento, retornando null');
-      return null;
-    }
-
-    // Nivel 1: Vista principal - form con N° Correlativo y Clasificación y Contenido
+    // Vista carpetas (no estamos dentro de una carpeta): solo "Nueva carpeta"
     if (_carpetaSeleccionada == null) {
       return FloatingActionButton.extended(
-        onPressed: () => _abrirNuevoDocumento(),
-        icon: const Icon(Icons.add),
-        label: const Text('Nuevo Documento'),
+        onPressed: () => _abrirAgregarCarpeta(),
+        icon: const Icon(Icons.create_new_folder),
+        label: const Text('Nueva carpeta'),
         backgroundColor: Colors.blue.shade700,
-        heroTag: 'fab_documento_raiz',
+        heroTag: 'fab_carpeta',
       );
     }
 
-    // Nivel 2 y 3: dentro de carpeta - Nuevo Documento
+    // Dentro de una carpeta: "Nuevo Documento" (solo si tiene permiso)
+    if (!authProvider.hasPermission('subir_documento')) {
+      return null;
+    }
     return FloatingActionButton.extended(
       onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
       icon: const Icon(Icons.add),
