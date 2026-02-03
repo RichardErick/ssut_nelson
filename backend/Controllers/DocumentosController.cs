@@ -238,8 +238,11 @@ public class DocumentosController : ControllerBase
             ? string.Empty
             : Regex.Replace(numeroCorrelativo, @"\D", "");
 
-        if (!string.IsNullOrWhiteSpace(correlativoDigits) && correlativoDigits.Length > 20)
-            return BadRequest(new { message = "El número correlativo debe tener entre 1 y 20 dígitos numéricos" });
+        if (!string.IsNullOrWhiteSpace(correlativoDigits))
+        {
+            if (!int.TryParse(correlativoDigits, out var numCorrelativo) || numCorrelativo < 1 || numCorrelativo > 10)
+                return BadRequest(new { message = "El número correlativo debe ser del 1 al 10" });
+        }
 
         if (string.IsNullOrWhiteSpace(gestion) || !Regex.IsMatch(gestion, @"^[0-9]{4}$"))
             return BadRequest(new { message = "La gestión debe tener 4 dígitos numéricos" });
@@ -449,7 +452,12 @@ public class DocumentosController : ControllerBase
 
         // Actualizar campos si se proporcionan
         if (!string.IsNullOrWhiteSpace(dto.NumeroCorrelativo))
-            documento.NumeroCorrelativo = dto.NumeroCorrelativo;
+        {
+            var digits = Regex.Replace(dto.NumeroCorrelativo.Trim(), @"\D", "");
+            if (!int.TryParse(digits, out var numCorrelativo) || numCorrelativo < 1 || numCorrelativo > 10)
+                return BadRequest(new { message = "El número correlativo debe ser del 1 al 10" });
+            documento.NumeroCorrelativo = digits.PadLeft(4, '0');
+        }
 
         if (dto.TipoDocumentoId.HasValue)
         {

@@ -25,11 +25,11 @@ class SubcarpetaFormScreen extends StatefulWidget {
 class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
   final _formKey = GlobalKey<FormState>();
   
-  // Controladores para subcarpetas (formulario complejo)
+  // Controladores. Referencia: Comprobantes de Egreso / Comprobantes de Ingreso. Gestión en vez de romano.
   final _nombreController = TextEditingController();
   final _descripcionController = TextEditingController();
-  final _codigoRomanoController = TextEditingController();
-  
+  final _gestionController = TextEditingController(); // Gestión (año): 2021, 2024, etc.
+
   // Rangos
   final _rangoInicioController = TextEditingController();
   final _rangoFinController = TextEditingController();
@@ -39,15 +39,26 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
   @override
   void initState() {
     super.initState();
-    // Para subcarpetas, sugerir un nombre por defecto
     _nombreController.text = 'Rango Documental';
+    WidgetsBinding.instance.addPostFrameCallback((_) => _cargarGestionPadre());
+  }
+
+  Future<void> _cargarGestionPadre() async {
+    try {
+      final service = Provider.of<CarpetaService>(context, listen: false);
+      final carpetaPadre = await service.getById(widget.carpetaPadreId);
+      if (mounted && _gestionController.text.isEmpty) {
+        _gestionController.text = carpetaPadre.gestion;
+        setState(() {});
+      }
+    } catch (_) {}
   }
 
   @override
   void dispose() {
     _nombreController.dispose();
     _descripcionController.dispose();
-    _codigoRomanoController.dispose();
+    _gestionController.dispose();
     _rangoInicioController.dispose();
     _rangoFinController.dispose();
     super.dispose();
@@ -101,13 +112,15 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
         return;
       }
 
-      // Obtener la gestión de la carpeta padre
-      final carpetaPadre = await carpetaService.getById(widget.carpetaPadreId);
+      // Gestión: la del formulario (o heredar de carpeta padre si está vacía)
+      final gestion = _gestionController.text.trim().length == 4
+          ? _gestionController.text.trim()
+          : (await carpetaService.getById(widget.carpetaPadreId)).gestion;
 
       final dto = CreateCarpetaDTO(
         nombre: _nombreController.text,
-        codigo: _codigoRomanoController.text.isNotEmpty ? _codigoRomanoController.text : null,
-        gestion: carpetaPadre.gestion, // Heredar gestión de la carpeta padre
+        codigo: null,
+        gestion: gestion,
         descripcion: _descripcionController.text.isNotEmpty ? _descripcionController.text : null,
         carpetaPadreId: widget.carpetaPadreId,
         rangoInicio: rInicio,
@@ -331,7 +344,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Agrupación de documentos por rango numérico y organización específica.',
+                                'Referencia: Comprobantes de Egreso / Comprobantes de Ingreso. Rango y Gestión (año).',
                                 style: GoogleFonts.inter(
                                   fontSize: 13,
                                   color: Colors.grey.shade700,
@@ -399,11 +412,11 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                         
                         const SizedBox(height: 24),
 
-                        // Sección de rango
-                        _buildSectionHeader('Rango de Documentos', Icons.format_list_numbered, Colors.green),
+                        // Sección Rango de Documentos y Gestión (referencia: Comprobantes de Egreso/Ingreso)
+                        _buildSectionHeader('Rango de Documentos y Gestión', Icons.format_list_numbered, Colors.green),
                         const SizedBox(height: 16),
                         Text(
-                          'Define el rango numérico de documentos que contendrá esta subcarpeta (opcional)',
+                          'Define el rango numérico y la gestión (año). Referencia: Comprobantes de Egreso / Comprobantes de Ingreso.',
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             color: Colors.grey.shade600,
@@ -431,20 +444,24 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                                 keyboardType: TextInputType.number,
                               ),
                             ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildFormField(
+                                label: 'Gestión',
+                                controller: _gestionController,
+                                icon: Icons.calendar_today,
+                                hint: '2024',
+                                keyboardType: TextInputType.number,
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) return null; // Opcional: hereda de carpeta padre
+                                  if (v.trim().length != 4) return '4 dígitos (ej: 2024)';
+                                  return null;
+                                },
+                              ),
+                            ),
                           ],
                         ),
                         
-                        const SizedBox(height: 24),
-
-                        // Código Romano
-                        _buildFormField(
-                          label: 'Código Romano',
-                          controller: _codigoRomanoController,
-                          icon: Icons.format_list_numbered_rtl,
-                          hint: 'I, II, III, IV, V, etc.',
-                          textCapitalization: TextCapitalization.characters,
-                        ),
-
                         const SizedBox(height: 24),
 
                         // Descripción

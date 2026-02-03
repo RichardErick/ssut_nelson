@@ -38,6 +38,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
   final _gestionController = TextEditingController();
   final _descripcionController = TextEditingController();
   final _ubicacionFisicaController = TextEditingController();
+  final _numeroEstanteController = TextEditingController(); // SSUT: número de estante
 
   // Estado del formulario
   DateTime _fechaDocumento = DateTime.now();
@@ -46,7 +47,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
   int? _responsableId;
   int? _carpetaId;
   int _nivelConfidencialidad = 1;
+  String _estadoDocumento = 'Activo'; // SSUT: visible en formulario (año, estado y nivel)
   PlatformFile? _pickedFile;
+
+  static const List<String> _estadosDocumento = ['Activo', 'Prestado', 'Archivado', 'Inactivo'];
 
   /// Anexos existentes del documento (solo en modo edición). Se cargan al abrir el formulario.
   List<Anexo> _anexosExistentes = [];
@@ -106,17 +110,47 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
     }
   }
 
+  /// Parsea ubicación física: formato "Estante: X, Caja/resto" para extraer número de estante.
+  void _parseUbicacionEstante(String? ubicacionFisica) {
+    if (ubicacionFisica == null || ubicacionFisica.isEmpty) {
+      _ubicacionFisicaController.text = '';
+      _numeroEstanteController.text = '';
+      return;
+    }
+    if (ubicacionFisica.toLowerCase().startsWith('estante:')) {
+      final parts = ubicacionFisica.split(',');
+      _numeroEstanteController.text =
+          parts[0].replaceFirst(RegExp(r'^estante:\s*', caseSensitive: false), '').trim();
+      _ubicacionFisicaController.text =
+          parts.length > 1 ? parts.sublist(1).join(',').trim() : '';
+    } else {
+      _numeroEstanteController.text = '';
+      _ubicacionFisicaController.text = ubicacionFisica;
+    }
+  }
+
+  /// Construye ubicación física para enviar: Estante + Caja/resto.
+  String _buildUbicacionFisica() {
+    final estante = _numeroEstanteController.text.trim();
+    final resto = _ubicacionFisicaController.text.trim();
+    if (estante.isEmpty && resto.isEmpty) return '';
+    if (estante.isEmpty) return resto;
+    if (resto.isEmpty) return 'Estante: $estante';
+    return 'Estante: $estante, $resto';
+  }
+
   void _initFormData(Documento doc) {
     _numeroCorrelativoController.text = doc.numeroCorrelativo;
     _gestionController.text = doc.gestion;
     _descripcionController.text = doc.descripcion ?? '';
-    _ubicacionFisicaController.text = doc.ubicacionFisica ?? '';
+    _parseUbicacionEstante(doc.ubicacionFisica);
     _fechaDocumento = doc.fechaDocumento;
     _tipoDocumentoId = doc.tipoDocumentoId;
     _areaOrigenId = doc.areaOrigenId;
     _responsableId = doc.responsableId;
     _carpetaId = doc.carpetaId;
     _nivelConfidencialidad = doc.nivelConfidencialidad;
+    _estadoDocumento = doc.estado;
   }
 
   Future<void> _loadData() async {
@@ -266,7 +300,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
           fechaDocumento: _fechaDocumento,
           descripcion: _descripcionController.text,
           responsableId: _responsableId,
-          ubicacionFisica: _ubicacionFisicaController.text,
+          ubicacionFisica: _buildUbicacionFisica(),
           carpetaId: _carpetaId,
           nivelConfidencialidad: _nivelConfidencialidad,
         );
@@ -295,9 +329,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
           fechaDocumento: _fechaDocumento,
           descripcion: _descripcionController.text,
           responsableId: _responsableId ?? doc.responsableId,
-          ubicacionFisica: _ubicacionFisicaController.text,
+          ubicacionFisica: _buildUbicacionFisica(),
           carpetaId: _carpetaId ?? doc.carpetaId,
           nivelConfidencialidad: _nivelConfidencialidad,
+          estado: _estadoDocumento,
         );
         await documentoService.update(widget.documento!.id, dto);
 
@@ -502,11 +537,12 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           errorStyle: const TextStyle(color: Colors.red),
                           helperText:
                               _numeroCorrelativoError == null
-                                  ? 'Solo números, 1 a 6 dígitos. Formato del código: TIPO-AREA-GESTIÓN-####'
+                                  ? 'Solo número del 1 al 10'
                                   : null,
-                          helperMaxLines: 2,
+                          helperMaxLines: 1,
                         ),
                         keyboardType: TextInputType.number,
+                        maxLength: 2,
                         onChanged: (_) {
                           if (_numeroCorrelativoError != null) {
                             setState(() => _numeroCorrelativoError = null);
@@ -518,10 +554,11 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           }
                           final digits = v.replaceAll(RegExp(r'\D'), '');
                           if (digits.isEmpty) {
-                            return 'Ingrese solo números (ej: 1, 001, 1234)';
+                            return 'Ingrese solo número (1 al 10)';
                           }
-                          if (digits.length > 6) {
-                            return 'Máximo 6 dígitos';
+                          final num = int.tryParse(digits);
+                          if (num == null || num < 1 || num > 10) {
+                            return 'Debe ser un número del 1 al 10';
                           }
                           return null;
                         },
@@ -714,11 +751,65 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      TextFormField(
-                        controller: _ubicacionFisicaController,
-                        decoration: _inputDecoration(
-                          'Ubicación Física (Estante, Caja)',
-                        ),
+                      // SSUT: Número de estante y Ubicación (Caja); Nivel visible
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _numeroEstanteController,
+                              decoration: _inputDecoration('Número de estante'),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: TextFormField(
+                              controller: _ubicacionFisicaController,
+                              decoration: _inputDecoration('Ubicación (Caja, etc.)'),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // SSUT: Estado (solo edición) y Nivel
+                      Row(
+                        children: [
+                          if (widget.documento != null)
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: _estadosDocumento.contains(_estadoDocumento)
+                                    ? _estadoDocumento
+                                    : _estadosDocumento.first,
+                                decoration: _inputDecoration('Estado'),
+                                items: _estadosDocumento
+                                    .map((e) => DropdownMenuItem<String>(
+                                          value: e,
+                                          child: Text(e),
+                                        ))
+                                    .toList(),
+                                onChanged: (v) =>
+                                    setState(() => _estadoDocumento = v ?? 'Activo'),
+                              ),
+                            ),
+                          if (widget.documento != null) const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              value: _nivelConfidencialidad.clamp(1, 5),
+                              decoration: _inputDecoration('Nivel'),
+                              items: [1, 2, 3, 4, 5]
+                                  .map((n) => DropdownMenuItem<int>(
+                                        value: n,
+                                        child: Text('Nivel $n'),
+                                      ))
+                                  .toList(),
+                              onChanged: (v) =>
+                                  setState(() => _nivelConfidencialidad = v ?? 1),
+                            ),
+                          ),
+                        ],
                       ),
 
                       const SizedBox(height: 16),

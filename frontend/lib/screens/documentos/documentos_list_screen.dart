@@ -247,9 +247,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     });
 
     final esCarpeta = carpeta.carpetaPadreId == null;
-    // Regla: dentro de una carpeta solo hay subcarpetas; dentro de subcarpetas solo documentos.
+    // SSUT: solo carpeta principal; al abrir una carpeta se muestran sus documentos (no subcarpetas).
     if (esCarpeta) {
-      await _cargarSubcarpetas(carpeta.id);
+      await _cargarDocumentosCarpeta(carpeta.id);
     } else {
       await Future.wait([
         _cargarDocumentosCarpeta(carpeta.id),
@@ -262,9 +262,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }
   }
 
-  /// Carpetas filtradas por búsqueda y por gestión (vista Carpetas).
+  /// Carpetas filtradas: solo carpetas principales (sin subcarpetas en la UI por indicación SSUT).
   List<Carpeta> get _carpetasFiltradas {
-    var list = _carpetas;
+    var list = _carpetas.where((c) => c.carpetaPadreId == null).toList();
     if (_gestionFilterCarpetas != null && _gestionFilterCarpetas!.isNotEmpty) {
       list = list.where((c) => c.gestion == _gestionFilterCarpetas).toList();
     }
@@ -572,10 +572,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
     final gestionLine = carpeta.gestion.isNotEmpty ? carpeta.gestion : 'N/A';
     final nroLine = carpeta.numeroCarpeta?.toString() ?? 'N/A';
-    final romanoLine =
-        (carpeta.codigoRomano?.isNotEmpty == true)
-            ? carpeta.codigoRomano!
-            : ((carpeta.codigo?.isNotEmpty == true) ? carpeta.codigo! : 'N/A');
     final rangoLine =
         (carpeta.rangoInicio != null && carpeta.rangoFin != null)
             ? '${carpeta.rangoInicio} - ${carpeta.rangoFin}'
@@ -708,12 +704,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     children: [
                       _buildInfoChip('Gestión', gestionLine, Colors.blue),
                       _buildInfoChip('Nº', nroLine, Colors.green),
-                      _buildInfoChip('Romano', romanoLine, Colors.purple),
                       _buildInfoChip('Rango', rangoLine, Colors.orange),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Footer: dos labels separados (subcarpetas y documentos)
+                  // Footer: SSUT solo carpeta principal, solo documentos
                   Container(
                     padding: const EdgeInsets.symmetric(
                       vertical: 6,
@@ -727,39 +722,20 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     child: Row(
                       children: [
                         Icon(
-                          carpeta.carpetaPadreId == null
-                              ? Icons.folder_open_outlined
-                              : Icons.description_outlined,
+                          Icons.folder_open_outlined,
                           color: Colors.blue.shade600,
                           size: 18,
                         ),
                         const SizedBox(width: 8),
                         Flexible(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (carpeta.carpetaPadreId == null) ...[
-                                Text(
-                                  '${carpeta.numeroSubcarpetas} subcarpetas',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.blue.shade700,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(width: 6),
-                              ],
-                              Text(
-                                '${carpeta.numeroDocumentos} documentos',
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blue.shade700,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                          child: Text(
+                            '${carpeta.numeroDocumentos} documentos',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue.shade700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -814,7 +790,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   Widget _construirVistaDocumentosCarpeta(ThemeData theme) {
     final carpeta = _carpetaSeleccionada!;
-    final esCarpeta = carpeta.carpetaPadreId == null;
     final docs = _documentosCarpetaFiltrados;
     final rango =
         _estaCargandoDocumentosCarpeta
@@ -826,49 +801,18 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildCarpetaHeader(carpeta, rango, theme),
-        // Carpeta: solo subcarpetas. Subcarpeta: solo documentos.
-        if (esCarpeta) ...[
-          if (_estaCargandoSubcarpetas)
-            Container(
-              height: 4,
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              child: LinearProgressIndicator(
-                backgroundColor: Colors.grey.shade200,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Colors.blue.shade600,
-                ),
-              ),
-            )
-          else if (_subcarpetas.isNotEmpty)
-            _buildSubcarpetasSection(theme)
-          else
-            Expanded(child: _buildSoloSubcarpetasMessage(theme)),
-        ] else ...[
-          if (_estaCargandoSubcarpetas)
-            Container(
-              height: 4,
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              child: LinearProgressIndicator(
-                backgroundColor: Colors.grey.shade200,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Colors.blue.shade600,
-                ),
-              ),
-            )
-          else if (_subcarpetas.isNotEmpty)
-            _buildSubcarpetasSection(theme),
-          _buildViewControls(theme),
-          Expanded(
-            child:
-                _estaCargandoDocumentosCarpeta
-                    ? _buildDocumentosLoading()
-                    : docs.isEmpty
-                    ? _buildDocumentosEmpty()
-                    : _vistaGrid
-                    ? _construirGridDocumentosCarpeta(docs, theme)
-                    : _construirListaDocumentos(docs, theme),
-          ),
-        ],
+        // SSUT: solo carpeta principal; carpeta y subcarpeta muestran directamente documentos.
+        _buildViewControls(theme),
+        Expanded(
+          child:
+              _estaCargandoDocumentosCarpeta
+                  ? _buildDocumentosLoading()
+                  : docs.isEmpty
+                  ? _buildDocumentosEmpty()
+                  : _vistaGrid
+                  ? _construirGridDocumentosCarpeta(docs, theme)
+                  : _construirListaDocumentos(docs, theme),
+        ),
       ],
     );
   }
@@ -2765,23 +2709,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       );
     }
 
-    // Nivel 2: Dentro de carpeta padre - SOLO mostrar "Nueva Subcarpeta" (ocultar "Nueva Carpeta")
-    if (_carpetaSeleccionada!.carpetaPadreId == null) {
-      print(
-        'DEBUG FAB: Nivel 2 - Dentro de carpeta padre "${_carpetaSeleccionada!.nombre}", mostrando SOLO Nueva Subcarpeta',
-      );
-      return FloatingActionButton.extended(
-        onPressed: () => _crearSubcarpeta(_carpetaSeleccionada!.id),
-        icon: const Icon(Icons.create_new_folder_outlined),
-        label: const Text('Nueva Subcarpeta'),
-        backgroundColor: Colors.orange.shade700,
-        heroTag: 'fab_subcarpeta',
-      );
-    }
-
-    // Nivel 3: Dentro de subcarpeta - SOLO mostrar "Nuevo Documento" (ocultar otros botones)
+    // Nivel 2 y 3: SSUT solo carpeta principal; dentro de cualquier carpeta se muestra "Nuevo Documento".
     print(
-      'DEBUG FAB: Nivel 3 - Dentro de subcarpeta "${_carpetaSeleccionada!.nombre}", mostrando SOLO Nuevo Documento',
+      'DEBUG FAB: Dentro de carpeta "${_carpetaSeleccionada!.nombre}", mostrando Nuevo Documento',
     );
     return FloatingActionButton.extended(
       onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
