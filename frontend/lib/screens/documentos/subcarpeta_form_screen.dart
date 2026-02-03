@@ -401,6 +401,22 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                         
                         const SizedBox(height: 24),
 
+                        // Gestión (año) destacada al inicio
+                        _buildFormField(
+                          label: 'Gestión',
+                          controller: _gestionController,
+                          icon: Icons.calendar_today,
+                          hint: 'Ej: 2024, 2025',
+                          keyboardType: TextInputType.number,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return null;
+                            if (v.trim().length != 4) return '4 dígitos (ej: 2024)';
+                            return null;
+                          },
+                        ),
+                        
+                        const SizedBox(height: 24),
+
                         // Nombre de la carpeta (pantalla principal)
                         _buildFormField(
                           label: 'Nombre de la Carpeta',
@@ -412,11 +428,11 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                         
                         const SizedBox(height: 24),
 
-                        // Sección Rango de Documentos y Gestión (referencia: Comprobantes de Egreso/Ingreso)
-                        _buildSectionHeader('Rango de Documentos y Gestión', Icons.format_list_numbered, Colors.green),
+                        // Sección Rango de Documentos (Gestión ya está arriba)
+                        _buildSectionHeader('Rango de Documentos', Icons.format_list_numbered, Colors.green),
                         const SizedBox(height: 16),
                         Text(
-                          'Define el rango numérico y la gestión (año). Referencia: Comprobantes de Egreso / Comprobantes de Ingreso.',
+                          'Define el rango numérico. Referencia: Comprobantes de Egreso / Comprobantes de Ingreso.',
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             color: Colors.grey.shade600,
@@ -442,21 +458,6 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                                 icon: Icons.last_page,
                                 hint: '50',
                                 keyboardType: TextInputType.number,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildFormField(
-                                label: 'Gestión',
-                                controller: _gestionController,
-                                icon: Icons.calendar_today,
-                                hint: '2024',
-                                keyboardType: TextInputType.number,
-                                validator: (v) {
-                                  if (v == null || v.trim().isEmpty) return null; // Opcional: hereda de carpeta padre
-                                  if (v.trim().length != 4) return '4 dígitos (ej: 2024)';
-                                  return null;
-                                },
                               ),
                             ),
                           ],

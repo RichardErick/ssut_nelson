@@ -751,30 +751,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // SSUT: Número de estante y Ubicación (Caja); Nivel visible
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _numeroEstanteController,
-                              decoration: _inputDecoration('Número de estante'),
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: TextFormField(
-                              controller: _ubicacionFisicaController,
-                              decoration: _inputDecoration('Ubicación (Caja, etc.)'),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // SSUT: Estado (solo edición) y Nivel
+                      // SSUT: Estado (solo edición) y Nivel (ubicación quitada del form)
                       Row(
                         children: [
                           if (widget.documento != null)
