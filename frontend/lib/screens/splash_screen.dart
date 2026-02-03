@@ -23,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen>
     debugPrint('[SPLASH] initState() - pantalla de carga visible');
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 350),
     );
     _fadeAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
@@ -33,14 +33,15 @@ class _SplashScreenState extends State<SplashScreen>
     );
     _controller.forward();
 
+    // Inicio inmediato: esperar como mucho 400ms por auth, luego redirigir
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await Future.delayed(const Duration(milliseconds: 150));
+      await Future.delayed(const Duration(milliseconds: 50));
       if (!mounted) return;
       try {
         final auth = Provider.of<AuthProvider>(context, listen: false);
         await auth.authReady.timeout(
-          const Duration(seconds: 3),
-          onTimeout: () => debugPrint('[SPLASH] authReady timeout'),
+          const Duration(milliseconds: 400),
+          onTimeout: () => debugPrint('[SPLASH] auth timeout 400ms'),
         );
       } catch (_) {}
       if (mounted) _redirect();

@@ -77,14 +77,17 @@ void main() async {
         );
       };
 
-      try {
-        await initializeDateFormatting('es_BO', null);
-        debugPrint('[MAIN] Fechas (es_BO) inicializadas');
-      } catch (e, _) {
-        debugPrint('[MAIN] Fechas no inicializadas (se usará formato por defecto): $e');
-      }
+      // Inicio inmediato: runApp primero; fechas en segundo plano
       debugPrint('[MAIN] runApp(MyApp)');
       runApp(const MyApp());
+      Future.microtask(() async {
+        try {
+          await initializeDateFormatting('es_BO', null);
+          debugPrint('[MAIN] Fechas (es_BO) inicializadas');
+        } catch (e, _) {
+          debugPrint('[MAIN] Fechas no inicializadas (se usará formato por defecto): $e');
+        }
+      });
     },
     (error, stack) {
       debugPrint('[MAIN] Error no capturado: $error');
