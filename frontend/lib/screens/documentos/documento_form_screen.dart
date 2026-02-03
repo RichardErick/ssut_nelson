@@ -413,7 +413,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSectionTitle('Información General'),
+                      _buildSectionTitle('Información del Documento'),
                       if (_tiposDocumento.isEmpty)
                         Padding(
                           padding: const EdgeInsets.only(
@@ -448,9 +448,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ),
                       const SizedBox(height: 16),
 
+                      // 1. Número comprobante(s)
                       TextFormField(
                         controller: _numeroCorrelativoController,
-                        decoration: _inputDecoration('N° Correlativo').copyWith(
+                        decoration: _inputDecoration('Número comprobante(s)').copyWith(
                           errorText: _numeroCorrelativoError,
                           errorStyle: const TextStyle(color: Colors.red),
                           helperText:
@@ -483,6 +484,30 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                       ),
                       const SizedBox(height: 16),
 
+                      // 2. Responsable
+                      DropdownButtonFormField<int>(
+                        value:
+                            _usuarios.any((u) => u.id == _responsableId)
+                                ? _responsableId
+                                : null,
+                        decoration: _inputDecoration('Responsable'),
+                        items:
+                            _usuarios
+                                .map(
+                                  (u) => DropdownMenuItem<int>(
+                                    value: u.id,
+                                    child: Text(u.nombreCompleto),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (v) => setState(() => _responsableId = v),
+                        validator:
+                            (v) =>
+                                v == null ? 'Seleccione un responsable' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 3. Área
                       Row(
                         children: [
                           Expanded(
@@ -493,7 +518,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                       ? _areaOrigenId
                                       : null,
                               isExpanded: true,
-                              decoration: _inputDecoration('Área Origen'),
+                              decoration: _inputDecoration('Área'),
                               items:
                                   _areas
                                       .map(
@@ -514,7 +539,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                               validator:
                                   (v) =>
                                       v == null
-                                          ? 'Seleccione un área de origen'
+                                          ? 'Seleccione un área'
                                           : null,
                             ),
                           ),
@@ -531,11 +556,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                       v == null ||
                                               v.trim().isEmpty ||
                                               v.trim().length != 4
-                                          ? 'Ingrese un año de 4 dígitos (ej: 2025)'
+                                          ? 'Año 4 dígitos (ej: 2025)'
                                           : null,
                               onChanged: (v) {
-                                if (v.length == 4)
-                                  _loadData(); // Recargar carpetas al cambiar año
+                                if (v.length == 4) _loadData();
                               },
                             ),
                           ),
@@ -543,10 +567,12 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                       ),
 
                       const SizedBox(height: 16),
+
+                      // 4. Fecha
                       InkWell(
                         onTap: () => _selectDate(context),
                         child: InputDecorator(
-                          decoration: _inputDecoration('Fecha de Documento'),
+                          decoration: _inputDecoration('Fecha'),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -561,13 +587,76 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 24),
-                      _buildSectionTitle('Clasificación y Contenido'),
                       const SizedBox(height: 16),
 
+                      // 5. Nivel
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              value: _nivelConfidencialidad.clamp(1, 5),
+                              decoration: _inputDecoration('Nivel'),
+                              items: [1, 2, 3, 4, 5]
+                                  .map((n) => DropdownMenuItem<int>(
+                                        value: n,
+                                        child: Text('Nivel $n'),
+                                      ))
+                                  .toList(),
+                              onChanged: (v) =>
+                                  setState(() => _nivelConfidencialidad = v ?? 1),
+                            ),
+                          ),
+                          if (widget.documento != null) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: _estadosDocumento.contains(_estadoDocumento)
+                                    ? _estadoDocumento
+                                    : _estadosDocumento.first,
+                                decoration: _inputDecoration('Estado'),
+                                items: _estadosDocumento
+                                    .map((e) => DropdownMenuItem<String>(
+                                          value: e,
+                                          child: Text(e),
+                                        ))
+                                    .toList(),
+                                onChanged: (v) =>
+                                    setState(() => _estadoDocumento = v ?? 'Activo'),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // 6. Estante (y ubicación)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _numeroEstanteController,
+                              decoration: _inputDecoration('Estante'),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: TextFormField(
+                              controller: _ubicacionFisicaController,
+                              decoration: _inputDecoration('Ubicación (Caja, etc.)'),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // 7. Descripción
                       TextFormField(
                         controller: _descripcionController,
-                        decoration: _inputDecoration('Descripción / Asunto'),
+                        decoration: _inputDecoration('Descripción'),
                         maxLines: 3,
                         validator:
                             (v) =>
@@ -575,7 +664,9 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                     ? FormValidators.requerido
                                     : null,
                       ),
+
                       if (!ocultarSelectorCarpeta) ...[
+                        const SizedBox(height: 16),
                         DropdownButtonFormField<int>(
                           value:
                               _carpetaId == null ||
@@ -605,96 +696,12 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           onChanged:
                               (v) => setState(() => _carpetaId = v),
                         ),
-                        const SizedBox(height: 16),
                       ],
 
-                      DropdownButtonFormField<int>(
-                        value:
-                            _usuarios.any((u) => u.id == _responsableId)
-                                ? _responsableId
-                                : null,
-                        decoration: _inputDecoration('Responsable *'),
-                        items:
-                            _usuarios
-                                .map(
-                                  (u) => DropdownMenuItem<int>(
-                                    value: u.id,
-                                    child: Text(u.nombreCompleto),
-                                  ),
-                                )
-                                .toList(),
-                        onChanged: (v) => setState(() => _responsableId = v),
-                        validator:
-                            (v) =>
-                                v == null ? 'Seleccione un responsable' : null,
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
 
-                      // Número de estante y Ubicación (Caja)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _numeroEstanteController,
-                              decoration: _inputDecoration('Número de estante'),
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: TextFormField(
-                              controller: _ubicacionFisicaController,
-                              decoration: _inputDecoration('Ubicación (Caja, etc.)'),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Estado (solo edición) y Nivel
-                      Row(
-                        children: [
-                          if (widget.documento != null)
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                value: _estadosDocumento.contains(_estadoDocumento)
-                                    ? _estadoDocumento
-                                    : _estadosDocumento.first,
-                                decoration: _inputDecoration('Estado'),
-                                items: _estadosDocumento
-                                    .map((e) => DropdownMenuItem<String>(
-                                          value: e,
-                                          child: Text(e),
-                                        ))
-                                    .toList(),
-                                onChanged: (v) =>
-                                    setState(() => _estadoDocumento = v ?? 'Activo'),
-                              ),
-                            ),
-                          if (widget.documento != null) const SizedBox(width: 12),
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              value: _nivelConfidencialidad.clamp(1, 5),
-                              decoration: _inputDecoration('Nivel'),
-                              items: [1, 2, 3, 4, 5]
-                                  .map((n) => DropdownMenuItem<int>(
-                                        value: n,
-                                        child: Text('Nivel $n'),
-                                      ))
-                                  .toList(),
-                              onChanged: (v) =>
-                                  setState(() => _nivelConfidencialidad = v ?? 1),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // SECCION: ADJUNTAR ARCHIVO (en edición se muestra el PDF actual y se permite reemplazar)
-                      _buildSectionTitle('Archivo Digital'),
+                      // 8. Agregar PDF
+                      _buildSectionTitle('Agregar PDF'),
                       const SizedBox(height: 16),
                       _buildArchivoDigitalSection(),
 

@@ -68,8 +68,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       // Si venimos con un ID, cargamos directamente esa carpeta y sus cosas
       _cargarCarpetaInicial(widget.initialCarpetaId!);
     } else {
-      // Primero carpetas (vista inicial); documentos se cargan después para no bloquear
-      _cargarCarpetas();
+      // Cargar todas las carpetas al iniciar (sin filtro por año) para que no aparezca vacío
+      _cargarCarpetas(todasLasGestiones: true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) cargarDocumentos();
       });
@@ -91,8 +91,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         // Set state directly
         _carpetaSeleccionada = carpeta;
         _estaCargandoCarpetas = false;
-        // Cargar lista de carpetas para el panel lateral
-        await _cargarCarpetas();
+        // Cargar todas las carpetas para el panel lateral
+        await _cargarCarpetas(todasLasGestiones: true);
         if (!mounted) return;
         // Load content
         await _abrirCarpeta(carpeta);
@@ -1367,6 +1367,25 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               ),
             ],
           ),
+          // Botón Agregar documento visible al entrar a la carpeta
+          if (Provider.of<AuthProvider>(context).hasPermission('subir_documento')) ...[
+            SizedBox(height: esSubcarpeta ? 12 : 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => _agregarDocumento(carpeta),
+                icon: const Icon(Icons.add_rounded, size: 22),
+                label: const Text('Agregar documento'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  padding: EdgeInsets.symmetric(vertical: esSubcarpeta ? 10 : 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
