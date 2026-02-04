@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:frontend/providers/data_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -61,6 +62,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   String? _gestionFilterCarpetas;
   static const List<String> _gestionesCarpetas = ['2024', '2025', '2026'];
 
+  /// Debounce para recargar documentos al escribir en la búsqueda dentro de una carpeta.
+  Timer? _debounceBusquedaCarpeta;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -116,6 +120,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   @override
   void dispose() {
+    _debounceBusquedaCarpeta?.cancel();
     _searchController.dispose();
     _codigoQrFilterController.dispose();
     _numeroComprobanteFilterController.dispose();
@@ -127,6 +132,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     setState(() {
       _consultaBusqueda = _searchController.text;
     });
+    // Dentro de una carpeta: recargar documentos con el texto de búsqueda en el API (debounce).
+    if (_carpetaSeleccionada != null) {
+      _debounceBusquedaCarpeta?.cancel();
+      _debounceBusquedaCarpeta = Timer(const Duration(milliseconds: 400), () {
+        if (mounted && _carpetaSeleccionada != null) {
+          _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+        }
+      });
+    }
   }
 
   Future<void> cargarDocumentos() async {
@@ -176,6 +190,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
       final n = _numeroComprobanteFilter.trim();
+      final textoBusqueda = _consultaBusqueda.trim().isEmpty ? null : _consultaBusqueda.trim();
       final dto = BusquedaDocumentoDTO(
         carpetaId: carpetaId,
         numeroCorrelativo: n.isEmpty ? null : n,
@@ -183,6 +198,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         fechaHasta: _fechaHastaFilter,
         responsableId: _responsableIdFilter,
         codigoQR: _codigoQrFilter.trim().isEmpty ? null : _codigoQrFilter.trim(),
+        textoBusqueda: textoBusqueda,
         page: 1,
         pageSize: 100,
         orderBy: 'fechaDocumento',
@@ -2163,7 +2179,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 fechaHasta: _fechaHastaFilter,
                 responsableId: _responsableIdFilter,
                 codigoQrController: _codigoQrFilterController,
-                onAplicar: (numeroComprobante, fechaDesde, fechaHasta, responsableId, codigoQr) {
+                onAplicar: (numeroComprobante, fechaDesde, fechaHasta, responsableId, codigoQr) async {
                   setState(() {
                     _numeroComprobanteFilter = numeroComprobante;
                     _fechaDesdeFilter = fechaDesde;
@@ -2173,10 +2189,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   });
                   if (context.mounted) Navigator.pop(context);
                   if (context.mounted && _carpetaSeleccionada != null) {
-                    _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+                    await _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+                    if (context.mounted) setState(() {});
                   }
                 },
-                onLimpiar: () {
+                onLimpiar: () async {
                   setState(() {
                     _numeroComprobanteFilter = '';
                     _numeroComprobanteFilterController.clear();
@@ -2191,7 +2208,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   });
                   if (context.mounted) Navigator.pop(context);
                   if (context.mounted && _carpetaSeleccionada != null) {
-                    _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+                    await _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+                    if (context.mounted) setState(() {});
                   }
                 },
               ),
