@@ -444,8 +444,21 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
 
     if (result == true && mounted) {
-      print('DEBUG: Documento creado exitosamente, manteniendo vista actual');
+      print('DEBUG: Documento creado exitosamente, actualizando lista');
       final subcarpetaId = carpeta.id;
+
+      // Limpiar filtros para que el documento recién creado aparezca en la lista
+      setState(() {
+        _numeroComprobanteFilter = '';
+        _numeroComprobanteFilterController.clear();
+        _fechaDesdeFilter = null;
+        _fechaHastaFilter = null;
+        _responsableIdFilter = null;
+        _codigoQrFilter = '';
+        _codigoQrFilterController.clear();
+        _consultaBusqueda = '';
+        _searchController.clear();
+      });
 
       await _cargarDocumentosCarpeta(subcarpetaId);
       if (!mounted) return;
@@ -454,6 +467,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       final dataProvider = Provider.of<DataProvider>(context, listen: false);
       dataProvider.refresh();
       if (mounted) setState(() {});
+      // Forzar otro rebuild en el siguiente frame para que la lista se pinte con los nuevos datos
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() {});
+        });
+      }
       if (mounted) _mostrarSnackBarExito('Documento agregado correctamente.');
     }
   }
@@ -903,14 +922,24 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         _buildCarpetaHeader(carpeta, rango, theme, mostrarMenuDrawer: !mostrarPanelLateral),
         _buildViewControls(theme),
         Expanded(
-          child:
-              _estaCargandoDocumentosCarpeta
-                  ? _buildDocumentosLoading()
-                  : docs.isEmpty
-                  ? _buildDocumentosEmpty()
-                  : _vistaGrid
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isEmptyOrLoading = _estaCargandoDocumentosCarpeta || docs.isEmpty;
+              if (isEmptyOrLoading) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: _estaCargandoDocumentosCarpeta
+                        ? _buildDocumentosLoading()
+                        : _buildDocumentosEmpty(),
+                  ),
+                );
+              }
+              return _vistaGrid
                   ? _construirGridDocumentosCarpeta(docs, theme)
-                  : _construirListaDocumentos(docs, theme),
+                  : _construirListaDocumentos(docs, theme);
+            },
+          ),
         ),
       ],
     );
@@ -2733,12 +2762,14 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       ),
     );
 
-    // Si se eliminó el documento desde el detalle, recargar la lista
-    if (result == true) {
-      cargarDocumentos();
+    // Si se editó o eliminó el documento desde el detalle, recargar la lista
+    if (result == true && mounted) {
+      await cargarDocumentos();
+      if (!mounted) return;
       if (_carpetaSeleccionada != null) {
-        _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+        await _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
       }
+      if (mounted) setState(() {});
     }
   }
 
@@ -3052,9 +3083,20 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   Widget? _buildFloatingActionButton() {
     final authProvider = Provider.of<AuthProvider>(context);
+    final width = MediaQuery.of(context).size.width;
+    final useCompactFab = width < 400;
 
     // Vista carpetas (no estamos dentro de una carpeta): solo "Nueva carpeta"
     if (_carpetaSeleccionada == null) {
+      if (useCompactFab) {
+        return FloatingActionButton(
+          onPressed: () => _abrirAgregarCarpeta(),
+          tooltip: 'Nueva carpeta',
+          backgroundColor: Colors.blue.shade700,
+          heroTag: 'fab_carpeta',
+          child: const Icon(Icons.create_new_folder),
+        );
+      }
       return FloatingActionButton.extended(
         onPressed: () => _abrirAgregarCarpeta(),
         icon: const Icon(Icons.create_new_folder),
@@ -3067,6 +3109,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     // Dentro de una carpeta: "Nuevo Documento" (solo si tiene permiso)
     if (!authProvider.hasPermission('subir_documento')) {
       return null;
+    }
+    if (useCompactFab) {
+      return FloatingActionButton(
+        onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
+        tooltip: 'Nuevo Documento',
+        backgroundColor: Colors.blue.shade700,
+        heroTag: 'fab_documento',
+        child: const Icon(Icons.add),
+      );
     }
     return FloatingActionButton.extended(
       onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
