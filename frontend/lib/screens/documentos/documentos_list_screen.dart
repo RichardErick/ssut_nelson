@@ -65,6 +65,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   /// Debounce para recargar documentos al escribir en la búsqueda dentro de una carpeta.
   Timer? _debounceBusquedaCarpeta;
 
+  /// En vista Carpetas: documentos encontrados por búsqueda (código/número).
+  List<Documento> _documentosBusquedaCarpetas = [];
+  bool _estaCargandoBusquedaDocumentos = false;
+  Timer? _debounceBusquedaVistaCarpetas;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -121,6 +126,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   @override
   void dispose() {
     _debounceBusquedaCarpeta?.cancel();
+    _debounceBusquedaVistaCarpetas?.cancel();
     _searchController.dispose();
     _codigoQrFilterController.dispose();
     _numeroComprobanteFilterController.dispose();
@@ -129,8 +135,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   void _alCambiarBusqueda() {
+    final texto = _searchController.text;
     setState(() {
-      _consultaBusqueda = _searchController.text;
+      _consultaBusqueda = texto;
     });
     // Dentro de una carpeta: recargar documentos con el texto de búsqueda en el API (debounce).
     if (_carpetaSeleccionada != null) {
@@ -140,6 +147,53 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
         }
       });
+      return;
+    }
+    // Vista Carpetas: buscar también documentos por código/número y restablecer al limpiar.
+    _debounceBusquedaVistaCarpetas?.cancel();
+    if (texto.trim().isEmpty) {
+      setState(() {
+        _documentosBusquedaCarpetas = [];
+        _estaCargandoBusquedaDocumentos = false;
+      });
+      _cargarCarpetas(todasLasGestiones: true);
+      return;
+    }
+    _debounceBusquedaVistaCarpetas = Timer(const Duration(milliseconds: 400), () {
+      if (mounted && _carpetaSeleccionada == null) {
+        _buscarDocumentosDesdeVistaCarpetas();
+      }
+    });
+  }
+
+  /// Busca documentos por texto (código, número) desde la vista Carpetas.
+  Future<void> _buscarDocumentosDesdeVistaCarpetas() async {
+    final query = _consultaBusqueda.trim();
+    if (query.isEmpty) return;
+    setState(() => _estaCargandoBusquedaDocumentos = true);
+    try {
+      final service = Provider.of<DocumentoService>(context, listen: false);
+      final dto = BusquedaDocumentoDTO(
+        textoBusqueda: query,
+        page: 1,
+        pageSize: 50,
+        orderBy: 'fechaDocumento',
+        orderDirection: 'DESC',
+      );
+      final result = await service.buscar(dto);
+      if (mounted && _carpetaSeleccionada == null) {
+        setState(() {
+          _documentosBusquedaCarpetas = result.items;
+          _estaCargandoBusquedaDocumentos = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _documentosBusquedaCarpetas = [];
+          _estaCargandoBusquedaDocumentos = false;
+        });
+      }
     }
   }
 
@@ -577,9 +631,74 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       );
     }
     if (carpetas.isEmpty) {
-      final numDocsEncontrados = _carpetaSeleccionada == null
-          ? _documentosFiltrados.length
-          : _documentosCarpetaFiltrados.length;
+      // Sin carpetas que coincidan: si hay búsqueda activa, mostrar solo "Documentos que coinciden".
+      if (_consultaBusqueda.trim().isNotEmpty) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            headerCarpetas,
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'Ninguna carpeta coincide con "$_consultaBusqueda"',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'Documentos que coinciden',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                    if (_estaCargandoBusquedaDocumentos)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_documentosBusquedaCarpetas.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Text(
+                          'Ningún documento coincide con la búsqueda.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      )
+                    else
+                      ...List.generate(
+                        _documentosBusquedaCarpetas.length,
+                        (index) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildModernCard(
+                            _documentosBusquedaCarpetas[index],
+                            theme,
+                            index,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      }
+      // Sin búsqueda: mensaje vacío habitual.
+      final numDocsEncontrados = _documentosCarpetaFiltrados.length;
       final hayDocumentosConBusqueda = _consultaBusqueda.trim().isNotEmpty && numDocsEncontrados > 0;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -639,6 +758,95 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         ],
       );
     }
+    // Con búsqueda activa: mostrar carpetas que coinciden + documentos que coinciden (código/número).
+    if (_consultaBusqueda.trim().isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          headerCarpetas,
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Carpetas que coinciden
+                  if (carpetas.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'Carpetas que coinciden',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 360,
+                        childAspectRatio: 0.78,
+                        crossAxisSpacing: 20,
+                        mainAxisSpacing: 20,
+                      ),
+                      itemCount: carpetas.length,
+                      itemBuilder: (context, index) {
+                        final c = carpetas[index];
+                        return _buildCarpetaCard(c, theme);
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  // Documentos que coinciden
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      'Documentos que coinciden',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                  if (_estaCargandoBusquedaDocumentos)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_documentosBusquedaCarpetas.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'Ningún documento coincide con la búsqueda.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    )
+                  else
+                    ...List.generate(
+                      _documentosBusquedaCarpetas.length,
+                      (index) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildModernCard(
+                          _documentosBusquedaCarpetas[index],
+                          theme,
+                          index,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Sin búsqueda: solo grid de carpetas (restablecido).
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
