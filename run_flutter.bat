@@ -44,15 +44,17 @@ echo 1. Flutter clean
 echo 2. Flutter pub get
 echo 3. Run Flutter app
 echo 4. Build APK
-echo 5. Exit
+echo 5. Actualizar y ejecutar (clean + pub get + run) - ver Escaner QR optimizado
+echo 6. Exit
 echo.
-set /p choice=Enter your choice (1-5): 
+set /p choice=Enter your choice (1-6): 
 
 if "%choice%"=="1" goto clean
 if "%choice%"=="2" goto pubget
 if "%choice%"=="3" goto run
 if "%choice%"=="4" goto build
-if "%choice%"=="5" goto end
+if "%choice%"=="5" goto actualizar_run
+if "%choice%"=="6" goto end
 
 goto menu
 
@@ -83,6 +85,15 @@ echo Building APK...
 flutter build apk --release
 echo(
 echo APK built in: build\app\outputs\flutter-apk\app-release.apk
+pause
+goto menu
+
+:actualizar_run
+echo(
+echo Actualizando (clean + pub get) y ejecutando...
+flutter clean
+flutter pub get
+flutter run
 pause
 goto menu
 

@@ -47,6 +47,16 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     super.dispose();
   }
 
+  /// Quita el prefijo "QR_" o "QR " del código para buscar por IdDocumento (el backend no usa ese prefijo).
+  static String _quitarPrefijoQr(String codigo) {
+    final s = codigo.trim();
+    if (s.length >= 3) {
+      final inicio = s.toUpperCase().substring(0, 3);
+      if (inicio == 'QR_' || inicio == 'QR ') return s.substring(3).trim();
+    }
+    return s;
+  }
+
   Future<void> _buscarPorCodigo(String codigoQr) async {
     setState(() => _isSearching = true);
     try {
@@ -68,16 +78,14 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         // Formato: http://localhost:5286/documentos/ver/CI-CONT-2026-0001
         final partes = codigoLimpio.split('/');
         if (partes.isNotEmpty) {
-          codigoLimpio = partes.last;
+          codigoLimpio = partes.last.trim();
         }
       }
 
-      // Quitar prefijo "QR_" si viene del usuario (el backend guarda IdDocumento sin ese prefijo)
-      if (codigoLimpio.toUpperCase().startsWith('QR_')) {
-        codigoLimpio = codigoLimpio.substring(3).trim();
-      }
+      // Quitar prefijo "QR_" o "QR " siempre (el backend guarda IdDocumento sin ese prefijo)
+      codigoLimpio = _quitarPrefijoQr(codigoLimpio);
 
-      print('DEBUG: Código procesado: $codigoLimpio');
+      print('DEBUG: Código procesado (sin prefijo QR): $codigoLimpio');
 
       // Buscar por IdDocumento (código del documento: CI-CONT-2026-4213)
       Documento? documento;
@@ -288,8 +296,8 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     await _buscarPorCodigo(codigo);
   }
 
-  /// Selecciona foto (galería) o archivo (imagen/PDF). Foto o imagen → extrae QR. PDF → indica cómo usar captura.
-  /// Permite elegir cualquier archivo: imagen (jpg, png, etc.) o PDF. Reconoce foto, PDF y código.
+  /// Selecciona imagen o PDF. Imagen → extrae QR con _extraerQrDeBytes. PDF → extrae QR con _extraerQrDePdf (sin diálogo).
+  /// No se muestra ningún diálogo "Buscar por PDF": el PDF se procesa directamente y se busca el documento.
   Future<void> _buscarDesdeArchivo() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -328,8 +336,9 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         final codigo = await _extraerQrDePdf(bytes);
         if (!mounted) return;
         if (codigo != null && codigo.isNotEmpty) {
-          _qrCodeController.text = codigo;
-          await _buscarPorCodigo(codigo);
+          final codigoLimpio = _quitarPrefijoQr(codigo);
+          _qrCodeController.text = codigoLimpio;
+          await _buscarPorCodigo(codigoLimpio);
           return;
         }
         // Si no se encontró QR en el PDF, mostrar mensaje
@@ -390,8 +399,9 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         return;
       }
 
-      _qrCodeController.text = codigo;
-      await _buscarPorCodigo(codigo);
+      final codigoLimpio = _quitarPrefijoQr(codigo);
+      _qrCodeController.text = codigoLimpio;
+      await _buscarPorCodigo(codigoLimpio);
     } on NotFoundException {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -576,6 +586,8 @@ class _QRScannerScreenState extends State<QRScannerScreen>
 
   @override
   Widget build(BuildContext context) {
+    // UI optimizada: campo de código → un solo botón "Buscar Documento" → fila "Subir imagen o PDF" + "Escanear".
+    // No hay "Solo imagen (galería)" ni "Foto, PDF o archivo" por separado. Si ves la versión antigua, haz flutter clean y vuelve a ejecutar.
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
