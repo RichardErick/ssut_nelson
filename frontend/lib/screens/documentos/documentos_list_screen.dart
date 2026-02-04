@@ -60,7 +60,16 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   /// Filtro por gestión en la vista Carpetas (solo aplica cuando _carpetaSeleccionada == null).
   String? _gestionFilterCarpetas;
-  static const List<String> _gestionesCarpetas = ['2024', '2025', '2026'];
+
+  /// Gestiones existentes en las carpetas cargadas, ordenadas descendente (2026, 2025, 2022...).
+  List<String> get _gestionesCarpetasDisponibles {
+    final set = <String>{};
+    for (final c in _carpetas) {
+      if (c.gestion.trim().isNotEmpty) set.add(c.gestion.trim());
+    }
+    final list = set.toList()..sort((a, b) => b.compareTo(a));
+    return list.isNotEmpty ? list : ['2024', '2025', '2026'];
+  }
 
   /// Debounce para recargar documentos al escribir en la búsqueda dentro de una carpeta.
   Timer? _debounceBusquedaCarpeta;
@@ -2375,7 +2384,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       builder:
           (ctx) => _DialogFiltroCarpetas(
             gestionActual: _gestionFilterCarpetas,
-            gestiones: _gestionesCarpetas,
+            gestiones: _gestionesCarpetasDisponibles,
             onAplicar: (gestion) {
               setState(() => _gestionFilterCarpetas = gestion);
               Navigator.pop(ctx);
