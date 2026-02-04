@@ -18,6 +18,7 @@ class DocumentoSearchScreen extends StatefulWidget {
 
 class _DocumentoSearchScreenState extends State<DocumentoSearchScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _textoBusquedaController = TextEditingController();
   final _codigoController = TextEditingController();
   final _numeroCorrelativoController = TextEditingController();
   final _codigoQRController = TextEditingController();
@@ -36,12 +37,14 @@ class _DocumentoSearchScreenState extends State<DocumentoSearchScreen> {
   void initState() {
     super.initState();
     if (widget.query != null) {
+      _textoBusquedaController.text = widget.query!;
       _codigoController.text = widget.query!;
     }
   }
 
   @override
   void dispose() {
+    _textoBusquedaController.dispose();
     _codigoController.dispose();
     _numeroCorrelativoController.dispose();
     _codigoQRController.dispose();
@@ -54,7 +57,9 @@ class _DocumentoSearchScreenState extends State<DocumentoSearchScreen> {
     setState(() => _isSearching = true);
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
+      final textoBusqueda = _textoBusquedaController.text.trim();
       final busqueda = BusquedaDocumentoDTO(
+        textoBusqueda: textoBusqueda.isEmpty ? null : textoBusqueda,
         codigo: _codigoController.text.isEmpty ? null : _codigoController.text,
         numeroCorrelativo:
             _numeroCorrelativoController.text.isEmpty
@@ -144,6 +149,16 @@ class _DocumentoSearchScreenState extends State<DocumentoSearchScreen> {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 24),
+                  TextFormField(
+                    controller: _textoBusquedaController,
+                    decoration: const InputDecoration(
+                      labelText: 'Texto (código, número, descripción)',
+                      hintText: 'Buscar en código, número y descripción',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _codigoController,
                     decoration: const InputDecoration(

@@ -1256,7 +1256,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       );
     } else if (carpetas.isEmpty) {
       final numDocsEncontrados = _carpetaSeleccionada == null
-          ? _documentosFiltrados.length
+          ? (_consultaBusqueda.trim().isNotEmpty
+              ? _documentosBusquedaCarpetas.length
+              : _documentosFiltrados.length)
           : _documentosCarpetaFiltrados.length;
       final hayDocumentosConBusqueda = _consultaBusqueda.trim().isNotEmpty && numDocsEncontrados > 0;
       listContent = Center(
