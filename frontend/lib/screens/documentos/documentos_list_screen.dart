@@ -176,7 +176,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       _cargarCarpetas(todasLasGestiones: true);
       return;
     }
-    _debounceBusquedaVistaCarpetas = Timer(const Duration(milliseconds: 400), () {
+    _debounceBusquedaVistaCarpetas = Timer(const Duration(milliseconds: 300), () {
       if (mounted && _carpetaSeleccionada == null) {
         _buscarDocumentosDesdeVistaCarpetas();
       }

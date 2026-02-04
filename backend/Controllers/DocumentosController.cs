@@ -687,12 +687,14 @@ public class DocumentosController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(filtros.TextoBusqueda))
         {
-            var texto = filtros.TextoBusqueda.ToLower();
+            var texto = filtros.TextoBusqueda.Trim().ToLower();
             query = query.Where(d =>
-                d.Codigo.ToLower().Contains(texto) ||
-                d.NumeroCorrelativo.ToLower().Contains(texto) ||
+                (d.Codigo != null && d.Codigo.ToLower().Contains(texto)) ||
+                (d.NumeroCorrelativo != null && d.NumeroCorrelativo.ToLower().Contains(texto)) ||
                 (d.Descripcion != null && d.Descripcion.ToLower().Contains(texto)) ||
-                (d.IdDocumento != null && d.IdDocumento.ToLower().Contains(texto))
+                (d.IdDocumento != null && d.IdDocumento.ToLower().Contains(texto)) ||
+                (d.CodigoQR != null && d.CodigoQR.ToLower().Contains(texto)) ||
+                (d.TipoDocumento != null && d.TipoDocumento.Nombre != null && d.TipoDocumento.Nombre.ToLower().Contains(texto))
             );
         }
 
