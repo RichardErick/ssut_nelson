@@ -158,9 +158,17 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       });
       return;
     }
-    // Vista Carpetas: buscar también documentos por código/número y restablecer al limpiar.
+    // Vista Carpetas: buscar documentos solo si hay 3+ caracteres; priorizar carpetas.
     _debounceBusquedaVistaCarpetas?.cancel();
     if (texto.trim().isEmpty) {
+      setState(() {
+        _documentosBusquedaCarpetas = [];
+        _estaCargandoBusquedaDocumentos = false;
+      });
+      _cargarCarpetas(todasLasGestiones: true);
+      return;
+    }
+    if (texto.trim().length < 3) {
       setState(() {
         _documentosBusquedaCarpetas = [];
         _estaCargandoBusquedaDocumentos = false;
@@ -175,10 +183,16 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     });
   }
 
-  /// Busca documentos por texto (código, número) desde la vista Carpetas.
+  /// Busca documentos por texto (código, número) desde la vista Carpetas. Solo si hay 3+ caracteres.
   Future<void> _buscarDocumentosDesdeVistaCarpetas() async {
     final query = _consultaBusqueda.trim();
-    if (query.isEmpty) return;
+    if (query.isEmpty || query.length < 3) {
+      if (mounted) setState(() {
+        _documentosBusquedaCarpetas = [];
+        _estaCargandoBusquedaDocumentos = false;
+      });
+      return;
+    }
     setState(() => _estaCargandoBusquedaDocumentos = true);
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
@@ -640,8 +654,79 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       );
     }
     if (carpetas.isEmpty) {
-      // Sin carpetas que coincidan: si hay búsqueda activa, mostrar solo "Documentos que coinciden".
-      if (_consultaBusqueda.trim().isNotEmpty) {
+      // Sin carpetas que coincidan: si hay búsqueda activa, priorizar mensaje único cuando no hay documentos.
+      final query = _consultaBusqueda.trim();
+      if (query.isNotEmpty) {
+        final tieneTresOMas = query.length >= 3;
+        final sinDocumentos = !_estaCargandoBusquedaDocumentos && _documentosBusquedaCarpetas.isEmpty;
+        // Si hay 3+ caracteres y no hay ni carpetas ni documentos: mensaje único.
+        if (tieneTresOMas && sinDocumentos) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              headerCarpetas,
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off_rounded, size: 56, color: Colors.grey.shade400),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No existe documento o carpeta con ese código.',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey.shade700),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Pruebe con otro código o agregue una carpeta.',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+        // Menos de 3 caracteres: solo aviso de carpetas y que escriba más para buscar documentos.
+        if (!tieneTresOMas) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              headerCarpetas,
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          'Ninguna carpeta coincide con "$query"',
+                          style: theme.textTheme.titleSmall?.copyWith(color: Colors.grey.shade700),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: Text(
+                          'Escriba al menos 3 caracteres para buscar en documentos.',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+        // 3+ caracteres y hay documentos: mostrar lista de documentos.
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -655,10 +740,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
-                        'Ninguna carpeta coincide con "$_consultaBusqueda"',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: Colors.grey.shade700,
-                        ),
+                        'Ninguna carpeta coincide con "$query"',
+                        style: theme.textTheme.titleSmall?.copyWith(color: Colors.grey.shade700),
                       ),
                     ),
                     Padding(
@@ -675,16 +758,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 32),
                         child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (_documentosBusquedaCarpetas.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        child: Text(
-                          'Ningún documento coincide con la búsqueda.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
                       )
                     else
                       ...List.generate(
@@ -767,8 +840,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         ],
       );
     }
-    // Con búsqueda activa: mostrar carpetas que coinciden + documentos que coinciden (código/número).
-    if (_consultaBusqueda.trim().isNotEmpty) {
+    // Con búsqueda activa: priorizar carpetas; documentos solo si hay 3+ caracteres.
+    final queryBusqueda = _consultaBusqueda.trim();
+    if (queryBusqueda.isNotEmpty) {
+      final tieneTresOMas = queryBusqueda.length >= 3;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -779,7 +854,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Carpetas que coinciden
+                  // Carpetas que coinciden (siempre primero)
                   if (carpetas.isNotEmpty) ...[
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -808,7 +883,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     ),
                     const SizedBox(height: 24),
                   ],
-                  // Documentos que coinciden
+                  // Documentos que coinciden: solo si hay 3+ caracteres
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Text(
@@ -819,7 +894,17 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                       ),
                     ),
                   ),
-                  if (_estaCargandoBusquedaDocumentos)
+                  if (!tieneTresOMas)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'Escriba al menos 3 caracteres para buscar en documentos.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    )
+                  else if (_estaCargandoBusquedaDocumentos)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 32),
                       child: Center(child: CircularProgressIndicator()),
