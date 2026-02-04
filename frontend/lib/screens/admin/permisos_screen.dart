@@ -24,21 +24,21 @@ class _PermisosScreenState extends State<PermisosScreen> {
   List<Usuario> _usuariosFiltrados = [];
   List<Permiso> _permisosDisponiblesLista = [];
 
-  // Permisos disponibles según la matriz SIMPLIFICADA
+  // Permisos disponibles (solo los que se usan en la matriz)
   final Map<String, String> _permisosDisponibles = {
     'ver_documento': 'Ver Documento',
     'subir_documento': 'Subir Documento',
-    'editar_documento': 'Editar Documento',
+    'editar_metadatos': 'Editar Metadatos',
     'borrar_documento': 'Borrar Documento',
   };
 
-  // Permisos por rol según la matriz SIMPLIFICADA
+  // Matriz: solo estos permisos por rol. Admin Sistema solo ver; Admin Documentos ver+subir+editar metadatos+borrar; Contador ver+subir; Gerente solo ver.
   final Map<UserRole, List<String>> _permisosPorRol = {
     UserRole.administradorSistema: ['ver_documento'],
     UserRole.administradorDocumentos: [
       'ver_documento',
       'subir_documento',
-      'editar_documento',
+      'editar_metadatos',
       'borrar_documento',
     ],
     UserRole.contador: ['ver_documento', 'subir_documento'],
@@ -272,10 +272,12 @@ class _PermisosScreenState extends State<PermisosScreen> {
     final usuario = _usuarioSeleccionado!;
     final permisosActivos = _permisosActivos[usuario.nombreUsuario] ?? {};
     final permisosRol = _obtenerPermisosRol(usuario);
+    // Solo guardar permisos que corresponden al rol del usuario (matriz)
+    final codigosAGuardar = permisosRol.where((c) => _permisosDisponibles.containsKey(c)).toList();
 
     int ok = 0;
     int fail = 0;
-    for (final codigo in _permisosDisponibles.keys) {
+    for (final codigo in codigosAGuardar) {
       final activo = permisosActivos[codigo] ?? false;
       final rolTienePermiso = permisosRol.contains(codigo);
 
@@ -600,7 +602,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Activa o desactiva los permisos asignados al rol de este usuario',
+                    'Solo se muestran los permisos que puede tener el rol de este usuario. Activa o desactiva según necesite.',
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -614,13 +616,28 @@ class _PermisosScreenState extends State<PermisosScreen> {
                     )
                   else
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: _permisosDisponibles.length,
-                        itemBuilder: (context, index) {
-                          final permiso = _permisosDisponibles.keys.elementAt(index);
-                          final nombre =
-                              _permisosDisponibles[permiso] ?? permiso;
-                          final estaActivo = permisosUsuario[permiso] ?? false;
+                      child: Builder(
+                        builder: (context) {
+                          // Solo permisos del rol del usuario (matriz: Gerente solo ver, Contador ver+subir, etc.)
+                          final permisosDelRol = _obtenerPermisosRol(usuario)
+                              .where((codigo) => _permisosDisponibles.containsKey(codigo))
+                              .toList();
+                          if (permisosDelRol.isEmpty) {
+                            return Center(
+                              child: Text(
+                                'Este rol no tiene permisos asignados en la matriz.',
+                                style: GoogleFonts.inter(color: Colors.grey.shade600),
+                                textAlign: TextAlign.center,
+                              ),
+                            );
+                          }
+                          return ListView.builder(
+                            itemCount: permisosDelRol.length,
+                            itemBuilder: (context, index) {
+                              final permiso = permisosDelRol[index];
+                              final nombre =
+                                  _permisosDisponibles[permiso] ?? permiso;
+                              final estaActivo = permisosUsuario[permiso] ?? false;
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -671,8 +688,10 @@ class _PermisosScreenState extends State<PermisosScreen> {
                             ),
                           );
                         },
-                      ),
+                      );
+                        }
                     ),
+                  ),
 
                   if (!_isLoadingPermisosUsuario) ...[
                     const SizedBox(height: 16),
@@ -753,7 +772,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
         return Icons.visibility;
       case 'subir_documento':
         return Icons.upload;
-      case 'editar_documento':
+      case 'editar_metadatos':
         return Icons.edit;
       case 'borrar_documento':
         return Icons.delete;
