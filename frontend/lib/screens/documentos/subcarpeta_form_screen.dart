@@ -120,15 +120,21 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
         return;
       }
 
-      if (await _verificarNombreDuplicadoCon(nombre)) {
-        _mostrarDialogoError(
-          'Nombre Duplicado',
-          'Ya existe una carpeta con ese nombre en esta ubicación. Elija otro nombre.',
-          Icons.folder_copy_outlined,
-          Colors.orange,
-        );
-        setState(() => _isLoading = false);
-        return;
+      // No puede existir otra carpeta con el mismo rango (misma ubicación y gestión)
+      if (rInicio != null && rFin != null) {
+        final rangoDuplicado = await _verificarRangoDuplicado(rInicio, rFin);
+        if (rangoDuplicado.duplicado) {
+          _mostrarDialogoError(
+            'Rango en uso',
+            rangoDuplicado.ultimoValor != null
+                ? 'Ya existe una carpeta con el rango $rInicio-$rFin en esta ubicación.\nÚltimo valor de rango en uso: hasta ${rangoDuplicado.ultimoValor}. Use un rango distinto.'
+                : 'Ya existe una carpeta con el rango $rInicio-$rFin en esta ubicación. Use un rango distinto.',
+            Icons.format_list_numbered,
+            Colors.orange,
+          );
+          setState(() => _isLoading = false);
+          return;
+        }
       }
 
       String? descripcion;
@@ -249,18 +255,28 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
     );
   }
 
-  Future<bool> _verificarNombreDuplicadoCon(String nombre) async {
-    if (nombre.isEmpty) return false;
+  /// Verifica si ya existe una carpeta con el mismo rango (misma ubicación). Devuelve duplicado y último valor de rango en uso.
+  Future<({bool duplicado, int? ultimoValor})> _verificarRangoDuplicado(int rangoInicio, int rangoFin) async {
     try {
       final carpetaService = Provider.of<CarpetaService>(context, listen: false);
-      final subcarpetas = await carpetaService.getAll();
-      final subcarpetasHermanas = subcarpetas
+      final todas = await carpetaService.getAll();
+      final hermanas = todas
           .where((c) => c.carpetaPadreId == widget.carpetaPadreId)
+          .where((c) => c.rangoInicio != null && c.rangoFin != null)
           .toList();
-      return subcarpetasHermanas.any((c) =>
-          c.nombre.toLowerCase().trim() == nombre.toLowerCase().trim());
+      final duplicado = hermanas.any((c) =>
+          c.rangoInicio == rangoInicio && c.rangoFin == rangoFin);
+      int? ultimoValor;
+      if (hermanas.isNotEmpty) {
+        final maxFin = hermanas
+            .where((c) => c.rangoFin != null)
+            .map((c) => c.rangoFin!)
+            .fold<int>(0, (a, b) => a > b ? a : b);
+        ultimoValor = maxFin;
+      }
+      return (duplicado: duplicado, ultimoValor: ultimoValor);
     } catch (e) {
-      return false;
+      return (duplicado: false, ultimoValor: null);
     }
   }
 

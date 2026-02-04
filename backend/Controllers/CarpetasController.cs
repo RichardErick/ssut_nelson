@@ -262,6 +262,28 @@ public class CarpetasController : ControllerBase
                 return BadRequest(new { message = "La carpeta padre no existe" });
         }
 
+        // No puede existir otra carpeta con el mismo rango (misma ubicación y gestión)
+        if (dto.RangoInicio.HasValue && dto.RangoFin.HasValue)
+        {
+            var mismaUbicacion = await _context.Carpetas
+                .Where(c => c.CarpetaPadreId == dto.CarpetaPadreId && c.Gestion == dto.Gestion)
+                .Where(c => c.RangoInicio.HasValue && c.RangoFin.HasValue)
+                .Where(c => c.RangoInicio == dto.RangoInicio && c.RangoFin == dto.RangoFin)
+                .AnyAsync();
+            if (mismaUbicacion)
+            {
+                var ultimoRango = await _context.Carpetas
+                    .Where(c => c.CarpetaPadreId == dto.CarpetaPadreId && c.Gestion == dto.Gestion && c.RangoFin.HasValue)
+                    .Select(c => c.RangoFin)
+                    .MaxAsync() ?? 0;
+                return BadRequest(new
+                {
+                    message = $"Ya existe una carpeta con el rango {dto.RangoInicio}-{dto.RangoFin} en esta ubicación y gestión.",
+                    ultimoValorRango = ultimoRango
+                });
+            }
+        }
+
         // Calcular número de carpeta automáticamente
         var numeroCarpeta = await _context.Carpetas
             .Where(c => c.Gestion == dto.Gestion && c.CarpetaPadreId == dto.CarpetaPadreId)
@@ -293,15 +315,8 @@ public class CarpetasController : ControllerBase
         }
         catch (DbUpdateException ex)
         {
-            if (ex.InnerException != null && ex.InnerException.Message.Contains("IX_carpetas_Nombre_Gestion_CarpetaPadreId"))
-            {
-                return BadRequest(new { message = $"Ya existe una carpeta con el nombre '{dto.Nombre}' en esta ubicación y gestión." });
-            }
-            // Check for PostgreSQL specific unique violation code '23505'
             if (ex.InnerException != null && ex.InnerException.Message.Contains("23505"))
-            {
-                 return BadRequest(new { message = $"Ya existe una carpeta con el nombre '{dto.Nombre}' en esta ubicación." });
-            }
+                return BadRequest(new { message = "Error de duplicado al guardar la carpeta. Verifique que el rango no esté en uso." });
             throw;
         }
 

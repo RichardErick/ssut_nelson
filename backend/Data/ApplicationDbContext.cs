@@ -276,7 +276,8 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(c => c.Gestion);
             entity.HasIndex(c => c.CarpetaPadreId);
             entity.HasIndex(c => c.Activo);
-            entity.HasIndex(c => new { c.Nombre, c.Gestion, c.CarpetaPadreId }).IsUnique();
+            // Índice para búsqueda; mismo nombre permitido, rango se valida en código
+            entity.HasIndex(c => new { c.Nombre, c.Gestion, c.CarpetaPadreId });
 
             entity.HasOne(c => c.CarpetaPadre)
                 .WithMany(cp => cp.Subcarpetas)
