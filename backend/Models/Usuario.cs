@@ -67,6 +67,13 @@ public class Usuario
     [Column("fecha_actualizacion")]
     public DateTime FechaActualizacion { get; set; } = DateTime.UtcNow;
 
+    [Column("reset_token")]
+    [StringLength(255)]
+    public string? ResetToken { get; set; }
+
+    [Column("reset_token_expiry")]
+    public DateTime? ResetTokenExpiry { get; set; }
+
     // Relaciones
     public virtual ICollection<Documento> DocumentosResponsable { get; set; } = new List<Documento>();
     public virtual ICollection<Movimiento> Movimientos { get; set; } = new List<Movimiento>();

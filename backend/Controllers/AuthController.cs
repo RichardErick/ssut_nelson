@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SistemaGestionDocumental.Data;
 using SistemaGestionDocumental.Models;
+using SistemaGestionDocumental.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -17,11 +18,13 @@ public class AuthController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly IEmailSender _emailSender;
 
-    public AuthController(ApplicationDbContext context, IConfiguration configuration)
+    public AuthController(ApplicationDbContext context, IConfiguration configuration, IEmailSender emailSender)
     {
         _context = context;
         _configuration = configuration;
+        _emailSender = emailSender;
     }
 
     [HttpPost("register")]
@@ -148,6 +151,126 @@ public class AuthController : ControllerBase
         catch (DbUpdateException)
         {
             return Ok(new { reset = false });
+        }
+    }
+
+    /// <summary>
+    /// Solicitud de recuperación de contraseña. method: "link" = enlace por correo, "code" = código de 6 dígitos por correo.
+    /// Siempre devuelve el mismo mensaje para no revelar si el email está registrado.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordRequest dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto?.Email))
+            return BadRequest(new { message = "El correo es obligatorio" });
+
+        var email = dto.Email.Trim();
+        var method = (dto.Method ?? "link").Trim().ToLowerInvariant();
+        if (method != "link" && method != "code")
+            method = "link";
+
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
+        var genericMessage = method == "code"
+            ? "Si el correo está registrado, recibirás un código de 6 dígitos. Revisa tu bandeja de entrada y spam."
+            : "Si el correo está registrado, recibirás un enlace para restablecer la contraseña. Revisa tu bandeja de entrada y spam.";
+
+        if (usuario != null)
+        {
+            var expiry = DateTime.UtcNow.AddHours(1);
+            string token;
+
+            if (method == "code")
+            {
+                var rnd = RandomNumberGenerator.GetInt32(0, 1_000_000);
+                token = rnd.ToString("D6");
+            }
+            else
+            {
+                var tokenBytes = new byte[32];
+                RandomNumberGenerator.Fill(tokenBytes);
+                token = Convert.ToBase64String(tokenBytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+            }
+
+            usuario.ResetToken = token;
+            usuario.ResetTokenExpiry = expiry;
+            usuario.FechaActualizacion = DateTime.UtcNow;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return Ok(new { message = genericMessage });
+            }
+
+            if (method == "code")
+            {
+                var sent = await _emailSender.SendPasswordResetCodeAsync(usuario.Email, usuario.NombreUsuario, token);
+                if (!sent)
+                    return Ok(new { message = genericMessage, emailNotSent = true });
+            }
+            else
+            {
+                var frontendBase = _configuration["Email:FrontendBaseUrl"]?.TrimEnd('/') ?? "";
+                var tokenEncoded = Uri.EscapeDataString(token);
+                var resetLink = string.IsNullOrEmpty(frontendBase)
+                    ? $"/reset-password?token={tokenEncoded}"
+                    : $"{frontendBase}/reset-password?token={tokenEncoded}";
+                var sent = await _emailSender.SendPasswordResetAsync(usuario.Email, usuario.NombreUsuario, resetLink);
+                if (!sent)
+                    return Ok(new { message = genericMessage, emailNotSent = true });
+            }
+        }
+
+        return Ok(new { message = genericMessage });
+    }
+
+    /// <summary>
+    /// Restablece la contraseña usando token (enlace) o código + email (método código).
+    /// </summary>
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequest dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto?.NewPassword) || dto.NewPassword.Length < 6)
+            return BadRequest(new { message = "La nueva contraseña debe tener al menos 6 caracteres" });
+
+        Usuario? usuario = null;
+        var token = (dto.Token ?? "").Trim();
+        var code = (dto.Code ?? "").Trim();
+        var email = (dto.Email ?? "").Trim();
+
+        if (!string.IsNullOrEmpty(token))
+        {
+            usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.ResetToken == token && u.ResetTokenExpiry.HasValue && u.ResetTokenExpiry.Value > DateTime.UtcNow);
+            if (usuario == null)
+                return BadRequest(new { message = "El enlace ha expirado o no es válido. Solicita uno nuevo desde '¿Olvidaste tu contraseña?'." });
+        }
+        else if (!string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(email))
+        {
+            var emailNorm = email.Trim();
+            usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Email == emailNorm && u.ResetToken == code && u.ResetTokenExpiry.HasValue && u.ResetTokenExpiry.Value > DateTime.UtcNow);
+            if (usuario == null)
+                return BadRequest(new { message = "Código o correo incorrectos, o el código ha expirado. Solicita uno nuevo desde '¿Olvidaste tu contraseña?'." });
+        }
+        else
+            return BadRequest(new { message = "Indica el token del enlace o el código y el correo." });
+
+        usuario.PasswordHash = HashPassword(dto.NewPassword!);
+        usuario.ResetToken = null;
+        usuario.ResetTokenExpiry = null;
+        usuario.FechaActualizacion = DateTime.UtcNow;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Contraseña actualizada. Ya puedes iniciar sesión." });
+        }
+        catch (DbUpdateException ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error al guardar. Intenta de nuevo.", error = ex.Message });
         }
     }
 
@@ -461,4 +584,22 @@ public class LoginRequest
 public class ResetIntentosRequest
 {
     public string? Username { get; set; }
+}
+
+public class ForgotPasswordRequest
+{
+    public string? Email { get; set; }
+    /// <summary>"link" = enlace por correo (por defecto), "code" = código de 6 dígitos por correo.</summary>
+    public string? Method { get; set; }
+}
+
+public class ResetPasswordRequest
+{
+    /// <summary>Token del enlace (método link).</summary>
+    public string? Token { get; set; }
+    /// <summary>Código de 6 dígitos (método code); requiere también Email.</summary>
+    public string? Code { get; set; }
+    /// <summary>Correo del usuario (obligatorio cuando se usa Code).</summary>
+    public string? Email { get; set; }
+    public string? NewPassword { get; set; }
 }

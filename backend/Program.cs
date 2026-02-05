@@ -107,6 +107,7 @@ builder.Services.AddScoped<IMovimientoService, MovimientoService>();
 builder.Services.AddScoped<IQRCodeService, QRCodeService>();
 builder.Services.AddScoped<IQRService, QRService>();
 builder.Services.AddScoped<IReporteService, ReporteService>();
+builder.Services.AddScoped<IEmailSender, EmailSender>();
 
 var app = builder.Build();
 

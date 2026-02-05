@@ -23,6 +23,7 @@ import '../../services/movimiento_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/animated_card.dart';
+import '../../widgets/app_alert.dart';
 import 'documento_form_screen.dart';
 
 class DocumentoDetailScreen extends StatefulWidget {
@@ -36,6 +37,7 @@ class DocumentoDetailScreen extends StatefulWidget {
 
 class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   Documento? _documentoActual;
+  bool _sinPermisoAlertaMostrada = false;
 
   String? _qrData;
   bool _isGeneratingQr = false;
@@ -158,6 +160,49 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   Widget build(BuildContext context) {
     final doc = _doc;
     final theme = Theme.of(context);
+    final authProvider = Provider.of<AuthProvider>(context);
+    if (!authProvider.hasPermission('ver_documento')) {
+      if (!_sinPermisoAlertaMostrada) {
+        _sinPermisoAlertaMostrada = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            AppAlert.warning(
+              context,
+              'Sin permisos',
+              'No tienes permisos para acceder a esta pantalla.',
+              buttonText: 'Entendido',
+            );
+          }
+        });
+      }
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: const Text('Detalle de documento'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.lock_rounded, size: 80, color: Colors.orange.shade700),
+                const SizedBox(height: 24),
+                Text(
+                  'No tienes permisos para acceder a esta pantalla',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
     final dateFormat = DateFormat('dd/MM/yyyy');
@@ -2108,8 +2153,11 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   Future<void> _confirmarEliminarDocumento(Documento doc) async {
     if (!Provider.of<AuthProvider>(context, listen: false).hasPermission('borrar_documento')) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No tiene permiso para eliminar documentos.')),
+        await AppAlert.warning(
+          context,
+          'Sin permisos',
+          'No tienes permisos para eliminar documentos.',
+          buttonText: 'Entendido',
         );
       }
       return;
@@ -2147,8 +2195,11 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   Future<void> _eliminarDocumento(Documento doc) async {
     if (!Provider.of<AuthProvider>(context, listen: false).hasPermission('borrar_documento')) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No tiene permiso para eliminar documentos.')),
+        await AppAlert.warning(
+          context,
+          'Sin permisos',
+          'No tienes permisos para eliminar documentos.',
+          buttonText: 'Entendido',
         );
       }
       return;

@@ -56,20 +56,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final role = Provider.of<AuthProvider>(context).role;
     debugPrint('[HOME] _buildNavItems() role=$role');
 
-    _navItems = [
-      NavigationItem(
-        label: 'Carpetas',
-        icon: Icons.folder_outlined,
-        selectedIcon: Icons.folder,
-        screen: DocumentosListScreen(key: _documentosKey),
-      ),
-      NavigationItem(
-        label: 'Movimientos',
-        icon: Icons.swap_horiz_outlined,
-        selectedIcon: Icons.swap_horiz,
-        screen: const MovimientosScreen(),
-      ),
-    ];
+    _navItems = [];
+    // Carpetas y Movimientos solo si tiene permiso ver_documento (si está desactivado no puede acceder)
+    if (authProvider.hasPermission('ver_documento')) {
+      _navItems.add(
+        NavigationItem(
+          label: 'Carpetas',
+          icon: Icons.folder_outlined,
+          selectedIcon: Icons.folder,
+          screen: DocumentosListScreen(key: _documentosKey),
+        ),
+      );
+      _navItems.add(
+        NavigationItem(
+          label: 'Movimientos',
+          icon: Icons.swap_horiz_outlined,
+          selectedIcon: Icons.swap_horiz,
+          screen: const MovimientosScreen(),
+        ),
+      );
+    }
 
     // Acceso a reportes si tiene permiso de ver documentos (todos) o es admin sistema
     if (authProvider.hasPermission('ver_documento') || authProvider.canManageUserPermissions) {

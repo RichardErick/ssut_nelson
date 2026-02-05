@@ -9,6 +9,7 @@ import 'providers/data_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/anexo_service.dart';
 import 'services/api_service.dart';
@@ -145,16 +146,26 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.temaClaro,
             darkTheme: AppTheme.temaOscuro,
             themeMode: themeProvider.themeMode,
-            home: const SplashScreen(), // [MAIN] home = SplashScreen
+            initialRoute: _initialRoute(),
             routes: {
+              '/': (context) => const SplashScreen(),
               '/home': (context) => const HomeScreen(),
               '/login': (context) => const LoginScreen(),
+              '/reset-password': (context) => const ResetPasswordScreen(),
             },
           );
         },
       ),
     );
   }
+}
+
+/// Ruta inicial según URL (web: /reset-password?token=... o #/reset-password?token=... abre directamente restablecer contraseña).
+String _initialRoute() {
+  if (Uri.base.path.contains('reset-password')) return '/reset-password';
+  final fragment = Uri.base.fragment;
+  if (fragment.isNotEmpty && fragment.contains('reset-password')) return '/reset-password';
+  return '/';
 }
 
 /// Pantalla de error si falla el arranque (evita pantalla en blanco).

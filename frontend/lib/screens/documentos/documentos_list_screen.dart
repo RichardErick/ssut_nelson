@@ -14,6 +14,7 @@ import '../../services/documento_service.dart';
 import '../../services/usuario_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
+import '../../widgets/app_alert.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_shimmer.dart';
 import 'documento_detail_screen.dart';
@@ -473,12 +474,68 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     return filtrados;
   }
 
+  bool _sinPermisoAlertaMostrada = false;
+
+  /// Pantalla que se muestra cuando el usuario no tiene permiso ver_documento.
+  Widget _buildSinPermisoAcceso(BuildContext context) {
+    final theme = Theme.of(context);
+    if (!_sinPermisoAlertaMostrada) {
+      _sinPermisoAlertaMostrada = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          AppAlert.warning(
+            context,
+            'Sin permisos',
+            'No tienes permisos para acceder a esta pantalla.',
+            buttonText: 'Entendido',
+          );
+        }
+      });
+    }
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.lock_rounded, size: 80, color: Colors.orange.shade700),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'No tienes permisos para acceder a esta pantalla',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700, color: theme.colorScheme.onSurface),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'El permiso "Ver documento" está desactivado para tu usuario. Contacta al administrador si necesitas acceso.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(fontSize: 15, color: theme.colorScheme.onSurfaceVariant, height: 1.5),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final authProvider = Provider.of<AuthProvider>(context);
+    if (!authProvider.hasPermission('ver_documento')) {
+      return _buildSinPermisoAcceso(context);
+    }
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
-    final authProvider = Provider.of<AuthProvider>(context);
 
     int crossAxisCount = 1;
     if (size.width > 1200) {
@@ -511,7 +568,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _agregarDocumento(Carpeta carpeta) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('subir_documento')) {
-      _mostrarSnackBarError('No tiene permiso para agregar documentos.');
+      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para agregar documentos.', buttonText: 'Entendido');
       return;
     }
     print(
@@ -982,7 +1039,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _abrirAgregarCarpeta() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('subir_documento')) {
-      _mostrarSnackBarError('No tiene permiso para agregar carpetas.');
+      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para agregar carpetas.', buttonText: 'Entendido');
       return;
     }
     final result = await Navigator.push(
@@ -3008,7 +3065,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _abrirEditarDocumento(Documento doc) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('editar_metadatos')) {
-      _mostrarSnackBarError('No tiene permiso para editar documentos.');
+      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para editar documentos.', buttonText: 'Entendido');
       return;
     }
     final updated = await Navigator.push<bool>(
@@ -3216,7 +3273,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _eliminarDocumento(Documento doc) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('borrar_documento')) {
-      _mostrarSnackBarError('No tiene permiso para eliminar documentos.');
+      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para eliminar documentos.', buttonText: 'Entendido');
       return;
     }
     try {
@@ -3350,7 +3407,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _abrirEditarCarpeta(Carpeta carpeta) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('editar_metadatos')) {
-      _mostrarSnackBarError('No tiene permiso para editar carpetas.');
+      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para editar carpetas.', buttonText: 'Entendido');
       return;
     }
     final nombreController = TextEditingController(text: carpeta.nombre);
@@ -3431,7 +3488,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _confirmarEliminarCarpeta(Carpeta carpeta) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('borrar_documento')) {
-      _mostrarSnackBarError('No tiene permiso para eliminar carpetas.');
+      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para eliminar carpetas.', buttonText: 'Entendido');
       return;
     }
     final confirm = await showDialog<bool>(
