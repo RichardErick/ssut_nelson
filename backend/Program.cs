@@ -117,6 +117,25 @@ builder.Services.Configure<Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionOpti
 
 var app = builder.Build();
 
+// OPTIONS (preflight CORS) debe responder 200 sin redirección; si no, el navegador falla con "Redirect is not allowed for a preflight request"
+app.Use(async (context, next) =>
+{
+    if (context.Request.Method == "OPTIONS")
+    {
+        var origin = context.Request.Headers["Origin"].ToString();
+        if (!string.IsNullOrEmpty(origin))
+        {
+            context.Response.Headers["Access-Control-Allow-Origin"] = origin;
+            context.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
+            context.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept";
+            context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+        }
+        context.Response.StatusCode = 200;
+        return;
+    }
+    await next();
+});
+
 // Configuramos el pipeline de HTTP
 if (app.Environment.IsDevelopment())
 {

@@ -24,12 +24,11 @@ import 'services/sync_service.dart';
 import 'services/usuario_service.dart';
 import 'theme/app_theme.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Capturar errores asíncronos no manejados
+void main() {
+  // Zona y bindings en la misma zona para evitar "Zone mismatch" (runApp debe estar en la misma zona que ensureInitialized)
   runZonedGuarded(
     () async {
+      WidgetsFlutterBinding.ensureInitialized();
       debugPrint('[MAIN] Iniciando app...');
 
       FlutterError.onError = (details) {
@@ -78,9 +77,10 @@ void main() async {
         );
       };
 
-      // Inicio inmediato: runApp primero; fechas en segundo plano
+      // Inicio inmediato: runApp en la misma zona que ensureInitialized
       debugPrint('[MAIN] runApp(MyApp)');
       runApp(const MyApp());
+      // Fechas en segundo plano
       Future.microtask(() async {
         try {
           await initializeDateFormatting('es_BO', null);
