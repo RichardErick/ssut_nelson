@@ -340,6 +340,28 @@ END $r2$;";
             {
                 logger.LogWarning("Migración carpetas (rango_inicio/rango_fin): {Message}", ex.Message);
             }
+            // Migración 009: columnas reset_token y reset_token_expiry en usuarios (recuperación de contraseña)
+            try
+            {
+                const string resetPasswordSql = @"
+DO $r3$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'usuarios' AND column_name = 'reset_token') THEN
+        ALTER TABLE usuarios ADD COLUMN reset_token VARCHAR(255) NULL;
+    END IF;
+END $r3$;
+DO $r4$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'usuarios' AND column_name = 'reset_token_expiry') THEN
+        ALTER TABLE usuarios ADD COLUMN reset_token_expiry TIMESTAMP NULL;
+    END IF;
+END $r4$;";
+                db.Database.ExecuteSqlRaw(resetPasswordSql);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Migración 009 (reset_token): {Message}", ex.Message);
+            }
         }
         //aqui no deberia entrar nunca
         else
