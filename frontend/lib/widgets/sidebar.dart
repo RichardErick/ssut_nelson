@@ -26,6 +26,8 @@ class SideBar extends StatelessWidget {
   final Function(int) onItemSelected;
   final List<NavigationItem> navItems;
   final bool isCollapsed;
+  /// Al tocar la sección de usuario (abajo) se abre Mi perfil.
+  final VoidCallback? onUserTap;
 
   const SideBar({
     super.key,
@@ -33,6 +35,7 @@ class SideBar extends StatelessWidget {
     required this.onItemSelected,
     required this.navItems,
     this.isCollapsed = false,
+    this.onUserTap,
   });
 
   @override
@@ -70,7 +73,7 @@ class SideBar extends StatelessWidget {
                 }),
               ),
             ),
-            _buildUserSection(context),
+            _buildUserSection(context, onUserTap: onUserTap),
             const SizedBox(height: 16),
           ],
         ),
@@ -107,18 +110,21 @@ class SideBar extends StatelessWidget {
     );
   }
 
-  Widget _buildUserSection(BuildContext context) {
+  Widget _buildUserSection(BuildContext context, {VoidCallback? onUserTap}) {
     if (isCollapsed) {
-      return const CircleAvatar(
-        radius: 20,
-        backgroundColor: AppTheme.colorPrimario,
-        child: Icon(Icons.person, color: Colors.white),
+      return GestureDetector(
+        onTap: onUserTap,
+        child: const CircleAvatar(
+          radius: 20,
+          backgroundColor: AppTheme.colorPrimario,
+          child: Icon(Icons.person, color: Colors.white),
+        ),
       );
     }
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
-    
-    return Container(
+
+    final content = Container(
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -161,6 +167,17 @@ class SideBar extends StatelessWidget {
         ],
       ),
     );
+    if (onUserTap != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onUserTap,
+          borderRadius: BorderRadius.circular(16),
+          child: content,
+        ),
+      );
+    }
+    return content;
   }
 }
 

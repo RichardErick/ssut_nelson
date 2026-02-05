@@ -143,7 +143,7 @@ class _UsersSyncScreenState extends State<UsersSyncScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Administre la actualización de perfiles desde la base de datos institucional.',
+          'Sincronización: actualiza usuarios, roles y permisos desde la base de datos institucional. Use el botón "Sincronizar" para ejecutar la importación o actualización de perfiles.',
           style: TextStyle(color: Colors.grey, fontSize: 16),
         ),
       ],

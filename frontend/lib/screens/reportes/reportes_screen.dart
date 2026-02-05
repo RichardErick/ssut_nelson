@@ -9,6 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
 import 'package:universal_html/html.dart' as html;
 
+import '../../models/documento.dart';
 import '../../models/movimiento.dart';
 import '../../services/reporte_service.dart';
 import '../../theme/app_theme.dart';
@@ -33,6 +34,10 @@ class _ReportesScreenState extends State<ReportesScreen> {
   DateTime _fechaDesde = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime _fechaHasta = DateTime.now();
   String? _tipoMovimientoFilter; // null = Todos
+
+  // Reporte de documentos prestados
+  List<Documento> _reportePrestados = [];
+  bool _isLoadingReportePrestados = false;
 
   @override
   void initState() {
@@ -85,6 +90,8 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       _buildStatGrid(isDesktop),
                       const SizedBox(height: 40),
                       _buildReporteMovimientosSection(theme),
+                      const SizedBox(height: 40),
+                      _buildReportePrestadosSection(theme),
                       const SizedBox(height: 40),
                       _buildDetailedReports(theme, isDesktop),
                     ],
@@ -421,6 +428,99 @@ class _ReportesScreenState extends State<ReportesScreen> {
     );
   }
 
+  Widget _buildReportePrestadosSection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'REPORTE DE DOCUMENTOS PRESTADOS',
+          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w800, color: theme.colorScheme.onSurface),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Listado de documentos en estado Prestado; exporte a PDF.',
+          style: GoogleFonts.inter(fontSize: 14, color: theme.colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 20),
+        FilledButton.icon(
+          onPressed: _isLoadingReportePrestados ? null : _generarReportePrestados,
+          icon: _isLoadingReportePrestados
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.bookmark_outline_rounded),
+          label: Text(_isLoadingReportePrestados ? 'Generando...' : 'Generar reporte prestados'),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        if (_reportePrestados.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text(
+            '${_reportePrestados.length} documento(s) prestado(s)',
+            style: GoogleFonts.inter(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 280),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+            ),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: _reportePrestados.length,
+              itemBuilder: (context, index) {
+                final d = _reportePrestados[index];
+                return ListTile(
+                  dense: true,
+                  leading: Icon(Icons.description_outlined, color: theme.colorScheme.primary, size: 20),
+                  title: Text(d.codigo, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    '${d.tipoDocumentoNombre ?? "—"} · ${d.responsableNombre ?? "—"}',
+                    style: GoogleFonts.inter(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                  trailing: Text(d.estado, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600)),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => _exportarReportePrestadosPdf(theme),
+            icon: const Icon(Icons.picture_as_pdf_rounded, size: 20),
+            label: const Text('Exportar a PDF'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _generarReportePrestados() async {
+    setState(() => _isLoadingReportePrestados = true);
+    try {
+      final service = Provider.of<ReporteService>(context, listen: false);
+      final list = await service.reporteDocumentos(estado: 'Prestado');
+      if (mounted) setState(() {
+        _reportePrestados = list;
+        _isLoadingReportePrestados = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingReportePrestados = false);
+        AppAlert.error(
+          context,
+          'Error al generar reporte',
+          ErrorHelper.getErrorMessage(e),
+        );
+      }
+    }
+  }
+
   Future<void> _generarReporteMovimientos() async {
     setState(() => _isLoadingReporte = true);
     try {
@@ -516,14 +616,85 @@ class _ReportesScreenState extends State<ReportesScreen> {
     }
   }
 
-  Future<void> _descargarPdf(Uint8List bytes) async {
+  Future<void> _exportarReportePrestadosPdf(ThemeData theme) async {
+    try {
+      final pdf = pw.Document();
+      final dateFormat = DateFormat('dd/MM/yyyy');
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(24),
+          header: (ctx) => pw.Text(
+            'Reporte de documentos prestados · ${dateFormat.format(DateTime.now())}',
+            style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+          ),
+          build: (ctx) => [
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey300),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(1.5),
+                1: const pw.FlexColumnWidth(2),
+                2: const pw.FlexColumnWidth(1.5),
+                3: const pw.FlexColumnWidth(1.5),
+                4: const pw.FlexColumnWidth(1),
+              },
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: [
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Código', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Tipo', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Área', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Responsable', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Estado', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
+                  ],
+                ),
+                ..._reportePrestados.map(
+                  (d) => pw.TableRow(
+                    children: [
+                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(d.codigo, style: const pw.TextStyle(fontSize: 8))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(d.tipoDocumentoNombre ?? '—', style: const pw.TextStyle(fontSize: 8))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(d.areaOrigenNombre ?? '—', style: const pw.TextStyle(fontSize: 8))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(d.responsableNombre ?? '—', style: const pw.TextStyle(fontSize: 8))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(d.estado, style: const pw.TextStyle(fontSize: 8))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      final bytes = await pdf.save();
+      await _descargarPdf(Uint8List.fromList(bytes), 'Reporte_Prestados_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf');
+      if (mounted) {
+        AppAlert.success(
+          context,
+          'PDF generado',
+          'El reporte de documentos prestados se ha descargado correctamente.',
+          buttonText: 'Entendido',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        AppAlert.error(
+          context,
+          'Error al exportar PDF',
+          ErrorHelper.getErrorMessage(e),
+        );
+      }
+    }
+  }
+
+  Future<void> _descargarPdf(Uint8List bytes, [String? filename]) async {
     if (kIsWeb) {
+      final name = filename ?? 'Reporte_Movimientos_${DateFormat('yyyyMMdd').format(_fechaDesde)}_${DateFormat('yyyyMMdd').format(_fechaHasta)}.pdf';
       final blob = html.Blob([bytes]);
       final url = html.Url.createObjectUrlFromBlob(blob);
       final anchor = html.AnchorElement()
         ..href = url
         ..style.display = 'none'
-        ..download = 'Reporte_Movimientos_${DateFormat('yyyyMMdd').format(_fechaDesde)}_${DateFormat('yyyyMMdd').format(_fechaHasta)}.pdf';
+        ..download = name;
       html.document.body?.children.add(anchor);
       anchor.click();
       html.document.body?.children.remove(anchor);

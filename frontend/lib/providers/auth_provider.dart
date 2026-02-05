@@ -81,11 +81,11 @@ class AuthProvider extends ChangeNotifier {
         return hasPermission;
         
       case UserRole.administradorDocumentos:
-        // Puede ver, subir, editar y borrar documentos
+        // Puede ver, subir, editar metadatos y borrar documentos (códigos alineados con permisos del sistema)
         final allowedPermissions = [
           'ver_documento',
-          'subir_documento', 
-          'editar_documento',
+          'subir_documento',
+          'editar_metadatos',
           'borrar_documento'
         ];
         final hasPermission = allowedPermissions.contains(permissionCode);

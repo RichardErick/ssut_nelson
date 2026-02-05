@@ -244,7 +244,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         const SizedBox(width: 8),
         if (Provider.of<AuthProvider>(
           context,
-        ).hasPermission('editar_documento'))
+        ).hasPermission('editar_metadatos'))
           IconButton(
             icon: const Icon(Icons.edit_rounded),
             onPressed: () async {
@@ -290,7 +290,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     DateFormat dateFormat,
     ThemeData theme,
   ) {
-    final puedeEditar = Provider.of<AuthProvider>(context).hasPermission('editar_documento');
+    final puedeEditar = Provider.of<AuthProvider>(context).hasPermission('editar_metadatos');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2106,6 +2106,14 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   }
 
   Future<void> _confirmarEliminarDocumento(Documento doc) async {
+    if (!Provider.of<AuthProvider>(context, listen: false).hasPermission('borrar_documento')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No tiene permiso para eliminar documentos.')),
+        );
+      }
+      return;
+    }
     final confirm = await showDialog<bool>(
       context: context,
       builder:
@@ -2137,6 +2145,14 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   }
 
   Future<void> _eliminarDocumento(Documento doc) async {
+    if (!Provider.of<AuthProvider>(context, listen: false).hasPermission('borrar_documento')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No tiene permiso para eliminar documentos.')),
+        );
+      }
+      return;
+    }
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
       await service.delete(doc.id);

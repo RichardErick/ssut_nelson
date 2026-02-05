@@ -83,23 +83,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    // Notificaciones y Mi perfil visibles en el menú
-    _navItems.add(
-      NavigationItem(
-        label: 'Notificaciones',
-        icon: Icons.notifications_outlined,
-        selectedIcon: Icons.notifications_rounded,
-        screen: const NotificationsScreen(),
-      ),
-    );
-    _navItems.add(
-      NavigationItem(
-        label: 'Mi perfil',
-        icon: Icons.person_outline_rounded,
-        selectedIcon: Icons.person_rounded,
-        screen: const ProfileScreen(),
-      ),
-    );
+    // Notificaciones y Mi perfil: acceso desde icono superior (notificaciones) y sección usuario (perfil); no duplicar en menú lateral.
 
     // Gestión de Permisos: visible para Administrador Sistema y Administrador Documentos
     final canSeePermisos = authProvider.isSystemAdmin || role == UserRole.administradorDocumentos;
@@ -227,6 +211,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               onItemSelected: _onItemSelected,
               isCollapsed: isTablet || _isSidebarCollapsed,
               navItems: _navItems,
+              onUserTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              ),
             ),
           Expanded(
             child: Stack(

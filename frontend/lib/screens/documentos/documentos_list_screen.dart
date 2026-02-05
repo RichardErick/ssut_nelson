@@ -509,6 +509,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Future<void> _agregarDocumento(Carpeta carpeta) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.hasPermission('subir_documento')) {
+      _mostrarSnackBarError('No tiene permiso para agregar documentos.');
+      return;
+    }
     print(
       'DEBUG: Agregando documento a carpeta "${carpeta.nombre}" (ID: ${carpeta.id})',
     );
@@ -600,7 +605,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }
     final carpetas = _carpetasFiltradas;
 
-    // Header: título "Carpetas" + botón "Agregar carpeta" (más intuitivo)
+    // Header: título "Carpetas" + botón "Agregar carpeta" solo si tiene permiso
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final puedeAgregarCarpeta = authProvider.hasPermission('subir_documento');
     final headerCarpetas = Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
       child: Row(
@@ -615,15 +622,16 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             ),
           ),
           const Spacer(),
-          FilledButton.icon(
-            onPressed: () => _abrirAgregarCarpeta(),
-            icon: const Icon(Icons.add, size: 20),
-            label: const Text('Agregar carpeta'),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.blue.shade700,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          if (puedeAgregarCarpeta)
+            FilledButton.icon(
+              onPressed: () => _abrirAgregarCarpeta(),
+              icon: const Icon(Icons.add, size: 20),
+              label: const Text('Agregar carpeta'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.blue.shade700,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -637,17 +645,21 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             child: EmptyState(
               icon: Icons.folder_open_outlined,
               title: 'No hay carpetas',
-              subtitle: 'Cree la primera con el botón de abajo (rango y fecha).',
-              action: FilledButton.icon(
-                onPressed: () => _abrirAgregarCarpeta(),
-                icon: const Icon(Icons.add_rounded, size: 22),
-                label: const Text('Agregar carpeta'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  minimumSize: const Size(0, 48),
-                ),
-              ),
+              subtitle: puedeAgregarCarpeta
+                  ? 'Cree la primera con el botón de abajo (rango y fecha).'
+                  : 'No tiene permiso para crear carpetas.',
+              action: puedeAgregarCarpeta
+                  ? FilledButton.icon(
+                      onPressed: () => _abrirAgregarCarpeta(),
+                      icon: const Icon(Icons.add_rounded, size: 22),
+                      label: const Text('Agregar carpeta'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.blue.shade700,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        minimumSize: const Size(0, 48),
+                      ),
+                    )
+                  : null,
             ),
           ),
         ],
@@ -822,16 +834,17 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                       ),
                     ),
                     const SizedBox(height: 20),
-                    FilledButton.icon(
-                      onPressed: () => _abrirAgregarCarpeta(),
-                      icon: const Icon(Icons.add_rounded, size: 22),
-                      label: const Text('Agregar carpeta'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.blue.shade700,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        minimumSize: const Size(0, 48),
+                    if (puedeAgregarCarpeta)
+                      FilledButton.icon(
+                        onPressed: () => _abrirAgregarCarpeta(),
+                        icon: const Icon(Icons.add_rounded, size: 22),
+                        label: const Text('Agregar carpeta'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.blue.shade700,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          minimumSize: const Size(0, 48),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -967,6 +980,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   /// Abre el formulario de carpeta (solo rango y fecha).
   Future<void> _abrirAgregarCarpeta() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.hasPermission('subir_documento')) {
+      _mostrarSnackBarError('No tiene permiso para agregar carpetas.');
+      return;
+    }
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -989,6 +1007,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Widget _buildCarpetaCard(Carpeta carpeta, ThemeData theme) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final canDelete = authProvider.hasPermission('borrar_documento');
+    final canEdit = authProvider.hasPermission('editar_metadatos');
 
     final gestionLine = carpeta.gestion.isNotEmpty ? carpeta.gestion : 'N/A';
     final nroLine = carpeta.numeroCarpeta?.toString() ?? 'N/A';
@@ -1074,6 +1093,33 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         ),
                       ),
                       const Spacer(),
+                      if (canEdit)
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.blue.shade100,
+                              width: 1,
+                            ),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => _abrirEditarCarpeta(carpeta),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Icon(
+                                  Icons.edit_outlined,
+                                  color: Colors.blue.shade600,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (canEdit && canDelete) const SizedBox(width: 8),
                       if (canDelete)
                         Container(
                           decoration: BoxDecoration(
@@ -1287,6 +1333,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final width = MediaQuery.of(context).size.width;
     final esDrawer = width < 900;
     final panelWidth = esDrawer ? null : 280.0;
+    final puedeAgregarCarpetaPanel = Provider.of<AuthProvider>(context, listen: false).hasPermission('subir_documento');
 
     Widget header = Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
@@ -1303,18 +1350,19 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               ),
             ),
           ),
-          FilledButton(
-            onPressed: () async {
-              if (esDrawer) Navigator.pop(context);
-              await _abrirAgregarCarpeta();
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.blue.shade700,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              minimumSize: const Size(0, 36),
+          if (puedeAgregarCarpetaPanel)
+            FilledButton(
+              onPressed: () async {
+                if (esDrawer) Navigator.pop(context);
+                await _abrirAgregarCarpeta();
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.blue.shade700,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                minimumSize: const Size(0, 36),
+              ),
+              child: const Icon(Icons.add, size: 20),
             ),
-            child: const Icon(Icons.add, size: 20),
-          ),
         ],
       ),
     );
@@ -1383,19 +1431,20 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
               ),
               const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: () async {
-                  if (esDrawer) Navigator.pop(context);
-                  await _abrirAgregarCarpeta();
-                },
-                icon: const Icon(Icons.add_rounded, size: 22),
-                label: const Text('Agregar carpeta'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  minimumSize: const Size(0, 48),
+              if (puedeAgregarCarpetaPanel)
+                FilledButton.icon(
+                  onPressed: () async {
+                    if (esDrawer) Navigator.pop(context);
+                    await _abrirAgregarCarpeta();
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 22),
+                  label: const Text('Agregar carpeta'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.blue.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    minimumSize: const Size(0, 48),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -3109,6 +3158,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Future<void> _eliminarDocumento(Documento doc) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.hasPermission('borrar_documento')) {
+      _mostrarSnackBarError('No tiene permiso para eliminar documentos.');
+      return;
+    }
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
       await service.delete(doc.id);
@@ -3237,7 +3291,93 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
+  Future<void> _abrirEditarCarpeta(Carpeta carpeta) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.hasPermission('editar_metadatos')) {
+      _mostrarSnackBarError('No tiene permiso para editar carpetas.');
+      return;
+    }
+    final nombreController = TextEditingController(text: carpeta.nombre);
+    final descripcionController = TextEditingController(text: carpeta.descripcion ?? '');
+
+    final guardado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar carpeta'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: nombreController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre',
+                  border: OutlineInputBorder(),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descripcionController,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción (opcional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+
+    if (guardado != true || !mounted) return;
+
+    final nombre = nombreController.text.trim();
+    if (nombre.isEmpty) {
+      _mostrarSnackBarError('El nombre de la carpeta es obligatorio.');
+      return;
+    }
+
+    try {
+      final carpetaService = Provider.of<CarpetaService>(context, listen: false);
+      await carpetaService.update(
+        carpeta.id,
+        UpdateCarpetaDTO(
+          nombre: nombre,
+          descripcion: descripcionController.text.trim().isEmpty ? null : descripcionController.text.trim(),
+        ),
+      );
+      if (mounted) {
+        _mostrarSnackBarExito('Carpeta actualizada correctamente.');
+        await _cargarCarpetas(todasLasGestiones: true);
+        if (_carpetaSeleccionada?.id == carpeta.id) {
+          final actualizada = await carpetaService.getById(carpeta.id);
+          setState(() => _carpetaSeleccionada = actualizada);
+        }
+      }
+    } catch (e) {
+      if (mounted) _mostrarSnackBarError(ErrorHelper.getErrorMessage(e));
+    }
+  }
+
   Future<void> _confirmarEliminarCarpeta(Carpeta carpeta) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.hasPermission('borrar_documento')) {
+      _mostrarSnackBarError('No tiene permiso para eliminar carpetas.');
+      return;
+    }
     final confirm = await showDialog<bool>(
       context: context,
       builder:
