@@ -271,15 +271,13 @@ class _PermisosScreenState extends State<PermisosScreen> {
     final permisoService = Provider.of<PermisoService>(context, listen: false);
     final usuario = _usuarioSeleccionado!;
     final permisosActivos = _permisosActivos[usuario.nombreUsuario] ?? {};
-    final permisosRol = _obtenerPermisosRol(usuario);
-    // Solo guardar permisos que corresponden al rol del usuario (matriz)
-    final codigosAGuardar = permisosRol.where((c) => _permisosDisponibles.containsKey(c)).toList();
+    // Guardar los 4 permisos: activar o revocar según el toggle de cada uno
+    final codigosAGuardar = _permisosDisponibles.keys.toList();
 
     int ok = 0;
     int fail = 0;
     for (final codigo in codigosAGuardar) {
       final activo = permisosActivos[codigo] ?? false;
-      final rolTienePermiso = permisosRol.contains(codigo);
 
       final permiso = _permisosDisponiblesLista.firstWhere(
         (p) => p.codigo == codigo,
@@ -298,7 +296,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
         if (activo) {
           await permisoService.asignarPermiso(usuario.id, permiso.id);
           ok++;
-        } else if (rolTienePermiso) {
+        } else {
           await permisoService.revocarPermiso(usuario.id, permiso.id);
           ok++;
         }
@@ -602,7 +600,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Solo se muestran los permisos que puede tener el rol de este usuario. Activa o desactiva según necesite.',
+                    'Todos los permisos pueden activarse o desactivarse por usuario. Activa o desactiva según lo acordado con el seguro.',
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -618,23 +616,21 @@ class _PermisosScreenState extends State<PermisosScreen> {
                     Expanded(
                       child: Builder(
                         builder: (context) {
-                          // Solo permisos del rol del usuario (matriz: Gerente solo ver, Contador ver+subir, etc.)
-                          final permisosDelRol = _obtenerPermisosRol(usuario)
-                              .where((codigo) => _permisosDisponibles.containsKey(codigo))
-                              .toList();
-                          if (permisosDelRol.isEmpty) {
+                          // Todos los permisos disponibles para cualquier rol (activar/desactivar según se requiera)
+                          final todosLosPermisos = _permisosDisponibles.keys.toList();
+                          if (todosLosPermisos.isEmpty) {
                             return Center(
                               child: Text(
-                                'Este rol no tiene permisos asignados en la matriz.',
+                                'No hay permisos configurados.',
                                 style: GoogleFonts.inter(color: Colors.grey.shade600),
                                 textAlign: TextAlign.center,
                               ),
                             );
                           }
                           return ListView.builder(
-                            itemCount: permisosDelRol.length,
+                            itemCount: todosLosPermisos.length,
                             itemBuilder: (context, index) {
-                              final permiso = permisosDelRol[index];
+                              final permiso = todosLosPermisos[index];
                               final nombre =
                                   _permisosDisponibles[permiso] ?? permiso;
                               final estaActivo = permisosUsuario[permiso] ?? false;

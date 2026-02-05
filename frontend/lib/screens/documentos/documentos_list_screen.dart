@@ -2938,6 +2938,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   Widget _buildEstadoBadge(String estado) {
     final color = _obtenerColorEstado(estado);
+    final texto = _estadoParaMostrar(estado);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -2946,7 +2947,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
-        estado.toUpperCase(),
+        texto.toUpperCase(),
         style: GoogleFonts.inter(
           fontSize: 10,
           fontWeight: FontWeight.w800,
@@ -2959,28 +2960,69 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   Widget _buildActionButton(Documento doc) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+
+    final canEdit = authProvider.hasPermission('editar_metadatos');
     final canDelete = authProvider.hasPermission('borrar_documento');
 
-    if (!canDelete) return const SizedBox.shrink();
+    if (!canEdit && !canDelete) return const SizedBox.shrink();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: IconButton(
-        onPressed: () => _confirmarEliminarDocumento(doc),
-        icon: Icon(
-          Icons.delete_outline_rounded,
-          color: Colors.red.shade600,
-          size: 18,
-        ),
-        iconSize: 18,
-        padding: const EdgeInsets.all(6),
-        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-        tooltip: 'Eliminar documento',
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (canEdit)
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              onPressed: () => _abrirEditarDocumento(doc),
+              icon: Icon(Icons.edit_outlined, color: Colors.blue.shade600, size: 18),
+              iconSize: 18,
+              padding: const EdgeInsets.all(6),
+              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+              tooltip: 'Editar documento',
+            ),
+          ),
+        if (canEdit && canDelete) const SizedBox(width: 6),
+        if (canDelete)
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              onPressed: () => _confirmarEliminarDocumento(doc),
+              icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade600, size: 18),
+              iconSize: 18,
+              padding: const EdgeInsets.all(6),
+              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+              tooltip: 'Eliminar documento',
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _abrirEditarDocumento(Documento doc) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.hasPermission('editar_metadatos')) {
+      _mostrarSnackBarError('No tiene permiso para editar documentos.');
+      return;
+    }
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DocumentoFormScreen(documento: doc),
       ),
     );
+    if (updated == true && mounted) {
+      if (_carpetaSeleccionada != null) {
+        await _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+      }
+      setState(() {});
+    }
   }
 
   Widget _buildCardHeader(Documento doc, ThemeData theme) {
@@ -3009,7 +3051,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              doc.estado.toUpperCase(),
+              _estadoParaMostrar(doc.estado).toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(
@@ -3075,6 +3117,20 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           ),
       ],
     );
+  }
+
+  /// Texto de estado para mostrar en la UI: Disponible (Activo) o Prestado.
+  String _estadoParaMostrar(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'activo':
+        return 'Disponible';
+      case 'prestado':
+        return 'Prestado';
+      case 'archivado':
+        return 'Archivado';
+      default:
+        return estado;
+    }
   }
 
   Color _obtenerColorEstado(String estado) {

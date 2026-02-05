@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/documento.dart';
@@ -32,6 +33,8 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
   Documento? _documentoSeleccionado;
   Usuario? _usuarioResponsable;
   int? _areaDestinoId;
+  DateTime _fechaInicio = DateTime.now();
+  DateTime? _fechaVencimiento;
   bool _isLoadingCatalogos = true;
   bool _isSubmitting = false;
 
@@ -92,6 +95,11 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
 
     setState(() => _isSubmitting = true);
     try {
+      String? obs = _observacionesController.text.trim().isEmpty ? null : _observacionesController.text.trim();
+      if (_fechaVencimiento != null) {
+        final venc = DateFormat('dd/MM/yyyy').format(_fechaVencimiento!);
+        obs = obs == null ? 'Vencimiento previsto: $venc' : '$obs. Vencimiento previsto: $venc';
+      }
       final movimientoService = Provider.of<MovimientoService>(context, listen: false);
       await movimientoService.create(CreateMovimientoDTO(
         documentoId: _documentoSeleccionado!.id,
@@ -99,14 +107,15 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
         areaOrigenId: _documentoSeleccionado!.areaOrigenId,
         areaDestinoId: _areaDestinoId,
         usuarioId: _usuarioResponsable!.id,
-        observaciones: _observacionesController.text.trim().isEmpty ? null : _observacionesController.text.trim(),
+        observaciones: obs,
       ));
 
       if (mounted) {
         await AppAlert.success(
           context,
           'Préstamo registrado',
-          'El documento "${_documentoSeleccionado!.codigo}" ha sido registrado como prestado. El estado del documento se actualizó a Prestado.',
+          'El documento "${_documentoSeleccionado!.codigo}" ha sido registrado como prestado. El estado del documento se actualizó a Prestado y se creó la entrada en el historial.'
+              + (_fechaVencimiento != null ? ' Se registró la fecha de vencimiento para seguimiento.' : ''),
           buttonText: 'Entendido',
         );
         if (mounted) Navigator.of(context).pop(true);
@@ -213,6 +222,70 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
                       onChanged: (u) => setState(() => _usuarioResponsable = u),
                       validator: (v) => v == null ? FormValidators.seleccioneOpcion : null,
                     ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Fecha de inicio del préstamo',
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _fechaInicio,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (picked != null) setState(() => _fechaInicio = picked);
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Fecha inicio',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          suffixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
+                        ),
+                        child: Text(DateFormat('dd/MM/yyyy').format(_fechaInicio), style: GoogleFonts.inter(fontSize: 14)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Fecha de vencimiento (opcional)',
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _fechaVencimiento ?? _fechaInicio.add(const Duration(days: 7)),
+                          firstDate: _fechaInicio,
+                          lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+                        );
+                        if (picked != null) setState(() => _fechaVencimiento = picked);
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Fecha vencimiento',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          suffixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
+                        ),
+                        child: Text(
+                          _fechaVencimiento != null ? DateFormat('dd/MM/yyyy').format(_fechaVencimiento!) : 'Seleccionar (para alerta de vencimiento)',
+                          style: GoogleFonts.inter(fontSize: 14, color: _fechaVencimiento != null ? null : Colors.grey),
+                        ),
+                      ),
+                    ),
+                    if (_fechaVencimiento != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: TextButton.icon(
+                          onPressed: () => setState(() => _fechaVencimiento = null),
+                          icon: const Icon(Icons.clear, size: 18),
+                          label: const Text('Quitar fecha vencimiento'),
+                        ),
+                      ),
                     const SizedBox(height: 24),
                     Text(
                       'Área destino (opcional)',
