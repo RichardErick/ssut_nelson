@@ -1,5 +1,7 @@
 # Recuperación de contraseña por correo
 
+**Si el backend muestra el error "no existe la columna u.reset_token"**, debes ejecutar la migración 009 en PostgreSQL (añade las columnas `reset_token` y `reset_token_expiry` en `usuarios`). Ver `database/EJECUTAR_MIGRACION_009.md` o la sección 1 más abajo.
+
 La recuperación de contraseña por correo está implementada. **El correo se envía al buzón del usuario** (la dirección que ingresó en "¿Olvidaste tu contraseña?"); el usuario lo recibe en Gmail, Outlook, etc. como cualquier otro mensaje.
 
 Para que el backend pueda **enviar** ese correo hace falta configurar un servidor SMTP (Gmail, Outlook, SendGrid, o el correo corporativo). Es la forma estándar de enviar emails: sin SMTP la aplicación no puede "poner" el mensaje en la bandeja del cliente. Una vez configurado, el flujo es: usuario pide recuperar → backend envía el correo al cliente → el cliente recibe el enlace en su correo y restablece la contraseña.

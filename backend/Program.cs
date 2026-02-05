@@ -109,6 +109,12 @@ builder.Services.AddScoped<IQRService, QRService>();
 builder.Services.AddScoped<IReporteService, ReporteService>();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 
+// Puerto HTTPS para redirección (evita el aviso "Failed to determine the https port for redirect")
+builder.Services.Configure<Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionOptions>(options =>
+{
+    options.HttpsPort = builder.Configuration.GetValue<int?>("Kestrel:Endpoints:Https:Port") ?? 5001;
+});
+
 var app = builder.Build();
 
 // Configuramos el pipeline de HTTP
