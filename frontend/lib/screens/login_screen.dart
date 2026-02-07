@@ -145,12 +145,27 @@ class _LoginScreenState extends State<LoginScreen>
         connectTimeout: const Duration(seconds: 3),
         receiveTimeout: const Duration(seconds: 3),
       ));
-      await dio.get('http://localhost:5000/swagger/v1/swagger.json');
+      // Usar un endpoint de la API (tiene CORS). 401 = servidor responde, OK.
+      await dio.get('http://localhost:5000/api/carpetas');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Servidor alcanzable. Puedes iniciar sesión.'),
           backgroundColor: Colors.green,
+        ),
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final reachable = e.response != null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            reachable
+                ? 'Servidor alcanzable (${e.response?.statusCode}). Puedes iniciar sesión.'
+                : 'No se pudo conectar al servidor. En otra terminal: cd backend y dotnet run',
+          ),
+          backgroundColor: reachable ? Colors.green : Colors.orange.shade800,
+          duration: Duration(seconds: reachable ? 2 : 6),
         ),
       );
     } catch (_) {
