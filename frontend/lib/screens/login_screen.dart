@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -28,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen>
   bool _obscurePassword = true;
   bool _isLoading = false;
   bool _rememberMe = false;
+  bool _checkingBackend = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -133,6 +135,38 @@ class _LoginScreenState extends State<LoginScreen>
       message,
       buttonText: 'Entendido',
     );
+  }
+
+  Future<void> _checkBackendConnection() async {
+    if (_checkingBackend || !mounted) return;
+    setState(() => _checkingBackend = true);
+    try {
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 3),
+        receiveTimeout: const Duration(seconds: 3),
+      ));
+      await dio.get('http://localhost:5000/swagger/v1/swagger.json');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Servidor alcanzable. Puedes iniciar sesión.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'No se pudo conectar al servidor. En otra terminal ejecuta: cd backend y luego dotnet run',
+          ),
+          backgroundColor: Colors.orange.shade800,
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _checkingBackend = false);
+    }
   }
 
   @override
@@ -343,6 +377,25 @@ class _LoginScreenState extends State<LoginScreen>
                                         // No exigir longitud mínima en login: el servidor valida (permite doc_admin/admin).
                                         return null;
                                       },
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            'El backend debe estar en http://localhost:5000',
+                                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: _checkingBackend ? null : _checkBackendConnection,
+                                          child: _checkingBackend
+                                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                              : const Text('Comprobar conexión'),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(height: 16),
                                     Row(
@@ -625,6 +678,25 @@ class _LoginScreenState extends State<LoginScreen>
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 16, color: Colors.white70),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Backend: localhost:5000',
+                              style: TextStyle(fontSize: 12, color: Colors.white70),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _checkingBackend ? null : _checkBackendConnection,
+                            child: _checkingBackend
+                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : Text('Comprobar', style: TextStyle(color: Colors.white.withOpacity(0.9))),
                           ),
                         ],
                       ),

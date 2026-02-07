@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiService {
   final Dio _dio;
@@ -9,6 +10,7 @@ class ApiService {
         BaseOptions(
           baseUrl: baseUrl,
           connectTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
           receiveTimeout: const Duration(seconds: 30),
           headers: {
             'Content-Type': 'application/json',
@@ -17,7 +19,20 @@ class ApiService {
         ),
       ) {
     _dio.interceptors.add(
-      LogInterceptor(requestBody: true, responseBody: true),
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        logPrint: (obj) {
+          if (kDebugMode) {
+            final s = obj.toString();
+            if (s.contains('DioException') && s.contains('connection error')) {
+              debugPrint('Dio: error de conexión (¿backend en http://localhost:5000?)');
+              return;
+            }
+            debugPrint(s);
+          }
+        },
+      ),
     );
     _dio.interceptors.add(
       InterceptorsWrapper(
