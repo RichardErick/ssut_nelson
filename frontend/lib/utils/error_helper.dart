@@ -28,7 +28,7 @@ class ErrorHelper {
       if (message.contains('connection error') ||
           message.contains('XMLHttpRequest') ||
           message.contains('network layer')) {
-        return 'Error de conexión. Verifique su conexión a internet e intente nuevamente.';
+        return 'No se pudo conectar con el servidor. Asegúrate de que el backend esté en ejecución (http://localhost:5000).';
       }
 
       if (message.contains('timeout') || message.contains('Timeout')) {
@@ -56,7 +56,7 @@ class ErrorHelper {
       if (message.length > 100 ||
           message.contains('connection errored') ||
           message.contains('onError callback')) {
-        return 'Error de conexión. Verifique su conexión a internet e intente nuevamente.';
+        return 'No se pudo conectar con el servidor. Asegúrate de que el backend esté en ejecución (http://localhost:5000).';
       }
 
       return message;
@@ -66,7 +66,7 @@ class ErrorHelper {
     final errorString = error.toString();
     if (errorString.contains('connection error') ||
         errorString.contains('XMLHttpRequest')) {
-      return 'Error de conexión. Verifique su conexión a internet e intente nuevamente.';
+      return 'No se pudo conectar con el servidor. Asegúrate de que el backend esté en ejecución (http://localhost:5000).';
     }
 
     return 'Ha ocurrido un error. Por favor, intente nuevamente.';
@@ -136,7 +136,7 @@ class ErrorHelper {
       case DioExceptionType.connectionError:
       case DioExceptionType.unknown:
       default:
-        return 'Error de conexión. Verifique su conexión a internet e intente nuevamente.';
+        return 'No se pudo conectar con el servidor. Asegúrate de que el backend esté en ejecución (http://localhost:5000).';
     }
   }
 }
