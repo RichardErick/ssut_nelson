@@ -340,6 +340,28 @@ END $r4$;";
             {
                 logger.LogWarning("Migración 009 (reset_token): {Message}", ex.Message);
             }
+            // Migración 011: pregunta_secreta_id y respuesta_secreta_hash en usuarios (pregunta secreta en registro/recuperación)
+            try
+            {
+                const string preguntaSecretaSql = @"
+DO $r11a$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'usuarios' AND column_name = 'pregunta_secreta_id') THEN
+        ALTER TABLE usuarios ADD COLUMN pregunta_secreta_id INTEGER NULL;
+    END IF;
+END $r11a$;
+DO $r11b$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'usuarios' AND column_name = 'respuesta_secreta_hash') THEN
+        ALTER TABLE usuarios ADD COLUMN respuesta_secreta_hash VARCHAR(255) NULL;
+    END IF;
+END $r11b$;";
+                db.Database.ExecuteSqlRaw(preguntaSecretaSql);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Migración 011 (pregunta_secreta): {Message}", ex.Message);
+            }
         }
         //aqui no deberia entrar nunca
         else
