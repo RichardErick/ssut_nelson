@@ -428,6 +428,18 @@ public class AuthController : ControllerBase
             .Where(u => u.Activo && (u.Rol == UsuarioRol.Administrador || u.Rol == UsuarioRol.AdministradorDocumentos))
             .ToListAsync();
 
+        // Si no hay admins por rol, notificar al usuario "admin" por nombre (fallback)
+        if (admins.Count == 0)
+        {
+            var fallbackAdmin = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Activo && u.NombreUsuario.ToLower() == "admin");
+            if (fallbackAdmin != null)
+            {
+                admins = new List<Usuario> { fallbackAdmin };
+                _logger.LogWarning("SolicitudRecuperacion: no se encontraron admins por rol; se usó fallback por usuario 'admin' (Id={Id}). Revisa que el rol del admin en BD sea 'Administrador' o 'AdministradorSistema'.", fallbackAdmin.Id);
+            }
+        }
+
         if (admins.Count > 0)
         {
             var titulo = tipo == "username"
@@ -440,7 +452,7 @@ public class AuthController : ControllerBase
                     ? $"{usuario.NombreCompleto} ({usuario.NombreUsuario}), Email: {usuario.Email}"
                     : string.Join(", ", new[] { !string.IsNullOrWhiteSpace(username) ? $"usuario: {username}" : null, !string.IsNullOrWhiteSpace(email) ? $"email: {email}" : null }.Where(x => x != null));
                 if (usuario == null && string.IsNullOrEmpty(datosUsuario)) datosUsuario = "(sin datos)";
-                mensaje = $"El usuario {datosUsuario} está intentando recuperar contraseña, visualizar contraseña o asignar nueva. Revisa en Gestión de Usuarios y restablece la contraseña o genera un código." + (usuario != null ? $" (UsuarioId: {usuario.Id})" : "");
+                mensaje = $"El usuario {datosUsuario} está intentando recuperar su contraseña. Revisa en Gestión de Usuarios (administrador del sistema) y restablece la contraseña o genera un código." + (usuario != null ? $" (UsuarioId: {usuario.Id})" : "");
             }
             else
             {
@@ -462,12 +474,18 @@ public class AuthController : ControllerBase
                     Leida = false
                 });
             }
-            try { await _context.SaveChangesAsync(); }
+            try
+            {
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("SolicitudRecuperacion: se crearon {Count} alertas para administradores (solicitud tipo={Tipo}).", admins.Count, tipo);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "SolicitudRecuperacion: no se pudieron guardar las alertas para los administradores. Revisa que la tabla alertas exista y tenga las columnas correctas.");
             }
         }
+        else
+            _logger.LogWarning("SolicitudRecuperacion: no hay administradores activos en el sistema; no se creó ninguna notificación.");
 
         return Ok(new
         {
