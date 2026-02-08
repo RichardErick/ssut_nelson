@@ -369,6 +369,34 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Verifica que la respuesta secreta sea correcta antes de permitir cambiar la contraseña.
+    /// No cambia la contraseña; solo valida usuario + pregunta + respuesta. Mismo horario 8:00–18:00.
+    /// </summary>
+    [HttpPost("verificar-respuesta-secreta")]
+    public async Task<ActionResult> VerificarRespuestaSecreta([FromBody] VerificarRespuestaSecretaRequest dto)
+    {
+        var now = DateTime.Now;
+        if (now.Hour < 8 || now.Hour > 18)
+            return BadRequest(new { message = "La recuperación de contraseña solo está disponible de 8:00 a 18:00." });
+
+        if (string.IsNullOrWhiteSpace(dto?.Username) || dto.PreguntaSecretaId <= 0 || string.IsNullOrWhiteSpace(dto?.RespuestaSecreta))
+            return BadRequest(new { message = "Usuario, pregunta y respuesta son obligatorios." });
+
+        var usuario = await _context.Usuarios
+            .FirstOrDefaultAsync(u => u.NombreUsuario == dto.Username!.Trim());
+        if (usuario == null)
+            return BadRequest(new { message = "Usuario o respuesta incorrectos. Vuelve a intentar." });
+
+        if (usuario.PreguntaSecretaId != dto.PreguntaSecretaId || string.IsNullOrEmpty(usuario.RespuestaSecretaHash))
+            return BadRequest(new { message = "Usuario o respuesta incorrectos. Vuelve a intentar." });
+
+        if (!VerifyPassword(dto.RespuestaSecreta!.Trim(), usuario.RespuestaSecretaHash!))
+            return BadRequest(new { message = "Usuario o respuesta incorrectos. Vuelve a intentar." });
+
+        return Ok(new { verified = true, message = "Respuesta correcta. Ahora puedes definir tu nueva contraseña." });
+    }
+
+    /// <summary>
     /// Crea una solicitud de recuperación y notifica a los administradores (para que generen un código o contacten al usuario).
     /// No requiere autenticación. No revela si el email/usuario existe.
     /// </summary>
@@ -818,6 +846,13 @@ public class RegisterRequest
     /// <summary>ID de la pregunta de seguridad (1-10). Obligatorio.</summary>
     public int PreguntaSecretaId { get; set; }
     /// <summary>Respuesta de seguridad. Obligatoria.</summary>
+    public string? RespuestaSecreta { get; set; }
+}
+
+public class VerificarRespuestaSecretaRequest
+{
+    public string? Username { get; set; }
+    public int PreguntaSecretaId { get; set; }
     public string? RespuestaSecreta { get; set; }
 }
 

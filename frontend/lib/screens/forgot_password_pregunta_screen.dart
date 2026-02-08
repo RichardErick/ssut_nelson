@@ -29,6 +29,8 @@ class _ForgotPasswordPreguntaScreenState extends State<ForgotPasswordPreguntaScr
   bool _obscureConfirm = true;
   bool _obscureRespuesta = true;
   bool _isLoading = false;
+  /// Solo después de verificar la respuesta se muestran los campos de nueva contraseña.
+  bool _respuestaVerificada = false;
 
   @override
   void initState() {
@@ -87,7 +89,78 @@ class _ForgotPasswordPreguntaScreenState extends State<ForgotPasswordPreguntaScr
     return h >= 8 && h <= 18;
   }
 
+  /// Paso 1: verificar que usuario + pregunta + respuesta sean correctos.
+  Future<void> _verificarRespuesta() async {
+    if (!_dentroHorario) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La recuperación solo está disponible de 8:00 a 18:00.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    final user = _usernameController.text.trim();
+    final resp = _respuestaController.text.trim();
+    if (user.isEmpty || resp.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ingresa tu usuario y tu respuesta.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    if (_preguntaSecretaId <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Elige la pregunta que configuraste al registrarte.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final api = Provider.of<ApiService>(context, listen: false);
+      await api.post('auth/verificar-respuesta-secreta', data: {
+        'username': user,
+        'preguntaSecretaId': _preguntaSecretaId,
+        'respuestaSecreta': resp,
+      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _respuestaVerificada = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Respuesta correcta. Ahora define tu nueva contraseña.'),
+            backgroundColor: Colors.green.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ErrorHelper.getErrorMessage(e)),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Paso 2: tras verificar la respuesta, enviar nueva contraseña.
   Future<void> _submit() async {
+    if (!_respuestaVerificada) return;
     if (!_dentroHorario) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -99,10 +172,20 @@ class _ForgotPasswordPreguntaScreenState extends State<ForgotPasswordPreguntaScr
       return;
     }
     if (!_formKey.currentState!.validate()) return;
-    if (_preguntaSecretaId <= 0) {
+    if (_passwordController.text.trim().length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Elige la pregunta que configuraste al registrarte'),
+          content: Text('La nueva contraseña debe tener al menos 6 caracteres.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    if (_passwordController.text.trim() != _confirmPasswordController.text.trim()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Las contraseñas no coinciden.'),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
         ),
@@ -183,7 +266,9 @@ class _ForgotPasswordPreguntaScreenState extends State<ForgotPasswordPreguntaScr
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Ingresa tu usuario, la pregunta que elegiste al registrarte, tu respuesta y la nueva contraseña.',
+                          _respuestaVerificada
+                              ? 'Respuesta correcta. Define tu nueva contraseña.'
+                              : 'Ingresa tu usuario, la pregunta y tu respuesta. Solo si acertaste podrás cambiar la contraseña.',
                           style: GoogleFonts.inter(fontSize: 13, color: Colors.white70),
                           textAlign: TextAlign.center,
                         ),
@@ -221,68 +306,110 @@ class _ForgotPasswordPreguntaScreenState extends State<ForgotPasswordPreguntaScr
                                 validator: (v) =>
                                     (v ?? '').trim().isEmpty ? 'Ingresa tu respuesta' : null,
                               ),
-                              const SizedBox(height: 14),
-                              _buildField(
-                                controller: _passwordController,
-                                label: 'Nueva contraseña',
-                                hint: 'Mínimo 6 caracteres',
-                                icon: Icons.lock_outline_rounded,
-                                obscureText: _obscurePassword,
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                    color: Colors.white70,
-                                    size: 20,
+                              if (!_respuestaVerificada) ...[
+                                const SizedBox(height: 24),
+                                if (!_dentroHorario)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Text(
+                                      'Fuera de horario: la recuperación solo está disponible de 8:00 a 18:00.',
+                                      style: GoogleFonts.inter(fontSize: 12, color: Colors.orange.shade200),
+                                      textAlign: TextAlign.center,
+                                    ),
                                   ),
-                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                ),
-                                validator: (v) =>
-                                    (v ?? '').trim().length < 6 ? 'Mínimo 6 caracteres' : null,
-                              ),
-                              const SizedBox(height: 14),
-                              _buildField(
-                                controller: _confirmPasswordController,
-                                label: 'Confirmar contraseña',
-                                hint: 'Repite la nueva contraseña',
-                                icon: Icons.lock_outline_rounded,
-                                obscureText: _obscureConfirm,
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                    color: Colors.white70,
-                                    size: 20,
+                                FilledButton(
+                                  onPressed: (_isLoading || !_dentroHorario) ? null : _verificarRespuesta,
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.blue.shade700,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
-                                  onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          height: 22,
+                                          width: 22,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                        )
+                                      : const Text('Verificar respuesta'),
                                 ),
-                                validator: (v) =>
-                                    (v ?? '').trim() != _passwordController.text.trim() ? 'No coinciden' : null,
-                              ),
-                              const SizedBox(height: 24),
-                              if (!_dentroHorario)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
+                              ],
+                              if (_respuestaVerificada) ...[
+                                const SizedBox(height: 14),
+                                _buildField(
+                                  controller: _passwordController,
+                                  label: 'Nueva contraseña',
+                                  hint: 'Mínimo 6 caracteres',
+                                  icon: Icons.lock_outline_rounded,
+                                  obscureText: _obscurePassword,
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                      color: Colors.white70,
+                                      size: 20,
+                                    ),
+                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                  ),
+                                  validator: (v) =>
+                                      (v ?? '').trim().length < 6 ? 'Mínimo 6 caracteres' : null,
+                                ),
+                                const SizedBox(height: 14),
+                                _buildField(
+                                  controller: _confirmPasswordController,
+                                  label: 'Confirmar contraseña',
+                                  hint: 'Repite la nueva contraseña',
+                                  icon: Icons.lock_outline_rounded,
+                                  obscureText: _obscureConfirm,
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                      color: Colors.white70,
+                                      size: 20,
+                                    ),
+                                    onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                                  ),
+                                  validator: (v) =>
+                                      (v ?? '').trim() != _passwordController.text.trim() ? 'No coinciden' : null,
+                                ),
+                                const SizedBox(height: 24),
+                                if (!_dentroHorario)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Text(
+                                      'Fuera de horario: la recuperación solo está disponible de 8:00 a 18:00.',
+                                      style: GoogleFonts.inter(fontSize: 12, color: Colors.orange.shade200),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                FilledButton(
+                                  onPressed: (_isLoading || !_dentroHorario) ? null : _submit,
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.blue.shade700,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          height: 22,
+                                          width: 22,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                        )
+                                      : const Text('Restablecer contraseña'),
+                                ),
+                                const SizedBox(height: 8),
+                                TextButton(
+                                  onPressed: () => setState(() {
+                                    _respuestaVerificada = false;
+                                    _passwordController.clear();
+                                    _confirmPasswordController.clear();
+                                  }),
                                   child: Text(
-                                    'Fuera de horario: la recuperación solo está disponible de 8:00 a 18:00.',
-                                    style: GoogleFonts.inter(fontSize: 12, color: Colors.orange.shade200),
-                                    textAlign: TextAlign.center,
+                                    'Usar otra respuesta',
+                                    style: TextStyle(color: Colors.white70, fontSize: 13),
                                   ),
                                 ),
-                              FilledButton(
-                                onPressed: (_isLoading || !_dentroHorario) ? null : _submit,
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: Colors.blue.shade700,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        height: 22,
-                                        width: 22,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                      )
-                                    : const Text('Restablecer contraseña'),
-                              ),
+                              ],
                             ],
                           ),
                         ),
