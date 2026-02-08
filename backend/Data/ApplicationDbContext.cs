@@ -135,7 +135,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(u => u.Rol)
                 .HasConversion(
                     v => v.ToString(),  // Convertir enum a string al escribir
-                    v => (UsuarioRol)Enum.Parse(typeof(UsuarioRol), v, true)  // Convertir string a enum al leer
+                    v => ParseRolFromDb(v)  // Al leer: aceptar "Administrador" o "AdministradorSistema" como Administrador
                 )
                 .HasColumnType("text");  // Usar text para almacenar como string
             
@@ -315,5 +315,15 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(dpc => dpc.PalabraClaveId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+    }
+
+    /// <summary>Convierte el valor de rol en BD a enum; acepta "AdministradorSistema" como Administrador.</summary>
+    private static UsuarioRol ParseRolFromDb(string? v)
+    {
+        if (string.IsNullOrWhiteSpace(v)) return UsuarioRol.Contador;
+        var normalized = v.Trim();
+        if (string.Equals(normalized, "AdministradorSistema", StringComparison.OrdinalIgnoreCase))
+            return UsuarioRol.Administrador;
+        return Enum.TryParse<UsuarioRol>(normalized, true, out var rol) ? rol : UsuarioRol.Contador;
     }
 }

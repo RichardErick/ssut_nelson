@@ -19,12 +19,14 @@ public class AuthController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly IEmailSender _emailSender;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(ApplicationDbContext context, IConfiguration configuration, IEmailSender emailSender)
+    public AuthController(ApplicationDbContext context, IConfiguration configuration, IEmailSender emailSender, ILogger<AuthController> logger)
     {
         _context = context;
         _configuration = configuration;
         _emailSender = emailSender;
+        _logger = logger;
     }
 
     /// <summary>Lista de preguntas de seguridad para registro y recuperación de contraseña.</summary>
@@ -461,7 +463,10 @@ public class AuthController : ControllerBase
                 });
             }
             try { await _context.SaveChangesAsync(); }
-            catch (Exception ex) { /* No revelar al cliente; log en servidor si se desea: ex.Message */ _ = ex; }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "SolicitudRecuperacion: no se pudieron guardar las alertas para los administradores. Revisa que la tabla alertas exista y tenga las columnas correctas.");
+            }
         }
 
         return Ok(new
