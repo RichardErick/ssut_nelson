@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -932,7 +931,6 @@ public class DocumentosController : ControllerBase
 
     // GET: api/documentos/anexos/{anexoId}/download
     [HttpGet("anexos/{anexoId}/download")]
-    [EnableCors("AllowFlutterApp")]
     public async Task<ActionResult> DescargarAnexo(int anexoId)
     {
         var anexo = await _context.Anexos.FirstOrDefaultAsync(a => a.Id == anexoId && a.Activo);

@@ -47,14 +47,14 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// CORS - Permitir TODO (desarrollo)
+// CORS - Permitir TODO (desarrollo); Authorization explícito para descarga de anexos desde Flutter web
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
         policy.AllowAnyOrigin()
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .WithHeaders("Authorization", "Content-Type", "Accept", "Origin");
     });
 });
 
