@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'forgot_password_admin_screen.dart';
 import 'forgot_password_pregunta_screen.dart';
-import 'forgot_username_screen.dart';
 import '../widgets/animated_background.dart';
 import '../widgets/glass_container.dart';
 
@@ -65,19 +64,9 @@ class ForgotPasswordScreen extends StatelessWidget {
                     const SizedBox(height: 10),
 
                     _OptionTile(
-                      icon: Icons.person_search_rounded,
-                      title: 'No recuerdo mi usuario',
-                      subtitle: 'Ingresa tu correo; los administradores recibirán una notificación y podrán ayudarte.',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ForgotUsernameScreen()),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    _OptionTile(
                       icon: Icons.help_outline_rounded,
                       title: 'Pregunta secreta',
-                      subtitle: 'No disponible en esta versión.',
+                      subtitle: 'Responde la pregunta que configuraste al registrarte.',
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => const ForgotPasswordPreguntaScreen()),
                       ),

@@ -23,10 +23,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _fullnameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _respuestaSecretaController = TextEditingController();
   
   String _selectedRole = 'Contador';
+  int _preguntaSecretaId = 0;
+  List<Map<String, dynamic>> _preguntasSecretas = [];
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _preguntasLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreguntasSecretas();
+  }
+
+  Future<void> _loadPreguntasSecretas() async {
+    try {
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      final response = await apiService.get('/auth/preguntas-secretas');
+      final list = response.data is List ? response.data as List : [];
+      if (mounted) {
+        setState(() {
+          _preguntasSecretas = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          if (_preguntasSecretas.isNotEmpty && _preguntaSecretaId == 0) {
+            _preguntaSecretaId = (_preguntasSecretas.first['id'] as num?)?.toInt() ?? 1;
+          }
+          _preguntasLoaded = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _preguntasSecretas = [
+            {'id': 1, 'texto': '¿Cuál es el nombre de tu madre?'},
+            {'id': 2, 'texto': '¿Cuál es el nombre de tu primera mascota?'},
+            {'id': 3, 'texto': '¿En qué ciudad naciste?'},
+            {'id': 4, 'texto': '¿Cuál es tu color favorito?'},
+            {'id': 5, 'texto': '¿Nombre de tu mejor amigo de la infancia?'},
+            {'id': 6, 'texto': '¿Cuál fue tu primer trabajo?'},
+            {'id': 7, 'texto': '¿Cuál es el segundo nombre de tu padre?'},
+            {'id': 8, 'texto': '¿En qué colegio estudiaste la primaria?'},
+            {'id': 9, 'texto': '¿Cuál es tu película favorita?'},
+            {'id': 10, 'texto': '¿Cuál es tu comida favorita?'},
+          ];
+          _preguntaSecretaId = 1;
+          _preguntasLoaded = true;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -34,14 +80,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _fullnameController.dispose();
     _emailController.dispose();
+    _respuestaSecretaController.dispose();
     super.dispose();
   }
 
   Future<void> _handleRegister() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+    if (!_formKey.currentState!.validate()) return;
+    if (_preguntaSecretaId <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Elige una pregunta de seguridad'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    if ((_respuestaSecretaController.text).trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La respuesta de seguridad es obligatoria'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
 
-      try {
+    try {
         final apiService = Provider.of<ApiService>(context, listen: false);
         
         await apiService.post('/auth/register', data: {
@@ -50,6 +117,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'nombreCompleto': _fullnameController.text,
           'email': _emailController.text,
           'rol': _selectedRole,
+          'preguntaSecretaId': _preguntaSecretaId,
+          'respuestaSecreta': _respuestaSecretaController.text.trim(),
         });
 
         if (mounted) {
@@ -87,9 +156,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             buttonText: 'Entendido',
           );
         }
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
-      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -227,7 +295,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           isPassword: true,
                           validator: FormValidators.password,
                         ),
-                        
+                        const SizedBox(height: 16),
+                        _buildPreguntaSecretaDropdown(),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          controller: _respuestaSecretaController,
+                          label: 'Respuesta de seguridad',
+                          hint: 'Tu respuesta a la pregunta (obligatoria para recuperar contraseña)',
+                          icon: Icons.help_outline_rounded,
+                          validator: (v) {
+                            if ((v ?? '').trim().isEmpty) return 'La respuesta de seguridad es obligatoria';
+                            return null;
+                          },
+                        ),
                         const SizedBox(height: 40),
                         
                         SizedBox(
@@ -267,6 +347,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPreguntaSecretaDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Pregunta de seguridad (obligatoria)',
+            style: GoogleFonts.inter(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              value: _preguntaSecretaId > 0 ? _preguntaSecretaId : null,
+              isExpanded: true,
+              dropdownColor: Colors.blue.shade900,
+              style: const TextStyle(color: Colors.white),
+              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+              hint: Text(
+                _preguntasLoaded ? 'Elige una pregunta' : 'Cargando...',
+                style: TextStyle(color: Colors.white.withOpacity(0.7)),
+              ),
+              items: _preguntasSecretas.map((p) {
+                final id = (p['id'] as num?)?.toInt() ?? 0;
+                final texto = p['texto'] as String? ?? '';
+                return DropdownMenuItem<int>(
+                  value: id,
+                  child: Text(texto, overflow: TextOverflow.ellipsis),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _preguntaSecretaId = val);
+              },
+            ),
+          ),
+        ),
+        if (_preguntasLoaded && _preguntaSecretaId == 0)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 4),
+            child: Text(
+              'Elige una pregunta de seguridad',
+              style: GoogleFonts.inter(fontSize: 12, color: Colors.red.shade200),
+            ),
+          ),
+      ],
     );
   }
 

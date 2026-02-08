@@ -74,6 +74,15 @@ public class Usuario
     [Column("reset_token_expiry")]
     public DateTime? ResetTokenExpiry { get; set; }
 
+    /// <summary>ID de la pregunta de seguridad elegida al registrarse (1-N).</summary>
+    [Column("pregunta_secreta_id")]
+    public int? PreguntaSecretaId { get; set; }
+
+    /// <summary>Hash de la respuesta de seguridad.</summary>
+    [Column("respuesta_secreta_hash")]
+    [StringLength(255)]
+    public string? RespuestaSecretaHash { get; set; }
+
     // Relaciones
     public virtual ICollection<Documento> DocumentosResponsable { get; set; } = new List<Documento>();
     public virtual ICollection<Movimiento> Movimientos { get; set; } = new List<Movimiento>();

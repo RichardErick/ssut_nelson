@@ -27,6 +27,29 @@ public class AuthController : ControllerBase
         _emailSender = emailSender;
     }
 
+    /// <summary>Lista de preguntas de seguridad para registro y recuperación de contraseña.</summary>
+    private static readonly IReadOnlyList<(int Id, string Texto)> PreguntasSecretas = new List<(int, string)>
+    {
+        (1, "¿Cuál es el nombre de tu madre?"),
+        (2, "¿Cuál es el nombre de tu primera mascota?"),
+        (3, "¿En qué ciudad naciste?"),
+        (4, "¿Cuál es tu color favorito?"),
+        (5, "¿Nombre de tu mejor amigo de la infancia?"),
+        (6, "¿Cuál fue tu primer trabajo?"),
+        (7, "¿Cuál es el segundo nombre de tu padre?"),
+        (8, "¿En qué colegio estudiaste la primaria?"),
+        (9, "¿Cuál es tu película favorita?"),
+        (10, "¿Cuál es tu comida favorita?"),
+    };
+
+    /// <summary>Devuelve la lista de preguntas de seguridad (para registro y recuperación).</summary>
+    [HttpGet("preguntas-secretas")]
+    public ActionResult PreguntasSecretasList()
+    {
+        var list = PreguntasSecretas.Select(p => new { id = p.Id, texto = p.Texto }).ToList();
+        return Ok(list);
+    }
+
     [HttpPost("register")]
     public async Task<ActionResult> Register([FromBody] RegisterRequest dto)
     {
@@ -35,6 +58,11 @@ public class AuthController : ControllerBase
             string.IsNullOrWhiteSpace(dto.NombreCompleto) ||
             string.IsNullOrWhiteSpace(dto.Email))
             return BadRequest(new { message = "Todos los campos son obligatorios" });
+
+        if (dto.PreguntaSecretaId <= 0 || dto.PreguntaSecretaId > PreguntasSecretas.Count)
+            return BadRequest(new { message = "Elige una pregunta de seguridad válida." });
+        if (string.IsNullOrWhiteSpace(dto.RespuestaSecreta))
+            return BadRequest(new { message = "La respuesta de seguridad es obligatoria." });
 
         var username = dto.Username.Trim();
         var email = dto.Email.Trim();
@@ -58,6 +86,8 @@ public class AuthController : ControllerBase
             PasswordHash = HashPassword(dto.Password),
             Rol = rolEnum,
             Activo = false,
+            PreguntaSecretaId = dto.PreguntaSecretaId,
+            RespuestaSecretaHash = HashPassword(dto.RespuestaSecreta!.Trim()),
             FechaRegistro = DateTime.UtcNow,
             FechaActualizacion = DateTime.UtcNow
         };
@@ -288,6 +318,40 @@ public class AuthController : ControllerBase
             .FirstOrDefaultAsync(u => u.NombreUsuario == username && u.ResetToken == code && u.ResetTokenExpiry.HasValue && u.ResetTokenExpiry.Value > DateTime.UtcNow);
         if (usuario == null)
             return BadRequest(new { message = "Usuario o código incorrectos, o el código ha expirado. Pide un nuevo código a tu administrador." });
+
+        try
+        {
+            await ApplyPasswordReset(usuario, dto.NewPassword);
+            return Ok(new { message = "Contraseña actualizada. Ya puedes iniciar sesión." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al guardar. Intenta de nuevo.", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Restablece la contraseña usando usuario + pregunta de seguridad + respuesta. No requiere autenticación.
+    /// </summary>
+    [HttpPost("reset-password-by-pregunta")]
+    public async Task<ActionResult> ResetPasswordByPregunta([FromBody] ResetPasswordByPreguntaRequest dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto?.Username) || dto.PreguntaSecretaId <= 0 ||
+            string.IsNullOrWhiteSpace(dto?.Respuesta) || string.IsNullOrWhiteSpace(dto?.NewPassword))
+            return BadRequest(new { message = "Usuario, pregunta, respuesta y nueva contraseña son obligatorios." });
+        if (dto.NewPassword!.Length < 6)
+            return BadRequest(new { message = "La nueva contraseña debe tener al menos 6 caracteres." });
+
+        var usuario = await _context.Usuarios
+            .FirstOrDefaultAsync(u => u.NombreUsuario == dto.Username!.Trim());
+        if (usuario == null)
+            return BadRequest(new { message = "Usuario o respuesta incorrectos. Vuelve a intentar." });
+
+        if (usuario.PreguntaSecretaId != dto.PreguntaSecretaId || string.IsNullOrEmpty(usuario.RespuestaSecretaHash))
+            return BadRequest(new { message = "Usuario o respuesta incorrectos. Vuelve a intentar." });
+
+        if (!VerifyPassword(dto.Respuesta!.Trim(), usuario.RespuestaSecretaHash!))
+            return BadRequest(new { message = "Usuario o respuesta incorrectos. Vuelve a intentar." });
 
         try
         {
@@ -679,6 +743,18 @@ public class RegisterRequest
     public string NombreCompleto { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Rol { get; set; } = "Contador";
+    /// <summary>ID de la pregunta de seguridad (1-10). Obligatorio.</summary>
+    public int PreguntaSecretaId { get; set; }
+    /// <summary>Respuesta de seguridad. Obligatoria.</summary>
+    public string? RespuestaSecreta { get; set; }
+}
+
+public class ResetPasswordByPreguntaRequest
+{
+    public string? Username { get; set; }
+    public int PreguntaSecretaId { get; set; }
+    public string? Respuesta { get; set; }
+    public string? NewPassword { get; set; }
 }
 
 public class LoginRequest
