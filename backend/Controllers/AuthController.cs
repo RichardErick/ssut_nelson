@@ -415,23 +415,38 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Indica tu correo o tu usuario para que el administrador pueda ayudarte." });
 
         Usuario? usuario = null;
-        if (!string.IsNullOrWhiteSpace(email))
-            usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
-        else if (!string.IsNullOrWhiteSpace(username))
-            usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == username);
+        var emailNorm = email?.Trim().ToLowerInvariant();
+        var usernameNorm = username?.Trim().ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(emailNorm))
+            usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == emailNorm);
+        if (usuario == null && !string.IsNullOrWhiteSpace(usernameNorm))
+            usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario.ToLower() == usernameNorm);
 
         var admins = await _context.Usuarios
             .Where(u => u.Activo && (u.Rol == UsuarioRol.Administrador || u.Rol == UsuarioRol.AdministradorDocumentos))
             .ToListAsync();
 
-        if (admins.Count > 0 && usuario != null)
+        if (admins.Count > 0)
         {
             var titulo = tipo == "username"
                 ? "Solicitud: recuperar usuario (olvidó su usuario)"
                 : "Solicitud: recuperación de contraseña";
-            var mensaje = tipo == "username"
-                ? $"Alguien solicitó recordar su usuario. Email: {usuario.Email}. Usuario: {usuario.NombreCompleto} ({usuario.NombreUsuario}). Genera un código de recuperación desde Gestión de Usuarios si lo consideras. (UsuarioId: {usuario.Id})"
-                : $"Solicitud de recuperación de contraseña. Usuario: {usuario.NombreCompleto} ({usuario.NombreUsuario}), Email: {usuario.Email}. Genera un código desde Gestión de Usuarios → menú del usuario → 'Generar código recuperación'. (UsuarioId: {usuario.Id})";
+            string mensaje;
+            if (tipo == "password")
+            {
+                var datosUsuario = usuario != null
+                    ? $"{usuario.NombreCompleto} ({usuario.NombreUsuario}), Email: {usuario.Email}"
+                    : string.Join(", ", new[] { !string.IsNullOrWhiteSpace(username) ? $"usuario: {username}" : null, !string.IsNullOrWhiteSpace(email) ? $"email: {email}" : null }.Where(x => x != null));
+                if (usuario == null && string.IsNullOrEmpty(datosUsuario)) datosUsuario = "(sin datos)";
+                mensaje = $"El usuario {datosUsuario} está intentando recuperar contraseña, visualizar contraseña o asignar nueva. Revisa en Gestión de Usuarios y restablece la contraseña o genera un código." + (usuario != null ? $" (UsuarioId: {usuario.Id})" : "");
+            }
+            else
+            {
+                if (usuario != null)
+                    mensaje = $"El usuario {usuario.NombreCompleto} ({usuario.NombreUsuario}), Email: {usuario.Email} está intentando recuperar su usuario. Revisa en Gestión de Usuarios y genera un código si corresponde. (UsuarioId: {usuario.Id})";
+                else
+                    mensaje = $"Alguien está intentando recuperar su usuario. Datos indicados: Email: {email ?? "(no indicado)"}. Revisa en Gestión de Usuarios si existe y genera un código si corresponde.";
+            }
 
             foreach (var admin in admins)
             {
@@ -445,7 +460,8 @@ public class AuthController : ControllerBase
                     Leida = false
                 });
             }
-            try { await _context.SaveChangesAsync(); } catch { /* no revelar error */ }
+            try { await _context.SaveChangesAsync(); }
+            catch (Exception ex) { /* No revelar al cliente; log en servidor si se desea: ex.Message */ _ = ex; }
         }
 
         return Ok(new
