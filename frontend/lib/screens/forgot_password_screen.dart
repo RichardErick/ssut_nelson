@@ -6,9 +6,13 @@ import 'forgot_password_pregunta_screen.dart';
 import '../widgets/animated_background.dart';
 import '../widgets/glass_container.dart';
 
-/// Pantalla inicial de recuperación: solo muestra las opciones. Cada opción abre otra pantalla (no se mezcla todo).
+/// Pantalla inicial de recuperación. Solo disponible de 8:00 a 18:00.
 class ForgotPasswordScreen extends StatelessWidget {
   const ForgotPasswordScreen({super.key});
+
+  /// Recuperación permitida solo entre 8:00 y 18:00 (hora local del dispositivo).
+  static bool get _dentroHorario => _horaActual >= 8 && _horaActual <= 18;
+  static int get _horaActual => DateTime.now().hour;
 
   @override
   Widget build(BuildContext context) {
@@ -43,34 +47,51 @@ class ForgotPasswordScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      'Elige una opción.',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: Colors.white70,
+                    if (!_dentroHorario) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange.shade300),
+                        ),
+                        child: Text(
+                          'La recuperación de contraseña solo está disponible de 8:00 a 18:00. Vuelve en ese horario.',
+                          style: GoogleFonts.inter(fontSize: 14, color: Colors.white, height: 1.4),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
+                    ] else ...[
+                      Text(
+                        'Elige una opción.',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: Colors.white70,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
 
-                    _OptionTile(
-                      icon: Icons.admin_panel_settings_rounded,
-                      title: 'Que un administrador la restablezca',
-                      subtitle: 'El admin pone tu nueva contraseña en Gestión de Usuarios y te la comunica.',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ForgotPasswordAdminScreen()),
+                      _OptionTile(
+                        icon: Icons.admin_panel_settings_rounded,
+                        title: 'Que un administrador la restablezca',
+                        subtitle: 'El admin pone tu nueva contraseña en Gestión de Usuarios y te la comunica.',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const ForgotPasswordAdminScreen()),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
+                      const SizedBox(height: 10),
 
-                    _OptionTile(
-                      icon: Icons.help_outline_rounded,
-                      title: 'Pregunta secreta',
-                      subtitle: 'Responde la pregunta que configuraste al registrarte.',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ForgotPasswordPreguntaScreen()),
+                      _OptionTile(
+                        icon: Icons.help_outline_rounded,
+                        title: 'Pregunta secreta',
+                        subtitle: 'Responde la pregunta que configuraste al registrarte.',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const ForgotPasswordPreguntaScreen()),
+                        ),
                       ),
-                    ),
+                    ],
 
                     const SizedBox(height: 28),
                     TextButton.icon(

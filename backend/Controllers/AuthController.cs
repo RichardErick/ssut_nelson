@@ -336,6 +336,10 @@ public class AuthController : ControllerBase
     [HttpPost("reset-password-by-pregunta")]
     public async Task<ActionResult> ResetPasswordByPregunta([FromBody] ResetPasswordByPreguntaRequest dto)
     {
+        var now = DateTime.Now;
+        if (now.Hour < 8 || now.Hour > 18)
+            return BadRequest(new { message = "La recuperación de contraseña solo está disponible de 8:00 a 18:00." });
+
         if (string.IsNullOrWhiteSpace(dto?.Username) || dto.PreguntaSecretaId <= 0 ||
             string.IsNullOrWhiteSpace(dto?.Respuesta) || string.IsNullOrWhiteSpace(dto?.NewPassword))
             return BadRequest(new { message = "Usuario, pregunta, respuesta y nueva contraseña son obligatorios." });

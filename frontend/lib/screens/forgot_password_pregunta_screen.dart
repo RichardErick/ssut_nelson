@@ -80,7 +80,23 @@ class _ForgotPasswordPreguntaScreenState extends State<ForgotPasswordPreguntaScr
     super.dispose();
   }
 
+  /// Recuperación permitida solo entre 8:00 y 18:00 (hora local).
+  bool get _dentroHorario {
+    final h = DateTime.now().hour;
+    return h >= 8 && h <= 18;
+  }
+
   Future<void> _submit() async {
+    if (!_dentroHorario) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La recuperación solo está disponible de 8:00 a 18:00.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     if (_preguntaSecretaId <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -232,8 +248,17 @@ class _ForgotPasswordPreguntaScreenState extends State<ForgotPasswordPreguntaScr
                                     (v ?? '').trim() != _passwordController.text.trim() ? 'No coinciden' : null,
                               ),
                               const SizedBox(height: 24),
+                              if (!_dentroHorario)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Text(
+                                    'Fuera de horario: la recuperación solo está disponible de 8:00 a 18:00.',
+                                    style: GoogleFonts.inter(fontSize: 12, color: Colors.orange.shade200),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                               FilledButton(
-                                onPressed: _isLoading ? null : _submit,
+                                onPressed: (_isLoading || !_dentroHorario) ? null : _submit,
                                 style: FilledButton.styleFrom(
                                   backgroundColor: Colors.blue.shade700,
                                   foregroundColor: Colors.white,
