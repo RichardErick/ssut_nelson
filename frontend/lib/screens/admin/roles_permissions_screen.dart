@@ -968,6 +968,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     SizedBox(
                       width: dropdownWidth,
                       child: DropdownButtonFormField<String?>(
+                        isExpanded: true,
                         value: _selectedRolFilter,
                         decoration: InputDecoration(
                           labelText: 'Filtrar por Rol',
@@ -1001,6 +1002,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     SizedBox(
                       width: dropdownWidth,
                       child: DropdownButtonFormField<String?>(
+                        isExpanded: true,
                         value: _selectedAreaFilter,
                         decoration: InputDecoration(
                           labelText: 'Filtrar por Área',
@@ -1033,6 +1035,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     SizedBox(
                       width: isDesktop ? 200.0 : dropdownWidth,
                       child: DropdownButtonFormField<bool?>(
+                        isExpanded: true,
                         value: _selectedEstadoFilter,
                         decoration: InputDecoration(
                           labelText: 'Estado',

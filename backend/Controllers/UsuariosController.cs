@@ -384,8 +384,9 @@ public class UsuariosController : ControllerBase
         var auditorias = await _context.Auditoria.Where(a => a.UsuarioId == id).ToListAsync();
         foreach (var a in auditorias) a.UsuarioId = null;
 
+        // Eliminar filas de historial_documento que referencian al usuario (la BD puede no permitir NULL en usuario_id)
         var historiales = await _context.HistorialesDocumento.Where(h => h.UsuarioId == id).ToListAsync();
-        foreach (var h in historiales) h.UsuarioId = null;
+        _context.HistorialesDocumento.RemoveRange(historiales);
 
         var configs = await _context.Configuraciones.Where(c => c.ActualizadoPor == id).ToListAsync();
         foreach (var c in configs) c.ActualizadoPor = null;
