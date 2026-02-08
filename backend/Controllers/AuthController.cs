@@ -573,6 +573,28 @@ public class AuthController : ControllerBase
             .Distinct()
             .ToList();
 
+        var tienePreguntaSecreta = usuario.PreguntaSecretaId.HasValue && !string.IsNullOrEmpty(usuario.RespuestaSecretaHash);
+
+        if (!tienePreguntaSecreta)
+        {
+            var yaTieneAlerta = await _context.Alertas.AnyAsync(a =>
+                a.UsuarioId == usuario.Id && !a.Leida &&
+                (a.Titulo == "Pregunta secreta pendiente" || a.Mensaje.Contains("pregunta secreta")));
+            if (!yaTieneAlerta)
+            {
+                _context.Alertas.Add(new Alerta
+                {
+                    UsuarioId = usuario.Id,
+                    Titulo = "Pregunta secreta pendiente",
+                    Mensaje = "Por normas de seguridad es necesario que configures tu pregunta secreta por si olvidas la contraseña. Podrás elegir la pregunta y tu respuesta.",
+                    TipoAlerta = "warning",
+                    FechaCreacion = DateTime.UtcNow,
+                    Leida = false
+                });
+                try { await _context.SaveChangesAsync(); } catch { /* no fallar login */ }
+            }
+        }
+
         return Ok(new
         {
             token,
@@ -584,7 +606,8 @@ public class AuthController : ControllerBase
                 usuario.Email,
                 usuario.Rol,
                 usuario.AreaId,
-                usuario.Activo
+                usuario.Activo,
+                tienePreguntaSecreta
             },
             permisos = effectivePermissions
         });
@@ -607,6 +630,7 @@ public class AuthController : ControllerBase
             if (usuarioById == null)
                 return Unauthorized(new { message = "Sesión inválida" });
 
+            var tienePreguntaSecreta = usuarioById.PreguntaSecretaId.HasValue && !string.IsNullOrEmpty(usuarioById.RespuestaSecretaHash);
             return Ok(new
             {
                 usuarioById.Id,
@@ -620,6 +644,7 @@ public class AuthController : ControllerBase
                 usuarioById.UltimoAcceso,
                 usuarioById.FechaRegistro,
                 usuarioById.FechaActualizacion,
+                tienePreguntaSecreta
             });
         }
 
@@ -637,6 +662,7 @@ public class AuthController : ControllerBase
         if (usuario == null)
             return Unauthorized(new { message = "Sesión inválida" });
 
+        var tienePreguntaSecreta = usuario.PreguntaSecretaId.HasValue && !string.IsNullOrEmpty(usuario.RespuestaSecretaHash);
         return Ok(new
         {
             usuario.Id,
@@ -647,10 +673,54 @@ public class AuthController : ControllerBase
             usuario.AreaId,
             AreaNombre = usuario.Area != null ? usuario.Area.Nombre : null,
             usuario.Activo,
+            tienePreguntaSecreta,
             usuario.UltimoAcceso,
             usuario.FechaRegistro,
             usuario.FechaActualizacion,
         });
+    }
+
+    /// <summary>Permite al usuario autenticado configurar su pregunta y respuesta de seguridad (usuarios antiguos sin pregunta).</summary>
+    [Authorize]
+    [HttpPut("mi-pregunta-secreta")]
+    public async Task<ActionResult> MiPreguntaSecreta([FromBody] MiPreguntaSecretaRequest dto)
+    {
+        if (dto == null || dto.PreguntaSecretaId <= 0 || dto.PreguntaSecretaId > PreguntasSecretas.Count)
+            return BadRequest(new { message = "Elige una pregunta de seguridad válida." });
+        if (string.IsNullOrWhiteSpace(dto.RespuestaSecreta))
+            return BadRequest(new { message = "La respuesta de seguridad es obligatoria." });
+
+        var idClaim = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idClaim, out var userId))
+            return Unauthorized(new { message = "Sesión inválida" });
+
+        var usuario = await _context.Usuarios.FindAsync(userId);
+        if (usuario == null)
+            return Unauthorized(new { message = "Usuario no encontrado" });
+
+        usuario.PreguntaSecretaId = dto.PreguntaSecretaId;
+        usuario.RespuestaSecretaHash = HashPassword(dto.RespuestaSecreta!.Trim());
+        usuario.FechaActualizacion = DateTime.UtcNow;
+
+        var alertaPendiente = await _context.Alertas
+            .FirstOrDefaultAsync(a => a.UsuarioId == userId && !a.Leida &&
+                (a.Titulo == "Pregunta secreta pendiente" || a.Mensaje.Contains("pregunta secreta")));
+        if (alertaPendiente != null)
+        {
+            alertaPendiente.Leida = true;
+            alertaPendiente.FechaLectura = DateTime.UtcNow;
+        }
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            return StatusCode(500, new { message = "Error al guardar.", error = ex.Message });
+        }
+
+        return Ok(new { message = "Pregunta secreta configurada correctamente.", tienePreguntaSecreta = true });
     }
 
     private string GenerateJwt(SistemaGestionDocumental.Models.Usuario usuario)
@@ -759,6 +829,12 @@ public class ResetPasswordByPreguntaRequest
     public int PreguntaSecretaId { get; set; }
     public string? Respuesta { get; set; }
     public string? NewPassword { get; set; }
+}
+
+public class MiPreguntaSecretaRequest
+{
+    public int PreguntaSecretaId { get; set; }
+    public string? RespuestaSecreta { get; set; }
 }
 
 public class LoginRequest

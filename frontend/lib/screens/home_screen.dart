@@ -17,6 +17,7 @@ import 'notifications_screen.dart';
 import 'qr/qr_scanner_screen.dart';
 import 'reportes/reportes_screen.dart';
 import 'profile_screen.dart';
+import 'configurar_pregunta_secreta_screen.dart';
 import '../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -41,6 +42,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   List<NavigationItem> _navItems = [];
   int? _reportesNavIndex;
+  bool _yaMostreAvisoPreguntaSecreta = false;
+
+  void _mostrarAvisoPreguntaSecretaSiAplica() {
+    if (!mounted) return;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.tienePreguntaSecreta || _yaMostreAvisoPreguntaSecreta) return;
+    _yaMostreAvisoPreguntaSecreta = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.help_outline_rounded, color: Colors.orange),
+            SizedBox(width: 12),
+            Text('Pregunta secreta'),
+          ],
+        ),
+        content: const Text(
+          'Por normas de seguridad es necesario que configures tu pregunta secreta por si olvidas la contraseña. Podrás elegir la pregunta y tu respuesta.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Más tarde'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ConfigurarPreguntaSecretaScreen(),
+                ),
+              ).then((configurado) {
+                if (configurado == true) setState(() {});
+              });
+            },
+            child: const Text('Configurar ahora'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void didChangeDependencies() {
@@ -135,6 +180,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 300),
     );
     _fabController.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _mostrarAvisoPreguntaSecretaSiAplica());
     _fetchUnreadCount();
   }
 

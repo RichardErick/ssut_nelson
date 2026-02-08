@@ -33,6 +33,18 @@ class AuthProvider extends ChangeNotifier {
   UserRole get role => _role;
   int? get userId => _user?['id'] as int?;
 
+  /// True si el usuario ya configuró su pregunta secreta (registro o después).
+  bool get tienePreguntaSecreta => _user?['tienePreguntaSecreta'] == true;
+
+  /// Actualiza el estado local tras configurar la pregunta secreta (sin volver a hacer login).
+  Future<void> setTienePreguntaSecreta() async {
+    if (_user == null) return;
+    _user = Map<String, dynamic>.from(_user!)..['tienePreguntaSecreta'] = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_data', jsonEncode(_user));
+    notifyListeners();
+  }
+
   int _failedAttempts = 0;
   DateTime? _lockoutEndTime;
 

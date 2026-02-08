@@ -11,6 +11,7 @@ import '../services/usuario_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_helper.dart';
 import '../widgets/app_alert.dart';
+import 'configurar_pregunta_secreta_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -602,7 +603,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
         ),
         child: ListTile(
-          onTap: () => _markAsRead(alerta['id']),
+          onTap: () {
+            _markAsRead(alerta['id']);
+            final titulo = alerta['titulo']?.toString() ?? '';
+            if (titulo == 'Pregunta secreta pendiente') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ConfigurarPreguntaSecretaScreen(),
+                ),
+              ).then((configurado) {
+                if (configurado == true && mounted) _loadData();
+              });
+            }
+          },
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 6,
