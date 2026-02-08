@@ -47,18 +47,15 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Configuramos CORS - Permitir todos los orígenes localhost
+// CORS - Permitir TODO (desarrollo)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFlutterApp",
-        policy =>
-        {
-            policy.SetIsOriginAllowed(_ => true) // Permitir todos los orígenes en desarrollo
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials()
-            .WithExposedHeaders("Content-Disposition", "Content-Length");
-        });
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
 });
 
 // Configuramos Postgres
@@ -117,20 +114,13 @@ builder.Services.Configure<Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionOpti
 
 var app = builder.Build();
 
-// OPTIONS (preflight CORS) debe responder 200 sin redirección; si no, el navegador falla con "Redirect is not allowed for a preflight request"
+// Manejar OPTIONS para CORS
 app.Use(async (context, next) =>
 {
     if (context.Request.Method == "OPTIONS")
     {
-        var origin = context.Request.Headers["Origin"].ToString();
-        if (!string.IsNullOrEmpty(origin))
-        {
-            context.Response.Headers["Access-Control-Allow-Origin"] = origin;
-            context.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
-            context.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept";
-            context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
-        }
         context.Response.StatusCode = 200;
+        await context.Response.WriteAsync("");
         return;
     }
     await next();
@@ -149,25 +139,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-// CORS debe estar ANTES de cualquier otro middleware que pueda fallar
-app.UseCors("AllowFlutterApp");
-
-// Asegurar cabeceras CORS en TODAS las respuestas (incl. File/bytes) para evitar bloqueo en Flutter Web
-app.Use(async (context, next) =>
-{
-    var origin = context.Request.Headers["Origin"].ToString();
-    context.Response.OnStarting(() =>
-    {
-        if (string.IsNullOrWhiteSpace(origin)) return Task.CompletedTask;
-        if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
-        {
-            context.Response.Headers["Access-Control-Allow-Origin"] = origin;
-            context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
-        }
-        return Task.CompletedTask;
-    });
-    await next();
-});
+// CORS - debe ir ANTES de routing
+app.UseCors();
 
 // Middleware de manejo de errores global DESPUÉS de CORS
 app.Use(async (context, next) =>
