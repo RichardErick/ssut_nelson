@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'forgot_password_admin_screen.dart';
 import 'forgot_password_pregunta_screen.dart';
 import '../widgets/animated_background.dart';
-import '../widgets/glass_container.dart';
 
 /// Pantalla inicial de recuperación. Solo disponible de 8:00 a 18:00.
 class ForgotPasswordScreen extends StatelessWidget {
@@ -22,10 +21,13 @@ class ForgotPasswordScreen extends StatelessWidget {
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: GlassContainer(
-                blur: 20,
-                opacity: 0.12,
-                borderRadius: 24,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 420),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade900.withOpacity(0.92),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white24, width: 1),
+                ),
                 padding: const EdgeInsets.all(28),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -34,7 +36,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                     Icon(
                       Icons.lock_reset_rounded,
                       size: 56,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -47,51 +49,52 @@ class ForgotPasswordScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
-                    if (!_dentroHorario) ...[
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.orange.shade300),
-                        ),
-                        child: Text(
-                          'La recuperación de contraseña solo está disponible de 8:00 a 18:00. Vuelve en ese horario.',
-                          style: GoogleFonts.inter(fontSize: 14, color: Colors.white, height: 1.4),
-                          textAlign: TextAlign.center,
+                    if (!_dentroHorario)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade700.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.shade300),
+                          ),
+                          child: Text(
+                            'Solo disponible de 8:00 a 18:00. Fuera de ese horario no podrás completar la recuperación.',
+                            style: GoogleFonts.inter(fontSize: 13, color: Colors.white, height: 1.4),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 24),
-                    ] else ...[
-                      Text(
-                        'Elige una opción.',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.white70,
-                        ),
-                        textAlign: TextAlign.center,
+                    Text(
+                      'Elige una opción:',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
                       ),
-                      const SizedBox(height: 24),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
 
-                      _OptionTile(
-                        icon: Icons.admin_panel_settings_rounded,
-                        title: 'Que un administrador la restablezca',
-                        subtitle: 'El admin pone tu nueva contraseña en Gestión de Usuarios y te la comunica.',
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const ForgotPasswordAdminScreen()),
-                        ),
+                    _OptionTile(
+                      icon: Icons.admin_panel_settings_rounded,
+                      title: 'Que un administrador la restablezca',
+                      subtitle: 'El admin pone tu nueva contraseña en Gestión de Usuarios y te la comunica.',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ForgotPasswordAdminScreen()),
                       ),
-                      const SizedBox(height: 10),
+                    ),
+                    const SizedBox(height: 10),
 
-                      _OptionTile(
-                        icon: Icons.help_outline_rounded,
-                        title: 'Pregunta secreta',
-                        subtitle: 'Responde la pregunta que configuraste al registrarte.',
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const ForgotPasswordPreguntaScreen()),
-                        ),
+                    _OptionTile(
+                      icon: Icons.help_outline_rounded,
+                      title: 'Pregunta secreta',
+                      subtitle: 'Responde la pregunta que configuraste al registrarte.',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ForgotPasswordPreguntaScreen()),
                       ),
-                    ],
+                    ),
 
                     const SizedBox(height: 28),
                     TextButton.icon(
@@ -99,7 +102,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back_rounded, size: 20),
                       label: const Text('Volver al inicio de sesión'),
                       style: TextButton.styleFrom(
-                        foregroundColor: Colors.white.withOpacity(0.9),
+                        foregroundColor: Colors.white,
                       ),
                     ),
                   ],
