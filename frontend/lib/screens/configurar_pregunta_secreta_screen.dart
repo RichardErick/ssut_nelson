@@ -22,6 +22,7 @@ class _ConfigurarPreguntaSecretaScreenState extends State<ConfigurarPreguntaSecr
   int _preguntaSecretaId = 0;
   bool _preguntasLoaded = false;
   bool _isLoading = false;
+  bool _obscureRespuesta = true;
 
   @override
   void initState() {
@@ -171,13 +172,20 @@ class _ConfigurarPreguntaSecretaScreenState extends State<ConfigurarPreguntaSecr
               const SizedBox(height: 20),
               TextFormField(
                 controller: _respuestaController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Tu respuesta',
                   hintText: 'La respuesta que recordarás',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock_outline_rounded),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureRespuesta ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    onPressed: () => setState(() => _obscureRespuesta = !_obscureRespuesta),
+                  ),
                 ),
-                obscureText: true,
+                obscureText: _obscureRespuesta,
                 validator: (v) {
                   if ((v ?? '').trim().isEmpty) return 'La respuesta es obligatoria';
                   return null;

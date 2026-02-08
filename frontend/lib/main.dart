@@ -111,7 +111,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => DataProvider()),
         Provider(
-          create: (_) => ApiService(baseUrl: 'http://localhost:5000/api'),
+          create: (_) => ApiService(baseUrl: 'http://localhost:5000/api/'),
         ),
         ProxyProvider<ApiService, AuditService>(
           update: (_, api, __) => AuditService(api),

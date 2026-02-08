@@ -29,6 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   int _preguntaSecretaId = 0;
   List<Map<String, dynamic>> _preguntasSecretas = [];
   bool _obscurePassword = true;
+  bool _obscureRespuestaSecreta = true;
   bool _isLoading = false;
   bool _preguntasLoaded = false;
 
@@ -303,6 +304,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           label: 'Respuesta de seguridad',
                           hint: 'Tu respuesta a la pregunta (obligatoria para recuperar contraseña)',
                           icon: Icons.help_outline_rounded,
+                          isRespuestaSecreta: true,
                           validator: (v) {
                             if ((v ?? '').trim().isEmpty) return 'La respuesta de seguridad es obligatoria';
                             return null;
@@ -415,9 +417,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     required String hint,
     required IconData icon,
     bool isPassword = false,
+    bool isRespuestaSecreta = false,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
+    final bool obscure = isRespuestaSecreta ? _obscureRespuestaSecreta : (isPassword && _obscurePassword);
+    final bool showEye = isPassword || isRespuestaSecreta;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -434,20 +439,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         TextFormField(
           controller: controller,
-          obscureText: isPassword && _obscurePassword,
+          obscureText: showEye ? obscure : false,
           style: const TextStyle(color: Colors.white),
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
             prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.7)),
-            suffixIcon: isPassword
+            suffixIcon: showEye
                 ? IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                      obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                       color: Colors.white.withOpacity(0.7),
                     ),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    onPressed: () => setState(() {
+                      if (isRespuestaSecreta) {
+                        _obscureRespuestaSecreta = !_obscureRespuestaSecreta;
+                      } else {
+                        _obscurePassword = !_obscurePassword;
+                      }
+                    }),
                   )
                 : null,
             filled: true,

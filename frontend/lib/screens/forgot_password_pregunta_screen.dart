@@ -27,6 +27,7 @@ class _ForgotPasswordPreguntaScreenState extends State<ForgotPasswordPreguntaScr
   bool _preguntasLoaded = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  bool _obscureRespuesta = true;
   bool _isLoading = false;
 
   @override
@@ -208,6 +209,15 @@ class _ForgotPasswordPreguntaScreenState extends State<ForgotPasswordPreguntaScr
                                 label: 'Respuesta de seguridad',
                                 hint: 'La respuesta que configuraste al registrarte',
                                 icon: Icons.lock_outline_rounded,
+                                obscureText: _obscureRespuesta,
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscureRespuesta ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                    color: Colors.white70,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => setState(() => _obscureRespuesta = !_obscureRespuesta),
+                                ),
                                 validator: (v) =>
                                     (v ?? '').trim().isEmpty ? 'Ingresa tu respuesta' : null,
                               ),
