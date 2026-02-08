@@ -389,79 +389,54 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     }
   }
 
-  /// Genera un código de recuperación de 6 dígitos para el usuario (válido 1 h). El admin debe comunicarlo al usuario.
-  Future<void> _generarCodigoRecuperacion(Usuario usuario) async {
-    try {
-      final api = Provider.of<ApiService>(context, listen: false);
-      final res = await api.post('usuarios/${usuario.id}/codigo-recuperacion');
-      final data = res.data is Map ? res.data as Map<String, dynamic> : null;
-      final code = data?['code'] as String? ?? '';
-      final expiresAt = data?['expiresAt'] as String?;
-      if (!mounted) return;
-      showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Código de recuperación'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Para ${usuario.nombreCompleto} (${usuario.nombreUsuario}):',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade400),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        code,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 8,
-                          color: Colors.grey.shade900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (expiresAt != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Válido hasta: $expiresAt',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Text(
-                  'Comunica este código al usuario. Debe ir a "¿Olvidaste tu contraseña?" → Código de recuperación e ingresar su usuario, este código y la nueva contraseña.',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-                ),
-              ],
+  /// Elimina al usuario de forma permanente (borrado real). Desactivar se hace solo con el Switch.
+  Future<void> _confirmDeleteUsuario(Usuario usuario) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
+            title: const Text('Eliminar usuario'),
+            content: Text(
+              'Se eliminará permanentemente a "${usuario.nombreCompleto}" (${usuario.nombreUsuario}). Esta acción no se puede deshacer. ¿Continuar?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Eliminar'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        ),
+    );
+    if (confirmed != true) return;
+    try {
+      final usuarioService = Provider.of<UsuarioService>(
+        context,
+        listen: false,
       );
+      await usuarioService.deleteUsuario(usuario.id, hard: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Usuario eliminado permanentemente.'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadData(showRefreshIndicator: true);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(ErrorHelper.getErrorMessage(e)),
+            content: Text('Error al eliminar: ${ErrorHelper.getErrorMessage(e)}'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -1294,10 +1269,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     color: theme.colorScheme.primary,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.key_rounded),
-                    onPressed: () => _generarCodigoRecuperacion(usuario),
-                    tooltip: 'Código de recuperación',
-                    color: Colors.blue.shade700,
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _confirmDeleteUsuario(usuario),
+                    tooltip: 'Eliminar (borrado permanente)',
+                    color: Colors.red.shade700,
                   ),
                   Switch(
                     value: usuario.activo,
@@ -1311,8 +1286,8 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     case 'rol':
                       _showRolDialog(usuario);
                       break;
-                    case 'codigo':
-                      _generarCodigoRecuperacion(usuario);
+                    case 'eliminar':
+                      _confirmDeleteUsuario(usuario);
                       break;
                     case 'estado':
                       _toggleEstado(usuario);
@@ -1332,12 +1307,12 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                         ),
                       ),
                       const PopupMenuItem<String>(
-                        value: 'codigo',
+                        value: 'eliminar',
                         child: Row(
                           children: [
-                            Icon(Icons.key_rounded, size: 18),
+                            Icon(Icons.delete_outline, size: 18, color: Colors.red),
                             SizedBox(width: 8),
-                            Text('Código de recuperación'),
+                            Text('Eliminar (permanente)'),
                           ],
                         ),
                       ),
@@ -1472,9 +1447,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     tooltip: 'Editar usuario',
                   ),
                   IconButton(
-                    icon: const Icon(Icons.key_rounded, size: 18),
-                    onPressed: () => _generarCodigoRecuperacion(usuario),
-                    tooltip: 'Código de recuperación',
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    onPressed: () => _confirmDeleteUsuario(usuario),
+                    tooltip: 'Eliminar (permanente)',
+                    color: Colors.red.shade700,
                   ),
                   Switch(
                     value: usuario.activo,

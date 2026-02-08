@@ -335,43 +335,12 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     DateFormat dateFormat,
     ThemeData theme,
   ) {
-    final puedeEditar = Provider.of<AuthProvider>(context).hasPermission('editar_metadatos');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildMainInfoCard(doc, theme),
         const SizedBox(height: 16),
         _buildDescriptionCard(doc, theme),
-        if (puedeEditar) ...[
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                final updated = await Navigator.of(context).push<bool>(
-                  MaterialPageRoute<bool>(
-                    builder: (context) => DocumentoFormScreen(documento: widget.documento),
-                  ),
-                );
-                if (updated == true && mounted) {
-                  try {
-                    final docActualizado = await Provider.of<DocumentoService>(
-                      context,
-                      listen: false,
-                    ).getById(widget.documento.id);
-                    if (mounted) setState(() => _documentoActual = docActualizado);
-                  } catch (_) {}
-                }
-              },
-              icon: const Icon(Icons.edit_rounded, size: 20),
-              label: const Text('Editar documento'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                foregroundColor: theme.colorScheme.primary,
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -613,7 +582,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
               : _buildPdfLoadingPlaceholder(theme),
           const SizedBox(height: 16),
         ] else ...[
-          // Sin PDF: zona clara encima del QR para añadir/arrastrar PDF
+          // Sin PDF: zona clicable para añadir PDF (un solo punto de acción)
           InkWell(
             onTap: _isUploadingAnexo ? null : _pickAndUploadAnexo,
             borderRadius: BorderRadius.circular(16),
@@ -630,15 +599,23 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                 ),
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.picture_as_pdf_outlined,
-                    size: 48,
-                    color: Colors.orange.shade700,
-                  ),
+                  if (_isUploadingAnexo)
+                    const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    Icon(
+                      Icons.picture_as_pdf_outlined,
+                      size: 48,
+                      color: Colors.orange.shade700,
+                    ),
                   const SizedBox(height: 12),
                   Text(
-                    'Este documento no tiene PDF',
+                    _isUploadingAnexo ? 'Subiendo...' : 'Este documento no tiene PDF',
                     style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -648,42 +625,12 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Arrastra un archivo aquí o haz clic para añadir',
+                    _isUploadingAnexo ? 'Espere un momento' : 'Haz clic aquí o arrastra un archivo para añadir',
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       color: Colors.orange.shade800,
                     ),
                     textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _isUploadingAnexo ? null : _pickAndUploadAnexo,
-                    icon: _isUploadingAnexo
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Icon(Icons.upload_file, size: 20, color: Colors.orange.shade900),
-                    label: Text(
-                      _isUploadingAnexo ? 'Subiendo...' : 'Añadir PDF',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.orange.shade900,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange.shade100,
-                      foregroundColor: Colors.orange.shade900,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
                   ),
                 ],
               ),
