@@ -11,9 +11,7 @@ import '../widgets/sidebar.dart';
 import 'admin/permisos_screen.dart';
 import 'admin/roles_permissions_screen.dart';
 import 'documentos/documentos_list_screen.dart';
-import 'documentos/carpetas_screen.dart';
-import 'documentos/carpeta_form_screen.dart';
-import 'documentos/documento_form_screen.dart';
+import 'documentos/documento_search_screen.dart';
 import 'movimientos/movimientos_screen.dart';
 import 'notifications_screen.dart';
 import 'qr/qr_scanner_screen.dart';
@@ -34,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _showNavSplash = false;
   int? _pendingNavIndex;
   late AnimationController _fabController;
-  late Animation<double> _fabAnimation;
 
   // Helper getter for AuthProvider
   AuthProvider get authProvider => Provider.of<AuthProvider>(context, listen: false);
@@ -134,10 +131,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _fabController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
-    );
-    _fabAnimation = CurvedAnimation(
-      parent: _fabController,
-      curve: Curves.elasticOut,
     );
     _fabController.forward();
     _fetchUnreadCount();
@@ -369,9 +362,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         onPressed: () {
           if (tooltip == 'Notificaciones') {
-             Navigator.of(context).push(
-               MaterialPageRoute(builder: (context) => const NotificationsScreen())
-             );
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+            );
+          } else if (tooltip == 'Búsqueda Global') {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const DocumentoSearchScreen()),
+            );
           }
         },
         tooltip: tooltip,
@@ -583,53 +580,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
         },
         child: child,
-      ),
-    );
-  }
-
-  Widget _buildFAB(ThemeData theme) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final canCreate = authProvider.hasPermission('subir_documento');
-
-    return ScaleTransition(
-      scale: _fabAnimation,
-      child: FloatingActionButton.extended(
-        heroTag: 'home_fab',
-        onPressed: canCreate
-            ? () async {
-              // Navegar a la pantalla de gestión de carpetas (Crear NUEVA)
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CarpetaFormScreen(),
-                ),
-              );
-              // Refrescar lista de documentos al volver
-              _documentosKey.currentState?.cargarDocumentos();
-            }
-            : () {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'No tienes el rol suficiente para gestionar carpetas.',
-                  ),
-                  backgroundColor: Colors.orange,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-        backgroundColor:
-            canCreate ? Colors.amber.shade800 : Colors.grey.withOpacity(0.5),
-        icon: const Icon(Icons.create_new_folder_rounded, color: Colors.white),
-        label: Text(
-          'AGREGAR CARPETA',
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 0.5,
-          ),
-        ),
       ),
     );
   }
