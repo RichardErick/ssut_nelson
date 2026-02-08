@@ -93,3 +93,13 @@ Los scripts `run_backend.bat` y `run_backend.ps1` están en el repo (carpeta `ba
 
 - Copiarlos desde la copia que tenga el repo, o  
 - Usar siempre los comandos de PowerShell o CMD de las secciones anteriores (cerrar proceso, `dotnet clean`, `dotnet run`).
+
+---
+
+## Avisos que puedes ignorar
+
+**"Dio: error de conexión (¿backend en http://localhost:5000?)"**  
+Significa que el backend no está en ejecución o no es alcanzable. Arranca el backend (o usa `arrancar_todo.bat`) y deja esa ventana abierta antes de hacer login.
+
+**"Package file_picker:linux / file_picker:macos / file_picker:windows ... does not provide an inline implementation"**  
+Son avisos del paquete `file_picker` al registrar plugins para Linux/macOS/Windows. En **web** no afectan; la app funciona. Puedes ignorarlos. Si molestan en consola, es solo texto informativo del tooling de Flutter.
