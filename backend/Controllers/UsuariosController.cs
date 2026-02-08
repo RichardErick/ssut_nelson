@@ -365,6 +365,31 @@ public class UsuariosController : ControllerBase
             return Ok(new { usuario.Id, usuario.Activo, usuario.FechaActualizacion });
         }
 
+        // Eliminación física: desvincular o borrar registros que referencian al usuario
+        var permisosUsuario = await _context.UsuarioPermisos.Where(up => up.UsuarioId == id).ToListAsync();
+        _context.UsuarioPermisos.RemoveRange(permisosUsuario);
+
+        var alertasUsuario = await _context.Alertas.Where(a => a.UsuarioId == id).ToListAsync();
+        _context.Alertas.RemoveRange(alertasUsuario);
+
+        var movimientos = await _context.Movimientos.Where(m => m.UsuarioId == id).ToListAsync();
+        foreach (var m in movimientos) m.UsuarioId = null;
+
+        var carpetas = await _context.Carpetas.Where(c => c.UsuarioCreacionId == id).ToListAsync();
+        foreach (var c in carpetas) c.UsuarioCreacionId = null;
+
+        var docsResponsable = await _context.Documentos.Where(d => d.ResponsableId == id).ToListAsync();
+        foreach (var d in docsResponsable) d.ResponsableId = null;
+
+        var auditorias = await _context.Auditoria.Where(a => a.UsuarioId == id).ToListAsync();
+        foreach (var a in auditorias) a.UsuarioId = null;
+
+        var historiales = await _context.HistorialesDocumento.Where(h => h.UsuarioId == id).ToListAsync();
+        foreach (var h in historiales) h.UsuarioId = null;
+
+        var configs = await _context.Configuraciones.Where(c => c.ActualizadoPor == id).ToListAsync();
+        foreach (var c in configs) c.ActualizadoPor = null;
+
         _context.Usuarios.Remove(usuario);
         try
         {
