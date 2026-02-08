@@ -91,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // Notificaciones y Mi perfil: acceso desde icono superior (notificaciones) y sección usuario (perfil); no duplicar en menú lateral.
 
-    // Gestión de Permisos: visible para Administrador Sistema y Administrador Documentos
+    // Gestión de Permisos: asignar permisos (ver, subir, editar, borrar) por usuario. Visible para Admin Sistema y Admin Documentos.
     final canSeePermisos = authProvider.isSystemAdmin || role == UserRole.administradorDocumentos;
     if (canSeePermisos) {
       _navItems.add(
@@ -104,11 +104,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    // Roles y Permisos y Sincronización: solo Administrador de Sistema
+    // Gestión de Usuarios y Roles: lista de usuarios, crear usuario, asignar rol. Solo Administrador de Sistema.
     if (authProvider.canManageUserPermissions) {
       _navItems.add(
         NavigationItem(
-          label: 'Roles y Permisos',
+          label: 'Gestión de Usuarios y Roles',
           icon: Icons.admin_panel_settings_outlined,
           selectedIcon: Icons.admin_panel_settings,
           screen: const RolesPermissionsScreen(),

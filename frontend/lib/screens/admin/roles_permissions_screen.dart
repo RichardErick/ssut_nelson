@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/area.dart';
 import '../../models/usuario.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/error_helper.dart';
 import '../../services/api_service.dart';
 import '../../services/usuario_service.dart';
 import '../../theme/app_theme.dart';
@@ -94,7 +95,9 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     }
   }
 
+  /// Desactiva al usuario (no se borra). No podrá acceder hasta que un admin lo reactive.
   Future<void> _confirmDeleteUsuario(Usuario usuario) async {
+    if (!usuario.activo) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -102,9 +105,9 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            title: const Text('Eliminar usuario'),
+            title: const Text('Desactivar usuario'),
             content: Text(
-              'Se desactivará el usuario "${usuario.nombreCompleto}" (eliminación lógica). ¿Continuar?',
+              'Se desactivará a "${usuario.nombreCompleto}". No se borra el usuario: quedará en gris y no podrá iniciar sesión hasta que un administrador lo reactive. ¿Continuar?',
             ),
             actions: [
               TextButton(
@@ -113,8 +116,8 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Eliminar'),
+                style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+                child: const Text('Desactivar'),
               ),
             ],
           ),
@@ -129,7 +132,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Usuario desactivado'),
+            content: Text('Usuario desactivado. No podrá acceder hasta que lo reactive un administrador.'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -140,7 +143,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al eliminar usuario: $e'),
+            content: Text('Error al desactivar usuario: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -316,7 +319,8 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
         listen: false,
       );
       final apiService = Provider.of<ApiService>(context, listen: false);
-      final usuariosFuture = usuarioService.getAll();
+      // Incluir inactivos para poder verlos en gris y reactivarlos desde el admin
+      final usuariosFuture = usuarioService.getAll(incluirInactivos: true);
       final areasResponse = await apiService.get('/areas');
       final usuarios = await usuariosFuture;
 
@@ -409,68 +413,6 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     return filtered;
   }
 
-  Future<void> _updateRol(Usuario usuario, String nuevoRol) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final currentUserId = authProvider.user?['id'] as int?;
-
-    // Protección: no permitir cambiar el rol del usuario actual (evitar auto-bloqueo)
-    if (currentUserId != null && usuario.id == currentUserId) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text('No puedes cambiar tu propio rol (riesgo de perder permisos de administrador)'),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 4),
-          ),
-        );
-      }
-      return;
-    }
-
-    try {
-      final usuarioService = Provider.of<UsuarioService>(
-        context,
-        listen: false,
-      );
-      await usuarioService.updateRol(usuario.id, nuevoRol);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 8),
-                Text('Rol actualizado a ${_getRolDisplayName(nuevoRol)}'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        _loadData(showRefreshIndicator: true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al actualizar rol: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
   Future<void> _toggleEstado(Usuario usuario) async {
     try {
       final usuarioService = Provider.of<UsuarioService>(
@@ -508,119 +450,205 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   }
 
   void _showRolDialog(Usuario usuario) {
+    String nombreCompleto = usuario.nombreCompleto;
+    String email = usuario.email;
+    String rol = usuario.rol == 'Administrador' ? 'AdministradorSistema' : usuario.rol;
+    int? areaId = usuario.areaId;
+    bool activo = usuario.activo;
+    String password = '';
+
+    final nombreCompletoController = TextEditingController(text: usuario.nombreCompleto);
+    final emailController = TextEditingController(text: usuario.email);
+    final passwordController = TextEditingController();
+
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: _getRolColor(usuario.rol).withOpacity(0.2),
-                  child: Icon(
-                    _getRolIcon(usuario.rol),
-                    color: _getRolColor(usuario.rol),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        usuario.nombreCompleto,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'Cambiar rol',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children:
-                  _roles.map((rol) {
-                    final isSelected =
-                        usuario.rol == rol ||
-                        (usuario.rol == 'Administrador' &&
-                            rol == 'AdministradorSistema');
-                    return InkWell(
-                      onTap: () {
-                        if (!isSelected) {
-                          Navigator.pop(context);
-                          _updateRol(usuario, rol);
-                        }
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color:
-                              isSelected
-                                  ? _getRolColor(rol).withOpacity(0.1)
-                                  : Colors.transparent,
-                          border: Border.all(
-                            color:
-                                isSelected
-                                    ? _getRolColor(rol)
-                                    : Colors.grey.shade300,
-                            width: isSelected ? 2 : 1,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _getRolIcon(rol),
-                              color: _getRolColor(rol),
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _getRolDisplayName(rol),
-                                style: TextStyle(
-                                  fontWeight:
-                                      isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                  color: isSelected ? _getRolColor(rol) : null,
-                                ),
-                              ),
-                            ),
-                            if (isSelected)
-                              Icon(
-                                Icons.check_circle,
-                                color: _getRolColor(rol),
-                                size: 20,
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: _getRolColor(usuario.rol).withOpacity(0.2),
+                child: Icon(_getRolIcon(usuario.rol), color: _getRolColor(usuario.rol)),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text('Editar usuario', style: TextStyle(fontSize: 18)),
               ),
             ],
           ),
+          content: SizedBox(
+            width: 420,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Usuario: ${usuario.nombreUsuario}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nombreCompletoController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre completo',
+                      prefixIcon: Icon(Icons.badge_outlined),
+                    ),
+                    onChanged: (v) => nombreCompleto = v,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    onChanged: (v) => email = v,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _roles.contains(rol) ? rol : _roles.first,
+                    decoration: const InputDecoration(
+                      labelText: 'Rol',
+                      prefixIcon: Icon(Icons.admin_panel_settings_outlined),
+                    ),
+                    items: _roles
+                        .map((r) => DropdownMenuItem(value: r, child: Text(_getRolDisplayName(r))))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) setStateDialog(() => rol = v);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int?>(
+                    value: areaId,
+                    decoration: const InputDecoration(
+                      labelText: 'Área (opcional)',
+                      prefixIcon: Icon(Icons.business_outlined),
+                    ),
+                    items: [
+                      const DropdownMenuItem<int?>(value: null, child: Text('Sin área')),
+                      ..._areas.map((a) => DropdownMenuItem<int?>(value: a.id, child: Text(a.nombre))),
+                    ],
+                    onChanged: (v) => setStateDialog(() => areaId = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    value: activo,
+                    onChanged: (v) => setStateDialog(() => activo = v),
+                    title: const Text('Activo'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Nueva contraseña (dejar vacío para no cambiar)',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                    onChanged: (v) => password = v,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                nombreCompleto = nombreCompletoController.text.trim();
+                email = emailController.text.trim();
+                password = passwordController.text.trim();
+                if (nombreCompleto.isEmpty || email.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Nombre completo y email son obligatorios')),
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext);
+                await _guardarEdicionUsuario(
+                  usuario,
+                  nombreCompleto: nombreCompleto,
+                  email: email,
+                  rol: rol,
+                  areaId: areaId,
+                  activo: activo,
+                  password: password.isEmpty ? null : password,
+                );
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  Future<void> _guardarEdicionUsuario(
+    Usuario usuario, {
+    required String nombreCompleto,
+    required String email,
+    required String rol,
+    int? areaId,
+    required bool activo,
+    String? password,
+  }) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUserId = authProvider.user?['id'] as int?;
+    if (currentUserId != null && usuario.id == currentUserId && !activo) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No puedes desactivar tu propia cuenta'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+    try {
+      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      final dto = UpdateUsuarioDTO(
+        nombreCompleto: nombreCompleto,
+        email: email,
+        rol: rol,
+        areaId: areaId,
+        activo: activo,
+        password: password,
+      );
+      await usuarioService.updateUsuario(usuario.id, dto);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Usuario actualizado correctamente'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadData(showRefreshIndicator: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al actualizar: ${ErrorHelper.getErrorMessage(e)}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   String _getRolDisplayName(String rol) {
@@ -1106,14 +1134,25 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   }
 
   Widget _buildUserCard(Usuario usuario, ThemeData theme, bool isDesktop) {
-    return ListTile(
-      contentPadding: EdgeInsets.all(isDesktop ? 20 : 16),
-      leading: Stack(
-        children: [
-          CircleAvatar(
-            radius: isDesktop ? 30 : 24,
-            backgroundColor:
-                usuario.activo ? theme.colorScheme.primary : Colors.grey,
+    final inactivo = !usuario.activo;
+    return Opacity(
+      opacity: inactivo ? 0.75 : 1,
+      child: Container(
+        decoration: inactivo
+            ? BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade400, width: 1),
+              )
+            : null,
+        child: ListTile(
+          contentPadding: EdgeInsets.all(isDesktop ? 20 : 16),
+          leading: Stack(
+            children: [
+              CircleAvatar(
+                radius: isDesktop ? 30 : 24,
+                backgroundColor:
+                    usuario.activo ? theme.colorScheme.primary : Colors.grey,
             child: Text(
               usuario.nombreCompleto[0].toUpperCase(),
               style: TextStyle(
@@ -1138,44 +1177,48 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
             ),
         ],
       ),
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(
-              usuario.nombreCompleto,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: _getRolColor(usuario.rol).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _getRolColor(usuario.rol), width: 1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _getRolIcon(usuario.rol),
-                  size: 14,
-                  color: _getRolColor(usuario.rol),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _getRolDisplayName(usuario.rol),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  usuario.nombreCompleto,
                   style: TextStyle(
-                    color: _getRolColor(usuario.rol),
                     fontWeight: FontWeight.bold,
-                    fontSize: 11,
+                    fontSize: 16,
+                    color: inactivo ? Colors.grey.shade700 : null,
                   ),
                 ),
-              ],
-            ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getRolColor(usuario.rol).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _getRolColor(usuario.rol), width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getRolIcon(usuario.rol),
+                      size: 14,
+                      color: _getRolColor(usuario.rol),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _getRolDisplayName(usuario.rol),
+                      style: TextStyle(
+                        color: _getRolColor(usuario.rol),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      subtitle: Padding(
+          subtitle: Padding(
         padding: const EdgeInsets.only(top: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1209,10 +1252,10 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     color: theme.colorScheme.primary,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _confirmDeleteUsuario(usuario),
-                    tooltip: 'Eliminar',
-                    color: theme.colorScheme.error,
+                    icon: const Icon(Icons.block),
+                    onPressed: usuario.activo ? () => _confirmDeleteUsuario(usuario) : null,
+                    tooltip: usuario.activo ? 'Desactivar' : 'Desactivado',
+                    color: usuario.activo ? Colors.orange : Colors.grey,
                   ),
                   Switch(
                     value: usuario.activo,
@@ -1259,18 +1302,21 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                           ],
                         ),
                       ),
-                      const PopupMenuItem<String>(
-                        value: 'eliminar',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_outline, size: 18),
-                            SizedBox(width: 8),
-                            Text('Eliminar'),
-                          ],
+                      if (usuario.activo)
+                        PopupMenuItem<String>(
+                          value: 'eliminar',
+                          child: const Row(
+                            children: [
+                              Icon(Icons.block, size: 18, color: Colors.orange),
+                              SizedBox(width: 8),
+                              Text('Desactivar'),
+                            ],
+                          ),
                         ),
-                      ),
                     ],
               ),
+        ),
+      ),
     );
   }
 
@@ -1360,9 +1406,9 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     tooltip: 'Cambiar rol',
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    onPressed: () => _confirmDeleteUsuario(usuario),
-                    tooltip: 'Eliminar',
+                    icon: Icon(Icons.block, size: 18, color: usuario.activo ? Colors.orange : Colors.grey),
+                    onPressed: usuario.activo ? () => _confirmDeleteUsuario(usuario) : null,
+                    tooltip: usuario.activo ? 'Desactivar' : 'Desactivado',
                   ),
                   Switch(
                     value: usuario.activo,
