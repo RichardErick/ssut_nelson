@@ -630,7 +630,6 @@ public class AuthController : ControllerBase
             if (usuarioById == null)
                 return Unauthorized(new { message = "Sesión inválida" });
 
-            var tienePregunta = usuarioById.PreguntaSecretaId.HasValue && !string.IsNullOrEmpty(usuarioById.RespuestaSecretaHash);
             return Ok(new
             {
                 usuarioById.Id,
@@ -644,7 +643,7 @@ public class AuthController : ControllerBase
                 usuarioById.UltimoAcceso,
                 usuarioById.FechaRegistro,
                 usuarioById.FechaActualizacion,
-                tienePreguntaSecreta = tienePregunta
+                tienePreguntaSecreta = usuarioById.PreguntaSecretaId.HasValue && !string.IsNullOrEmpty(usuarioById.RespuestaSecretaHash)
             });
         }
 
@@ -662,7 +661,6 @@ public class AuthController : ControllerBase
         if (usuario == null)
             return Unauthorized(new { message = "Sesión inválida" });
 
-        var tienePregunta = usuario.PreguntaSecretaId.HasValue && !string.IsNullOrEmpty(usuario.RespuestaSecretaHash);
         return Ok(new
         {
             usuario.Id,
@@ -673,7 +671,7 @@ public class AuthController : ControllerBase
             usuario.AreaId,
             AreaNombre = usuario.Area != null ? usuario.Area.Nombre : null,
             usuario.Activo,
-            tienePreguntaSecreta = tienePregunta,
+            tienePreguntaSecreta = usuario.PreguntaSecretaId.HasValue && !string.IsNullOrEmpty(usuario.RespuestaSecretaHash),
             usuario.UltimoAcceso,
             usuario.FechaRegistro,
             usuario.FechaActualizacion,
