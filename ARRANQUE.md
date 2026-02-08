@@ -12,7 +12,9 @@ En la **raíz del proyecto** (donde están las carpetas `backend` y `frontend`),
 arrancar_todo.bat
 ```
 
-Se abrirán **dos ventanas**: una con el backend (puerto 5000) y otra con el frontend (Flutter en Chrome). No cierres la ventana del backend.
+Se abrirán **dos ventanas**: una con el backend (puerto 5000) y otra con el frontend (Flutter en Chrome). **Ejecuta el .bat solo una vez**; si lo ejecutas varias veces se abrirán 4 o más ventanas y pueden aparecer errores de conexión.
+
+**Si ves "ERR_CONNECTION_REFUSED" o "Failed to load resource" en Chrome:** suele ser porque se cerró la ventana "Frontend - SSUT" (el servidor de Flutter se apagó) pero la pestaña del navegador sigue intentando cargar. Cierra esa pestaña, deja abierta la ventana del Frontend y espera a que compile; o cierra todas las ventanas y ejecuta `arrancar_todo.bat` de nuevo **una sola vez**.
 
 ---
 
