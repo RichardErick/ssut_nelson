@@ -258,7 +258,51 @@ public class AuthController : ControllerBase
         else
             return BadRequest(new { message = "Indica el token del enlace o el código y el correo." });
 
-        usuario.PasswordHash = HashPassword(dto.NewPassword!);
+        try
+        {
+            await ApplyPasswordReset(usuario, dto.NewPassword!);
+            return Ok(new { message = "Contraseña actualizada. Ya puedes iniciar sesión." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al guardar. Intenta de nuevo.", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Restablece la contraseña usando nombre de usuario + código de 6 dígitos (sin correo).
+    /// El código lo genera un administrador desde Gestión de Usuarios.
+    /// </summary>
+    [HttpPost("reset-password-by-code")]
+    public async Task<ActionResult> ResetPasswordByCode([FromBody] ResetPasswordByCodeRequest dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto?.Username) || string.IsNullOrWhiteSpace(dto?.Code) || string.IsNullOrWhiteSpace(dto?.NewPassword))
+            return BadRequest(new { message = "Usuario, código y nueva contraseña son obligatorios." });
+        if (dto.NewPassword!.Length < 6)
+            return BadRequest(new { message = "La nueva contraseña debe tener al menos 6 caracteres." });
+
+        var username = dto.Username.Trim();
+        var code = dto.Code.Trim();
+
+        var usuario = await _context.Usuarios
+            .FirstOrDefaultAsync(u => u.NombreUsuario == username && u.ResetToken == code && u.ResetTokenExpiry.HasValue && u.ResetTokenExpiry.Value > DateTime.UtcNow);
+        if (usuario == null)
+            return BadRequest(new { message = "Usuario o código incorrectos, o el código ha expirado. Pide un nuevo código a tu administrador." });
+
+        try
+        {
+            await ApplyPasswordReset(usuario, dto.NewPassword);
+            return Ok(new { message = "Contraseña actualizada. Ya puedes iniciar sesión." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al guardar. Intenta de nuevo.", error = ex.Message });
+        }
+    }
+
+    private async Task ApplyPasswordReset(Usuario usuario, string newPassword)
+    {
+        usuario.PasswordHash = HashPassword(newPassword);
         usuario.ResetToken = null;
         usuario.ResetTokenExpiry = null;
         usuario.FechaActualizacion = DateTime.UtcNow;
@@ -266,11 +310,10 @@ public class AuthController : ControllerBase
         try
         {
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Contraseña actualizada. Ya puedes iniciar sesión." });
         }
         catch (DbUpdateException ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error al guardar. Intenta de nuevo.", error = ex.Message });
+            throw new InvalidOperationException("Error al guardar.", ex);
         }
     }
 
@@ -604,5 +647,12 @@ public class ResetPasswordRequest
     public string? Code { get; set; }
     /// <summary>Correo del usuario (obligatorio cuando se usa Code).</summary>
     public string? Email { get; set; }
+    public string? NewPassword { get; set; }
+}
+
+public class ResetPasswordByCodeRequest
+{
+    public string? Username { get; set; }
+    public string? Code { get; set; }
     public string? NewPassword { get; set; }
 }

@@ -382,6 +382,37 @@ public class UsuariosController : ControllerBase
     }
 
     /// <summary>
+    /// Genera un código de recuperación de 6 dígitos para el usuario. Válido 1 hora. Solo administradores.
+    /// El admin debe comunicar el código al usuario para que lo use en "Recuperar contraseña" → "Código de recuperación".
+    /// </summary>
+    [HttpPost("{id}/codigo-recuperacion")]
+    [Authorize(Roles = "AdministradorSistema,Administrador")]
+    public async Task<ActionResult> GenerarCodigoRecuperacion(int id)
+    {
+        var usuario = await _context.Usuarios.FindAsync(id);
+        if (usuario == null)
+            return NotFound(new { message = "Usuario no encontrado" });
+
+        var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+        var expiry = DateTime.UtcNow.AddHours(1);
+
+        usuario.ResetToken = code;
+        usuario.ResetTokenExpiry = expiry;
+        usuario.FechaActualizacion = DateTime.UtcNow;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return StatusCode(500, new { message = "Error al guardar el código." });
+        }
+
+        return Ok(new { code, expiresAt = expiry });
+    }
+
+    /// <summary>
     /// Rechazar solicitud de registro: quita permisos y desactiva al usuario (soft delete). No se borra el registro para no violar FKs (auditoría, etc.).
     /// </summary>
     [HttpPost("{id}/rechazar")]

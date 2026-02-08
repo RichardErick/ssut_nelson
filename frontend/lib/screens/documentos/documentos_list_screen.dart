@@ -662,7 +662,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }
     final carpetas = _carpetasFiltradas;
 
-    // Header: título "Carpetas" + botón "Agregar carpeta" solo si tiene permiso
+    // Header: solo título "Carpetas". Agregar carpeta solo con el FAB de abajo.
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final puedeAgregarCarpeta = authProvider.hasPermission('subir_documento');
     final headerCarpetas = Padding(
@@ -678,17 +678,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               color: theme.colorScheme.onSurface,
             ),
           ),
-          const Spacer(),
-          if (puedeAgregarCarpeta)
-            FilledButton.icon(
-              onPressed: () => _abrirAgregarCarpeta(),
-              icon: const Icon(Icons.add, size: 20),
-              label: const Text('Agregar carpeta'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.blue.shade700,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-            ),
         ],
       ),
     );
@@ -703,20 +692,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               icon: Icons.folder_open_outlined,
               title: 'No hay carpetas',
               subtitle: puedeAgregarCarpeta
-                  ? 'Cree la primera con el botón de abajo (rango y fecha).'
+                  ? 'Cree la primera con el botón flotante de abajo (rango y fecha).'
                   : 'No tiene permiso para crear carpetas.',
-              action: puedeAgregarCarpeta
-                  ? FilledButton.icon(
-                      onPressed: () => _abrirAgregarCarpeta(),
-                      icon: const Icon(Icons.add_rounded, size: 22),
-                      label: const Text('Agregar carpeta'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.blue.shade700,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                        minimumSize: const Size(0, 48),
-                      ),
-                    )
-                  : null,
+              action: null,
             ),
           ),
         ],
@@ -884,24 +862,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     Text(
                       hayDocumentosConBusqueda
                           ? 'Véalos en el contenido principal (derecha).'
-                          : 'Pruebe otro filtro o búsqueda, o agregue una carpeta.',
+                          : 'Pruebe otro filtro o búsqueda, o use el botón de abajo para agregar una carpeta.',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.grey.shade600,
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    if (puedeAgregarCarpeta)
-                      FilledButton.icon(
-                        onPressed: () => _abrirAgregarCarpeta(),
-                        icon: const Icon(Icons.add_rounded, size: 22),
-                        label: const Text('Agregar carpeta'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.blue.shade700,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          minimumSize: const Size(0, 48),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -1369,7 +1335,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
-  /// Panel lateral de carpetas (lista + botón Agregar carpeta). Visible dentro de una carpeta.
+  /// Panel lateral de carpetas (lista). Agregar carpeta solo con el FAB de abajo.
   Widget _buildPanelCarpetasLateral(ThemeData theme) {
     var carpetas = _carpetas
         .where((c) => c.carpetaPadreId == null)
@@ -1390,7 +1356,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final width = MediaQuery.of(context).size.width;
     final esDrawer = width < 900;
     final panelWidth = esDrawer ? null : 280.0;
-    final puedeAgregarCarpetaPanel = Provider.of<AuthProvider>(context, listen: false).hasPermission('subir_documento');
 
     Widget header = Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
@@ -1407,19 +1372,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               ),
             ),
           ),
-          if (puedeAgregarCarpetaPanel)
-            FilledButton(
-              onPressed: () async {
-                if (esDrawer) Navigator.pop(context);
-                await _abrirAgregarCarpeta();
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.blue.shade700,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                minimumSize: const Size(0, 36),
-              ),
-              child: const Icon(Icons.add, size: 20),
-            ),
         ],
       ),
     );
@@ -1488,20 +1440,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
               ),
               const SizedBox(height: 20),
-              if (puedeAgregarCarpetaPanel)
-                FilledButton.icon(
-                  onPressed: () async {
-                    if (esDrawer) Navigator.pop(context);
-                    await _abrirAgregarCarpeta();
-                  },
-                  icon: const Icon(Icons.add_rounded, size: 22),
-                  label: const Text('Agregar carpeta'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.blue.shade700,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    minimumSize: const Size(0, 48),
-                  ),
-                ),
             ],
           ),
         ),

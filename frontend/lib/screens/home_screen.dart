@@ -10,7 +10,6 @@ import '../widgets/glass_container.dart';
 import '../widgets/sidebar.dart';
 import 'admin/permisos_screen.dart';
 import 'admin/roles_permissions_screen.dart';
-import 'admin/users_sync_screen.dart';
 import 'documentos/documentos_list_screen.dart';
 import 'documentos/carpetas_screen.dart';
 import 'documentos/carpeta_form_screen.dart';
@@ -112,14 +111,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           icon: Icons.admin_panel_settings_outlined,
           selectedIcon: Icons.admin_panel_settings,
           screen: const RolesPermissionsScreen(),
-        ),
-      );
-      _navItems.add(
-        NavigationItem(
-          label: 'Sincronización',
-          icon: Icons.sync_problem_outlined,
-          selectedIcon: Icons.sync,
-          screen: const UsersSyncScreen(),
         ),
       );
     }

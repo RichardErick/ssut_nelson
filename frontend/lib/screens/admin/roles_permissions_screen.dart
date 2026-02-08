@@ -30,7 +30,8 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   String _searchQuery = '';
   String? _selectedRolFilter;
   String? _selectedAreaFilter;
-  bool? _selectedEstadoFilter = true;
+  /// Por defecto "Todos" para que siempre se vean usuarios (evitar 0 de N si todos están inactivos).
+  bool? _selectedEstadoFilter = null;
   bool _isGridView = false;
 
   final TextEditingController _searchController = TextEditingController();
@@ -95,69 +96,12 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     }
   }
 
-  /// Desactiva al usuario (no se borra). No podrá acceder hasta que un admin lo reactive.
-  Future<void> _confirmDeleteUsuario(Usuario usuario) async {
-    if (!usuario.activo) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text('Desactivar usuario'),
-            content: Text(
-              'Se desactivará a "${usuario.nombreCompleto}". No se borra el usuario: quedará en gris y no podrá iniciar sesión hasta que un administrador lo reactive. ¿Continuar?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: FilledButton.styleFrom(backgroundColor: Colors.orange),
-                child: const Text('Desactivar'),
-              ),
-            ],
-          ),
-    );
-    if (confirmed != true) return;
-    try {
-      final usuarioService = Provider.of<UsuarioService>(
-        context,
-        listen: false,
-      );
-      await usuarioService.deleteUsuario(usuario.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Usuario desactivado. No podrá acceder hasta que lo reactive un administrador.'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        _loadData(showRefreshIndicator: true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al desactivar usuario: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
   void _showCreateUserDialog() {
     final nombreUsuarioController = TextEditingController();
     final nombreCompletoController = TextEditingController();
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
-    String rol = 'Usuario';
+    String rol = _roles.contains('Gerente') ? 'Gerente' : _roles.first;
     int? areaId;
     bool activo = true;
 
@@ -373,18 +317,14 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
 
   List<Usuario> get _usuariosFiltrados {
     var filtered = _usuarios;
-    if (_searchQuery.isNotEmpty) {
+    final query = _searchQuery.trim();
+    if (query.isNotEmpty) {
+      final q = query.toLowerCase();
       filtered =
           filtered.where((usuario) {
-            return usuario.nombreCompleto.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                ) ||
-                usuario.nombreUsuario.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                ) ||
-                usuario.email.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                );
+            return usuario.nombreCompleto.toLowerCase().contains(q) ||
+                usuario.nombreUsuario.toLowerCase().contains(q) ||
+                (usuario.email.toLowerCase().contains(q));
           }).toList();
     }
     if (_selectedRolFilter != null) {
@@ -441,6 +381,87 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al actualizar estado: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Genera un código de recuperación de 6 dígitos para el usuario (válido 1 h). El admin debe comunicarlo al usuario.
+  Future<void> _generarCodigoRecuperacion(Usuario usuario) async {
+    try {
+      final api = Provider.of<ApiService>(context, listen: false);
+      final res = await api.post('usuarios/${usuario.id}/codigo-recuperacion');
+      final data = res.data is Map ? res.data as Map<String, dynamic> : null;
+      final code = data?['code'] as String? ?? '';
+      final expiresAt = data?['expiresAt'] as String?;
+      if (!mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Código de recuperación'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Para ${usuario.nombreCompleto} (${usuario.nombreUsuario}):',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade400),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        code,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 8,
+                          color: Colors.grey.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (expiresAt != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Válido hasta: $expiresAt',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Text(
+                  'Comunica este código al usuario. Debe ir a "¿Olvidaste tu contraseña?" → Código de recuperación e ingresar su usuario, este código y la nueva contraseña.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ErrorHelper.getErrorMessage(e)),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -710,7 +731,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   }
 
   bool get _hasActiveFilters {
-    return _searchQuery.isNotEmpty ||
+    return _searchQuery.trim().isNotEmpty ||
         _selectedRolFilter != null ||
         _selectedAreaFilter != null ||
         _selectedEstadoFilter != null;
@@ -924,14 +945,18 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
+                    onChanged: (value) => setState(() => _searchQuery = value),
                     decoration: InputDecoration(
                       hintText: 'Buscar por nombre, usuario o email...',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon:
-                          _searchQuery.isNotEmpty
+                          _searchQuery.trim().isNotEmpty
                               ? IconButton(
                                 icon: const Icon(Icons.clear),
-                                onPressed: () => _searchController.clear(),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _searchQuery = '');
+                                },
                               )
                               : null,
                       border: OutlineInputBorder(
@@ -1136,13 +1161,13 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   Widget _buildUserCard(Usuario usuario, ThemeData theme, bool isDesktop) {
     final inactivo = !usuario.activo;
     return Opacity(
-      opacity: inactivo ? 0.75 : 1,
+      opacity: inactivo ? 0.85 : 1,
       child: Container(
         decoration: inactivo
             ? BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade400, width: 1),
+                border: Border.all(color: Colors.grey.shade500, width: 1.5),
               )
             : null,
         child: ListTile(
@@ -1179,13 +1204,30 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
       ),
           title: Row(
             children: [
+              if (inactivo)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade600,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Inactivo',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               Expanded(
                 child: Text(
                   usuario.nombreCompleto,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: inactivo ? Colors.grey.shade700 : null,
+                    color: inactivo ? Colors.grey.shade800 : null,
                   ),
                 ),
               ),
@@ -1248,14 +1290,14 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                   IconButton(
                     icon: const Icon(Icons.edit),
                     onPressed: () => _showRolDialog(usuario),
-                    tooltip: 'Cambiar rol',
+                    tooltip: 'Editar usuario',
                     color: theme.colorScheme.primary,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.block),
-                    onPressed: usuario.activo ? () => _confirmDeleteUsuario(usuario) : null,
-                    tooltip: usuario.activo ? 'Desactivar' : 'Desactivado',
-                    color: usuario.activo ? Colors.orange : Colors.grey,
+                    icon: const Icon(Icons.key_rounded),
+                    onPressed: () => _generarCodigoRecuperacion(usuario),
+                    tooltip: 'Código de recuperación',
+                    color: Colors.blue.shade700,
                   ),
                   Switch(
                     value: usuario.activo,
@@ -1269,11 +1311,11 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     case 'rol':
                       _showRolDialog(usuario);
                       break;
+                    case 'codigo':
+                      _generarCodigoRecuperacion(usuario);
+                      break;
                     case 'estado':
                       _toggleEstado(usuario);
-                      break;
-                    case 'eliminar':
-                      _confirmDeleteUsuario(usuario);
                       break;
                   }
                 },
@@ -1285,7 +1327,17 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                           children: [
                             Icon(Icons.edit, size: 18),
                             SizedBox(width: 8),
-                            Text('Cambiar rol'),
+                            Text('Editar usuario'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'codigo',
+                        child: Row(
+                          children: [
+                            Icon(Icons.key_rounded, size: 18),
+                            SizedBox(width: 8),
+                            Text('Código de recuperación'),
                           ],
                         ),
                       ),
@@ -1294,7 +1346,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                         child: Row(
                           children: [
                             Icon(
-                              usuario.activo ? Icons.block : Icons.check_circle,
+                              usuario.activo ? Icons.toggle_on : Icons.toggle_off,
                               size: 18,
                             ),
                             const SizedBox(width: 8),
@@ -1302,17 +1354,6 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                           ],
                         ),
                       ),
-                      if (usuario.activo)
-                        PopupMenuItem<String>(
-                          value: 'eliminar',
-                          child: const Row(
-                            children: [
-                              Icon(Icons.block, size: 18, color: Colors.orange),
-                              SizedBox(width: 8),
-                              Text('Desactivar'),
-                            ],
-                          ),
-                        ),
                     ],
               ),
         ),
@@ -1321,9 +1362,14 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   }
 
   Widget _buildUserCardGrid(Usuario usuario, ThemeData theme) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    final inactivo = !usuario.activo;
+    final card = Card(
+      elevation: inactivo ? 0 : 2,
+      color: inactivo ? Colors.grey.shade300 : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: inactivo ? BorderSide(color: Colors.grey.shade500, width: 1.5) : BorderSide.none,
+      ),
       child: InkWell(
         onTap: () => _showRolDialog(usuario),
         borderRadius: BorderRadius.circular(16),
@@ -1339,7 +1385,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                     backgroundColor:
                         usuario.activo
                             ? theme.colorScheme.primary
-                            : Colors.grey,
+                            : Colors.grey.shade600,
                     child: Text(
                       usuario.nombreCompleto[0].toUpperCase(),
                       style: const TextStyle(
@@ -1369,11 +1415,31 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                 ],
               ),
               const SizedBox(height: 12),
+              if (inactivo)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade600,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Inactivo',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
               Text(
                 usuario.nombreCompleto,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
+                  color: inactivo ? Colors.grey.shade700 : null,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
@@ -1403,12 +1469,12 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                   IconButton(
                     icon: const Icon(Icons.edit, size: 18),
                     onPressed: () => _showRolDialog(usuario),
-                    tooltip: 'Cambiar rol',
+                    tooltip: 'Editar usuario',
                   ),
                   IconButton(
-                    icon: Icon(Icons.block, size: 18, color: usuario.activo ? Colors.orange : Colors.grey),
-                    onPressed: usuario.activo ? () => _confirmDeleteUsuario(usuario) : null,
-                    tooltip: usuario.activo ? 'Desactivar' : 'Desactivado',
+                    icon: const Icon(Icons.key_rounded, size: 18),
+                    onPressed: () => _generarCodigoRecuperacion(usuario),
+                    tooltip: 'Código de recuperación',
                   ),
                   Switch(
                     value: usuario.activo,
@@ -1421,6 +1487,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
         ),
       ),
     );
+    return inactivo ? Opacity(opacity: 0.9, child: card) : card;
   }
 
   Widget _buildInfoRow(IconData icon, String text) {
