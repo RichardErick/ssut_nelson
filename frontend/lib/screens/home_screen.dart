@@ -40,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final GlobalKey<DocumentosListScreenState> _documentosKey = GlobalKey<DocumentosListScreenState>();
 
   List<NavigationItem> _navItems = [];
+  int? _reportesNavIndex;
 
   @override
   void didChangeDependencies() {
@@ -75,12 +76,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // Acceso a reportes si tiene permiso de ver documentos (todos) o es admin sistema
     if (authProvider.hasPermission('ver_documento') || authProvider.canManageUserPermissions) {
+      _reportesNavIndex = _navItems.length;
       _navItems.add(
         NavigationItem(
           label: 'Reportes',
           icon: Icons.assessment_outlined,
           selectedIcon: Icons.assessment,
-          screen: const ReportesScreen(),
+          screen: ReportesScreen(selectedIndex: _selectedIndex, reportesIndex: _reportesNavIndex!),
         ),
       );
     }
@@ -554,7 +556,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
           )
-        : KeyedSubtree(key: ValueKey('nav_$index'), child: _navItems[index].screen);
+        : KeyedSubtree(
+            key: ValueKey('nav_$index'),
+            child: _reportesNavIndex != null && index == _reportesNavIndex
+                ? ReportesScreen(selectedIndex: _selectedIndex, reportesIndex: _reportesNavIndex!)
+                : _navItems[index].screen,
+          );
 
     return Container(
       width: double.infinity,

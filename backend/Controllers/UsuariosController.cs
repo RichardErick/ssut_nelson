@@ -390,17 +390,21 @@ public class UsuariosController : ControllerBase
         var configs = await _context.Configuraciones.Where(c => c.ActualizadoPor == id).ToListAsync();
         foreach (var c in configs) c.ActualizadoPor = null;
 
-        _context.Usuarios.Remove(usuario);
         try
         {
+            // Guardar primero las desvinculaciones para que la BD aplique los cambios antes del Remove
+            await _context.SaveChangesAsync();
+
+            _context.Usuarios.Remove(usuario);
             await _context.SaveChangesAsync();
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex)
         {
-            return BadRequest(new
-            {
-                message = "No se pudo eliminar el usuario (tiene relaciones). Usa eliminación lógica (hard=false) o desvincula sus registros primero."
-            });
+            var inner = ex.InnerException?.Message ?? ex.Message;
+            var msg = "No se pudo eliminar el usuario (tiene relaciones). Usa eliminación lógica (hard=false) o desvincula sus registros primero.";
+            if (!string.IsNullOrWhiteSpace(inner))
+                msg += " " + inner;
+            return BadRequest(new { message = msg });
         }
 
         return NoContent();

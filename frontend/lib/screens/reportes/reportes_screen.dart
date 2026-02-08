@@ -18,7 +18,12 @@ import '../../widgets/animated_card.dart';
 import '../../widgets/app_alert.dart';
 
 class ReportesScreen extends StatefulWidget {
-  const ReportesScreen({super.key});
+  /// Índice de la pestaña actual en Home; si coincide con [reportesIndex] esta pantalla está visible.
+  final int? selectedIndex;
+  /// Índice de la pestaña Reportes en el menú; se usa para refrescar al volver a la pestaña.
+  final int? reportesIndex;
+
+  const ReportesScreen({super.key, this.selectedIndex, this.reportesIndex});
 
   @override
   State<ReportesScreen> createState() => _ReportesScreenState();
@@ -45,15 +50,28 @@ class _ReportesScreenState extends State<ReportesScreen> {
     _loadEstadisticas();
   }
 
-  Future<void> _loadEstadisticas() async {
-    setState(() => _isLoading = true);
+  @override
+  void didUpdateWidget(covariant ReportesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Refrescar estadísticas al volver a esta pestaña (actualización en tiempo real)
+    if (widget.reportesIndex != null &&
+        widget.selectedIndex == widget.reportesIndex &&
+        oldWidget.selectedIndex != widget.reportesIndex) {
+      _loadEstadisticas();
+    }
+  }
+
+  Future<void> _loadEstadisticas({bool silent = false}) async {
+    if (!silent) setState(() => _isLoading = true);
     try {
       final service = Provider.of<ReporteService>(context, listen: false);
       final stats = await service.obtenerEstadisticas();
-      setState(() {
-        _estadisticas = stats;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _estadisticas = stats;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -80,21 +98,25 @@ class _ReportesScreenState extends State<ReportesScreen> {
           ? _buildLoadingState()
           : _estadisticas == null
               ? const Center(child: Text('No hay datos disponibles'))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(theme),
-                      const SizedBox(height: 40),
-                      _buildStatGrid(isDesktop),
-                      const SizedBox(height: 40),
-                      _buildReporteMovimientosSection(theme),
-                      const SizedBox(height: 40),
-                      _buildReportePrestadosSection(theme),
-                      const SizedBox(height: 40),
-                      _buildDetailedReports(theme, isDesktop),
-                    ],
+              : RefreshIndicator(
+                  onRefresh: () => _loadEstadisticas(silent: true),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(theme),
+                        const SizedBox(height: 40),
+                        _buildStatGrid(isDesktop),
+                        const SizedBox(height: 40),
+                        _buildReporteMovimientosSection(theme),
+                        const SizedBox(height: 40),
+                        _buildReportePrestadosSection(theme),
+                        const SizedBox(height: 40),
+                        _buildDetailedReports(theme, isDesktop),
+                      ],
+                    ),
                   ),
                 ),
     );
