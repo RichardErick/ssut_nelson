@@ -114,17 +114,8 @@ builder.Services.Configure<Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionOpti
 
 var app = builder.Build();
 
-// Manejar OPTIONS para CORS
-app.Use(async (context, next) =>
-{
-    if (context.Request.Method == "OPTIONS")
-    {
-        context.Response.StatusCode = 200;
-        await context.Response.WriteAsync("");
-        return;
-    }
-    await next();
-});
+// CORS PRIMERO - asi el preflight OPTIONS recibe las cabeceras
+app.UseCors();
 
 // Configuramos el pipeline de HTTP
 if (app.Environment.IsDevelopment())
@@ -138,9 +129,6 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-
-// CORS - debe ir ANTES de routing
-app.UseCors();
 
 // Middleware de manejo de errores global DESPUÉS de CORS
 app.Use(async (context, next) =>
