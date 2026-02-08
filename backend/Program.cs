@@ -125,10 +125,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+// No redirigir a HTTPS en local (dotnet run usa solo http://localhost:5000)
+// app.UseHttpsRedirection();
 
 // Middleware de manejo de errores global DESPUÉS de CORS
 app.Use(async (context, next) =>
