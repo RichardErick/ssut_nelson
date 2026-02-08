@@ -437,8 +437,8 @@ public class UsuariosController : ControllerBase
     }
 
     /// <summary>
-    /// Genera un código de recuperación de 6 dígitos para el usuario. Válido 1 hora. Solo administradores.
-    /// El admin debe comunicar el código al usuario para que lo use en "Recuperar contraseña" → "Código de recuperación".
+    /// Genera un pin de recuperación de 4 dígitos para el usuario. Válido 1 hora. Solo administradores.
+    /// El admin comunica el pin al usuario para "Recuperar contraseña" → "Código de recuperación".
     /// </summary>
     [HttpPost("{id}/codigo-recuperacion")]
     [Authorize(Roles = "AdministradorSistema,Administrador")]
@@ -448,7 +448,7 @@ public class UsuariosController : ControllerBase
         if (usuario == null)
             return NotFound(new { message = "Usuario no encontrado" });
 
-        var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+        var code = RandomNumberGenerator.GetInt32(0, 10_000).ToString("D4");
         var expiry = DateTime.UtcNow.AddHours(1);
 
         usuario.ResetToken = code;

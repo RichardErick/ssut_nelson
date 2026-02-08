@@ -139,4 +139,21 @@ class UsuarioService {
       rethrow;
     }
   }
+
+  /// Genera un pin de recuperación de 4 dígitos para el usuario. Válido 1 hora.
+  /// El admin comunica el pin al usuario para "Recuperar contraseña" → "Código de recuperación".
+  Future<Map<String, dynamic>> generarCodigoRecuperacion(int id, [BuildContext? context]) async {
+    try {
+      final ctx = context ?? navigatorKey.currentContext;
+      if (ctx == null) throw Exception('No hay contexto disponible');
+      final apiService = Provider.of<ApiService>(ctx, listen: false);
+      final response = await apiService.post('/usuarios/$id/codigo-recuperacion');
+      final data = response.data;
+      if (data is Map<String, dynamic>) return data;
+      return Map<String, dynamic>.from(data as Map);
+    } catch (e) {
+      print('Error al generar código de recuperación: $e');
+      rethrow;
+    }
+  }
 }
