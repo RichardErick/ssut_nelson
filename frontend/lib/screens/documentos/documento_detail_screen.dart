@@ -237,6 +237,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   }
 
   PreferredSizeWidget _buildAppBar(Documento doc, ThemeData theme) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
     return AppBar(
       elevation: 0,
       backgroundColor: Colors.transparent,
@@ -245,9 +246,7 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 18),
       ),
       actions: [
-        if (Provider.of<AuthProvider>(
-          context,
-        ).hasPermission('borrar_documento'))
+        if (auth.hasPermission('borrar_documento'))
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded),
             onPressed: () => _confirmarEliminarDocumento(doc),
@@ -257,77 +256,100 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
             ),
             tooltip: 'Eliminar documento',
           ),
-        const SizedBox(width: 8),
-        IconButton(
-          icon: const Icon(Icons.qr_code_rounded),
-          onPressed: () => _descargarCodigoQR(doc),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.purple.shade50,
-            foregroundColor: Colors.purple.shade700,
-          ),
-          tooltip: 'Descargar código QR',
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          icon: const Icon(Icons.download_rounded),
-          onPressed: _descargarDocumento,
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.green.shade50,
-            foregroundColor: Colors.green.shade700,
-          ),
-          tooltip: 'Descargar documento',
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          icon: const Icon(Icons.print_rounded),
-          onPressed: _printDocumento,
-          style: IconButton.styleFrom(
-            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-          ),
-          tooltip: 'Imprimir documento',
-        ),
-        const SizedBox(width: 8),
-        if (Provider.of<AuthProvider>(
-          context,
-        ).hasPermission('editar_metadatos'))
+        if (auth.hasPermission('editar_metadatos')) ...[
+          const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.edit_rounded),
-            onPressed: () async {
-              final updated = await Navigator.of(context).push<bool>(
-                MaterialPageRoute<bool>(
-                  builder:
-                      (context) =>
-                          DocumentoFormScreen(documento: widget.documento),
-                ),
-              );
-              if (updated == true && mounted) {
-                try {
-                  final doc = await Provider.of<DocumentoService>(
-                    context,
-                    listen: false,
-                  ).getById(widget.documento.id);
-                  if (mounted) setState(() => _documentoActual = doc);
-                } catch (_) {}
-              }
-            },
+            onPressed: () => _navigateToEdit(doc),
             style: IconButton.styleFrom(
               backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
             ),
             tooltip: 'Editar documento',
           ),
+        ],
         const SizedBox(width: 8),
-        IconButton(
-          icon: const Icon(Icons.share_rounded),
-          onPressed: () => _compartirDocumento(doc),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.orange.shade50,
-            foregroundColor: Colors.orange.shade700,
-          ),
-          tooltip: 'Compartir documento',
+        PopupMenuButton<String>(
+          icon: Icon(Icons.more_vert_rounded, color: theme.colorScheme.onSurface),
+          tooltip: 'Más opciones',
+          onSelected: (value) {
+            switch (value) {
+              case 'descargar':
+                _descargarDocumento();
+                break;
+              case 'imprimir':
+                _printDocumento();
+                break;
+              case 'qr':
+                _descargarQRSimple(doc);
+                break;
+              case 'compartir':
+                _compartirDocumento(doc);
+                break;
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'descargar',
+              child: Row(
+                children: [
+                  Icon(Icons.download_rounded, color: Colors.green.shade700, size: 22),
+                  const SizedBox(width: 12),
+                  const Text('Descargar documento'),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'imprimir',
+              child: Row(
+                children: [
+                  Icon(Icons.print_rounded, size: 22, color: theme.colorScheme.onSurface),
+                  const SizedBox(width: 12),
+                  const Text('Imprimir'),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'qr',
+              child: Row(
+                children: [
+                  Icon(Icons.qr_code_rounded, color: Colors.purple.shade700, size: 22),
+                  const SizedBox(width: 12),
+                  const Text('Descargar código QR'),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'compartir',
+              child: Row(
+                children: [
+                  Icon(Icons.share_rounded, color: Colors.orange.shade700, size: 22),
+                  const SizedBox(width: 12),
+                  const Text('Compartir documento'),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 8),
       ],
     );
+  }
+
+  Future<void> _navigateToEdit(Documento doc) async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (context) => DocumentoFormScreen(documento: widget.documento),
+      ),
+    );
+    if (updated == true && mounted) {
+      try {
+        final refreshed = await Provider.of<DocumentoService>(
+          context,
+          listen: false,
+        ).getById(widget.documento.id);
+        if (mounted) setState(() => _documentoActual = refreshed);
+      } catch (_) {}
+    }
   }
 
   Widget _buildLeftColumn(
