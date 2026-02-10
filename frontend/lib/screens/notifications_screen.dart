@@ -12,7 +12,7 @@ import '../theme/app_theme.dart';
 import '../utils/error_helper.dart';
 import '../widgets/app_alert.dart';
 import 'configurar_pregunta_secreta_screen.dart';
-import 'admin/roles_permissions_screen.dart';
+import 'admin/restablecer_contrasena_usuario_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -617,17 +617,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 if (configurado == true && mounted) _loadData();
               });
             } else if (titulo.startsWith('Solicitud: recuperación de contraseña')) {
-              // Intentar extraer (UsuarioId: X) del mensaje para ir directo a la gestión de ese usuario
               final mensaje = alerta['mensaje']?.toString() ?? '';
               final userId = _extraerUsuarioIdDesdeMensaje(mensaje);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RolesPermissionsScreen(
-                    initialUserId: userId,
+              if (userId != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RestablecerContrasenaUsuarioScreen(userId: userId),
                   ),
-                ),
-              );
+                ).then((_) {
+                  if (mounted) _loadData();
+                });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('No se pudo identificar al usuario en esta notificación.'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             }
           },
           contentPadding: const EdgeInsets.symmetric(
