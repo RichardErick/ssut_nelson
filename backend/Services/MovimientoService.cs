@@ -69,6 +69,13 @@ public class MovimientoService : IMovimientoService
         if (documento == null)
             throw new Exception("Documento no encontrado");
 
+        // Validación de negocio: no permitir prestar o derivar un documento que ya está prestado
+        if ((dto.TipoMovimiento == "Salida" || dto.TipoMovimiento == "Derivacion") &&
+            documento.Estado == EstadoDocumento.Prestado)
+        {
+            throw new Exception("El documento ya se encuentra prestado. Debe devolverse antes de registrar un nuevo préstamo o derivación.");
+        }
+
         // Actualizar estado del documento según el tipo de movimiento
         if (dto.TipoMovimiento == "Salida" || dto.TipoMovimiento == "Derivacion")
         {

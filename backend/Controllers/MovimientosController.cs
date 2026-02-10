@@ -60,7 +60,12 @@ public class MovimientosController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            // Exponer el mensaje interno de EF Core para que el frontend muestre la causa real
+            var inner = ex.InnerException?.Message;
+            var message = inner != null && inner.Trim().Length > 0
+                ? inner
+                : ex.Message;
+            return BadRequest(new { message });
         }
     }
 
