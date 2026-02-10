@@ -17,7 +17,10 @@ import '../../widgets/glass_container.dart';
 import '../../widgets/loading_shimmer.dart';
 
 class RolesPermissionsScreen extends StatefulWidget {
-  const RolesPermissionsScreen({super.key});
+  /// Si se especifica, la pantalla intentará enfocar/abrir directamente al usuario indicado.
+  final int? initialUserId;
+
+  const RolesPermissionsScreen({super.key, this.initialUserId});
 
   @override
   State<RolesPermissionsScreen> createState() => _RolesPermissionsScreenState();
@@ -34,6 +37,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   /// Por defecto "Todos" para que siempre se vean usuarios (evitar 0 de N si todos están inactivos).
   bool? _selectedEstadoFilter = null;
   bool _isGridView = false;
+  bool _initialUserHandled = false;
 
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -279,6 +283,21 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
           _isLoading = false;
           _isRefreshing = false;
         });
+        // Si venimos desde una notificación con un usuario específico, tratar de enfocarlo una sola vez
+        if (!_initialUserHandled && widget.initialUserId != null) {
+          _initialUserHandled = true;
+          final target =
+              _usuarios.firstWhere((u) => u.id == widget.initialUserId, orElse: () => _usuarios.first);
+          // Prellenar búsqueda con el usuario para que quede filtrado
+          _searchController.text = target.nombreUsuario;
+          _searchQuery = target.nombreUsuario;
+          // Abrir diálogo de edición después de que el frame termine de construirse
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _showRolDialog(target);
+            }
+          });
+        }
       }
     } catch (e) {
       if (mounted) {

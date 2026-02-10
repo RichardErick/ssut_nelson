@@ -424,22 +424,26 @@ public class AuthController : ControllerBase
         if (usuario == null && !string.IsNullOrWhiteSpace(usernameNorm))
             usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario.ToLower() == usernameNorm);
 
+        // Solo el/los administradores de sistema deben recibir esta solicitud
         var admins = await _context.Usuarios
-            .Where(u => u.Activo && (u.Rol == UsuarioRol.Administrador || u.Rol == UsuarioRol.AdministradorDocumentos))
+            .Where(u => u.Activo && u.Rol == UsuarioRol.Administrador)
             .ToListAsync();
 
-        // Asegurar que el administrador del sistema (usuario "admin") siempre reciba la notificación
+        // Asegurar que el usuario "admin" (administrador de sistema) siempre reciba la notificación,
+        // incluso si por alguna razón su rol no coincide exactamente.
         var adminSistema = await _context.Usuarios
             .FirstOrDefaultAsync(u => u.Activo && u.NombreUsuario.ToLower() == "admin");
         if (adminSistema != null && !admins.Any(a => a.Id == adminSistema.Id))
         {
             admins = admins.Concat(new[] { adminSistema }).ToList();
-            _logger.LogInformation("SolicitudRecuperacion: se añadió al administrador del sistema (usuario admin, Id={Id}) a los destinatarios.", adminSistema.Id);
+            _logger.LogInformation(
+                "SolicitudRecuperacion: se añadió al administrador del sistema (usuario 'admin', Id={Id}) a los destinatarios.",
+                adminSistema.Id);
         }
 
         // Si no hay nadie por rol ni "admin", no hay a quién notificar
-        if (admins.Count == 0 && adminSistema == null)
-            _logger.LogWarning("SolicitudRecuperacion: no hay administradores activos ni usuario 'admin' en el sistema.");
+        if (admins.Count == 0)
+            _logger.LogWarning("SolicitudRecuperacion: no hay administradores de sistema activos (ni usuario 'admin') en el sistema.");
 
         if (admins.Count > 0)
         {

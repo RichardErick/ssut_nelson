@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../utils/error_helper.dart';
 import '../widgets/app_alert.dart';
 import 'configurar_pregunta_secreta_screen.dart';
+import 'admin/roles_permissions_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -615,6 +616,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ).then((configurado) {
                 if (configurado == true && mounted) _loadData();
               });
+            } else if (titulo.startsWith('Solicitud: recuperación de contraseña')) {
+              // Intentar extraer (UsuarioId: X) del mensaje para ir directo a la gestión de ese usuario
+              final mensaje = alerta['mensaje']?.toString() ?? '';
+              final userId = _extraerUsuarioIdDesdeMensaje(mensaje);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RolesPermissionsScreen(
+                    initialUserId: userId,
+                  ),
+                ),
+              );
             }
           },
           contentPadding: const EdgeInsets.symmetric(
@@ -716,5 +729,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
       ),
     );
+  }
+
+  /// Extrae el UsuarioId del mensaje de la alerta cuando viene en el formato "(UsuarioId: 30)".
+  int? _extraerUsuarioIdDesdeMensaje(String mensaje) {
+    final pattern = RegExp(r'\(UsuarioId:\s*(\d+)\)');
+    final match = pattern.firstMatch(mensaje);
+    if (match != null) {
+      final idStr = match.group(1);
+      if (idStr != null) {
+        return int.tryParse(idStr);
+      }
+    }
+    return null;
   }
 }
