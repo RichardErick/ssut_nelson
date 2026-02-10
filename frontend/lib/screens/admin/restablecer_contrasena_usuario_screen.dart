@@ -102,12 +102,13 @@ class _RestablecerContrasenaUsuarioScreenState
       setState(() => _isSaving = false);
       _nuevaContrasenaController.clear();
       _repetirContrasenaController.clear();
-      AppAlert.success(
+      await AppAlert.success(
         context,
-        'Contraseña actualizada',
-        'La contraseña de ${_usuario?.nombreCompleto ?? ''} ha sido restablecida. Ya puede iniciar sesión con la nueva contraseña.',
+        'Contraseña actualizada correctamente',
+        'La contraseña de ${_usuario?.nombreCompleto ?? ''} (${_usuario?.nombreUsuario ?? ''}) ha sido restablecida. El usuario ya puede iniciar sesión con la nueva contraseña.',
         buttonText: 'Entendido',
       );
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
