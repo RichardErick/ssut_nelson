@@ -1037,7 +1037,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final rangoLine =
         (carpeta.rangoInicio != null && carpeta.rangoFin != null)
             ? '${carpeta.rangoInicio} - ${carpeta.rangoFin}'
-            : 'Sin rango';
+            : null;
 
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 300),
@@ -1193,7 +1193,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     children: [
                       _buildInfoChip('Gestión', gestionLine, Colors.blue),
                       _buildInfoChip('Nº', nroLine, Colors.green),
-                      _buildInfoChip('Rango', rangoLine, Colors.orange),
+                      if (rangoLine != null)
+                        _buildInfoChip('Rango', rangoLine, Colors.orange),
                     ],
                   ),
                   const SizedBox(height: 8),

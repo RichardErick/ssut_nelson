@@ -58,7 +58,10 @@ public class CarpetasController : ControllerBase
                 c.FechaCreacion,
                 UsuarioCreacionNombre = c.UsuarioCreacion != null ? c.UsuarioCreacion.NombreCompleto : null,
                 NumeroSubcarpetas = c.Subcarpetas.Count,
-                NumeroDocumentos = c.Documentos.Count
+                NumeroDocumentos = c.Documentos.Count,
+                // Rango configurado explícitamente en la carpeta (tope lógico)
+                c.RangoInicio,
+                c.RangoFin
             })
             .ToListAsync();
 
@@ -91,8 +94,10 @@ public class CarpetasController : ControllerBase
                 NumeroDocumentos = numeroDocumentos,
                 NumeroCarpeta = numeroMap.TryGetValue(c.Id, out var n) ? n : (int?)null,
                 CodigoRomano = numeroMap.TryGetValue(c.Id, out var rn) ? ToRoman(rn) : null,
-                RangoInicio = rangoMap.TryGetValue(c.Id, out var r) ? r.Inicio : null,
-                RangoFin = rangoMap.TryGetValue(c.Id, out var r2) ? r2.Fin : null
+                // Si la carpeta tiene un rango configurado, usarlo como tope;
+                // si no, mostrar el rango calculado a partir de los documentos.
+                RangoInicio = c.RangoInicio ?? (rangoMap.TryGetValue(c.Id, out var r) ? r.Inicio : null),
+                RangoFin = c.RangoFin ?? (rangoMap.TryGetValue(c.Id, out var r2) ? r2.Fin : null)
             };
         });
 
@@ -164,7 +169,9 @@ public class CarpetasController : ControllerBase
                     sc.Codigo,
                     sc.Activo
                 }).ToList(),
-                NumeroDocumentos = c.Documentos.Count
+                NumeroDocumentos = c.Documentos.Count,
+                c.RangoInicio,
+                c.RangoFin
             })
             .FirstOrDefaultAsync();
 
@@ -191,8 +198,8 @@ public class CarpetasController : ControllerBase
             carpeta.NumeroDocumentos,
             NumeroCarpeta = numeroMap.TryGetValue(id, out var n) ? n : (int?)null,
             CodigoRomano = numeroMap.TryGetValue(id, out var rn) ? ToRoman(rn) : null,
-            RangoInicio = rangoMap.TryGetValue(id, out var r) ? r.Inicio : null,
-            RangoFin = rangoMap.TryGetValue(id, out var r2) ? r2.Fin : null
+            RangoInicio = carpeta.RangoInicio ?? (rangoMap.TryGetValue(id, out var r) ? r.Inicio : null),
+            RangoFin = carpeta.RangoFin ?? (rangoMap.TryGetValue(id, out var r2) ? r2.Fin : null)
         });
     }
 
@@ -218,7 +225,9 @@ public class CarpetasController : ControllerBase
                     sc.Nombre,
                     sc.Codigo,
                     NumeroDocumentos = sc.Documentos.Count
-                }).ToList()
+                }).ToList(),
+                c.RangoInicio,
+                c.RangoFin
             })
             .ToListAsync();
 
@@ -237,8 +246,8 @@ public class CarpetasController : ControllerBase
             c.Subcarpetas,
             NumeroCarpeta = numeroMap.TryGetValue(c.Id, out var n) ? n : (int?)null,
             CodigoRomano = numeroMap.TryGetValue(c.Id, out var rn) ? ToRoman(rn) : null,
-            RangoInicio = rangoMap.TryGetValue(c.Id, out var r) ? r.Inicio : null,
-            RangoFin = rangoMap.TryGetValue(c.Id, out var r2) ? r2.Fin : null
+            RangoInicio = c.RangoInicio ?? (rangoMap.TryGetValue(c.Id, out var r) ? r.Inicio : null),
+            RangoFin = c.RangoFin ?? (rangoMap.TryGetValue(c.Id, out var r2) ? r2.Fin : null)
         });
 
         return Ok(result);
