@@ -1711,42 +1711,85 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               ),
             ],
           ),
-          // Estadísticas: una fila más compacta en subcarpetas
+          // Estadísticas: resumen dentro de la carpeta
           SizedBox(height: esSubcarpeta ? 10 : 20),
-          Row(
-            children: [
-              Expanded(
-                child: _buildCarpetaStat(
-                  'Subcarpetas',
-                  '${_subcarpetas.length}',
-                  Icons.folder_copy,
-                  Colors.orange,
-                  compact: esSubcarpeta,
-                ),
-              ),
-              SizedBox(width: esSubcarpeta ? 8 : 16),
-              Expanded(
-                child: _buildCarpetaStat(
-                  esCarpeta ? 'Docs (total)' : 'Documentos',
-                  esCarpeta
-                      ? '${_subcarpetas.fold<int>(0, (sum, sub) => sum + sub.numeroDocumentos)}'
-                      : '${_documentosCarpeta.length}',
-                  Icons.description,
-                  Colors.green,
-                  compact: esSubcarpeta,
-                ),
-              ),
-              SizedBox(width: esSubcarpeta ? 8 : 16),
-              Expanded(
-                child: _buildCarpetaStat(
-                  'Gestión',
-                  carpeta.gestion,
-                  Icons.calendar_today,
-                  Colors.blue,
-                  compact: esSubcarpeta,
-                ),
-              ),
-            ],
+          Builder(
+            builder: (context) {
+              final tieneRangoConfig =
+                  carpeta.rangoInicio != null && carpeta.rangoFin != null;
+
+              // Documentos en la carpeta actual (para capacidad/usados)
+              final docsEnCarpeta = _documentosCarpeta.length;
+
+              // Capacidad y restantes según rango configurado
+              int? capacidad;
+              int? restantes;
+              if (tieneRangoConfig) {
+                capacidad =
+                    (carpeta.rangoFin! - carpeta.rangoInicio! + 1).clamp(0, 999999);
+                restantes = (capacidad - docsEnCarpeta).clamp(0, 999999);
+              }
+
+              // Valor y etiqueta de la primera tarjeta
+              final String stat1Label;
+              final String stat1Value;
+              final IconData stat1Icon;
+              final Color stat1Color;
+
+              if (tieneRangoConfig && capacidad != null && restantes != null) {
+                stat1Label = 'Capacidad';
+                stat1Value = '$docsEnCarpeta / $capacidad';
+                stat1Icon = Icons.filter_list_rounded;
+                stat1Color = Colors.orange;
+              } else {
+                stat1Label = 'Subcarpetas';
+                stat1Value = '${_subcarpetas.length}';
+                stat1Icon = Icons.folder_copy;
+                stat1Color = Colors.orange;
+              }
+
+              // Documentos totales mostrados en segunda tarjeta
+              final docsTotales = esCarpeta
+                  ? (_subcarpetas.isNotEmpty
+                      ? _subcarpetas.fold<int>(
+                          0, (sum, sub) => sum + sub.numeroDocumentos)
+                      : _documentosCarpeta.length)
+                  : _documentosCarpeta.length;
+
+              return Row(
+                children: [
+                  Expanded(
+                    child: _buildCarpetaStat(
+                      stat1Label,
+                      stat1Value,
+                      stat1Icon,
+                      stat1Color,
+                      compact: esSubcarpeta,
+                    ),
+                  ),
+                  SizedBox(width: esSubcarpeta ? 8 : 16),
+                  Expanded(
+                    child: _buildCarpetaStat(
+                      esCarpeta ? 'Docs (total)' : 'Documentos',
+                      '$docsTotales',
+                      Icons.description,
+                      Colors.green,
+                      compact: esSubcarpeta,
+                    ),
+                  ),
+                  SizedBox(width: esSubcarpeta ? 8 : 16),
+                  Expanded(
+                    child: _buildCarpetaStat(
+                      'Gestión',
+                      carpeta.gestion,
+                      Icons.calendar_today,
+                      Colors.blue,
+                      compact: esSubcarpeta,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           // Botón Agregar documento visible al entrar a la carpeta
           if (Provider.of<AuthProvider>(context).hasPermission('subir_documento')) ...[
