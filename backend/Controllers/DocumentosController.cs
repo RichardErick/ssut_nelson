@@ -283,6 +283,29 @@ public class DocumentosController : ControllerBase
             forzarCorrelativoAuto = resolucion.ForzarCorrelativoAuto;
         }
 
+        // Validar capacidad de la carpeta según su rango configurado (si aplica)
+        if (carpetaId.HasValue)
+        {
+            var carpetaCapacidad = await _context.Carpetas
+                .FirstOrDefaultAsync(c => c.Id == carpetaId.Value);
+
+            if (carpetaCapacidad != null &&
+                carpetaCapacidad.RangoInicio.HasValue &&
+                carpetaCapacidad.RangoFin.HasValue)
+            {
+                var capacidad = carpetaCapacidad.RangoFin.Value - carpetaCapacidad.RangoInicio.Value + 1;
+                if (capacidad <= 0)
+                    return BadRequest(new { message = $"El rango configurado para la carpeta ({carpetaCapacidad.RangoInicio}-{carpetaCapacidad.RangoFin}) no es válido." });
+
+                var countEnCarpeta = await ContarDocumentosEnCarpetaAsync(carpetaId.Value, gestion);
+                if (countEnCarpeta >= capacidad)
+                    return BadRequest(new
+                    {
+                        message = $"La carpeta ya alcanzó el máximo de {capacidad} documentos para su rango {carpetaCapacidad.RangoInicio}-{carpetaCapacidad.RangoFin}."
+                    });
+            }
+        }
+
         string correlativoFormateado;
         try
         {
@@ -293,6 +316,17 @@ public class DocumentosController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+
+        // Validar que el número de comprobante (correlativo) no se repita en la misma gestión
+        var correlativoDuplicado = await _context.Documentos
+            .AnyAsync(d => d.Gestion == gestion && d.NumeroCorrelativo == correlativoFormateado);
+        if (correlativoDuplicado)
+        {
+            return BadRequest(new
+            {
+                message = $"Ya existe un documento con el número de comprobante {correlativoFormateado} en la gestión {gestion}."
+            });
         }
 
         var tipoCodigo = (tipoDocumento.Codigo ?? "DOC").ToUpperInvariant();
@@ -460,7 +494,27 @@ public class DocumentosController : ControllerBase
                 return BadRequest(new { message = "El número de comprobante debe tener máximo 10 dígitos" });
             if (digits.Length > 0 && !digits.All(char.IsDigit))
                 return BadRequest(new { message = "El número de comprobante debe contener solo números" });
-            documento.NumeroCorrelativo = digits.Length >= 4 ? digits : digits.PadLeft(4, '0');
+
+            var nuevoCorrelativo = digits.Length >= 4 ? digits : digits.PadLeft(4, '0');
+            var nuevaGestion = !string.IsNullOrWhiteSpace(dto.Gestion)
+                ? dto.Gestion!.Trim()
+                : documento.Gestion;
+
+            // Validar que el número de comprobante no se repita en la misma gestión (excluyendo el propio documento)
+            var correlativoDuplicado = await _context.Documentos
+                .AnyAsync(d =>
+                    d.Id != id &&
+                    d.Gestion == nuevaGestion &&
+                    d.NumeroCorrelativo == nuevoCorrelativo);
+            if (correlativoDuplicado)
+            {
+                return BadRequest(new
+                {
+                    message = $"Ya existe un documento con el número de comprobante {nuevoCorrelativo} en la gestión {nuevaGestion}."
+                });
+            }
+
+            documento.NumeroCorrelativo = nuevoCorrelativo;
         }
 
         if (dto.TipoDocumentoId.HasValue)
