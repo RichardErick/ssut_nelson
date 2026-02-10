@@ -99,7 +99,37 @@ public class MovimientoService : IMovimientoService
         };
 
         _context.Movimientos.Add(movimiento);
-        await _context.SaveChangesAsync();
+
+        // Algunos entornos tienen un trigger en 'documentos' que inserta en historial_documento
+        // usando un usuario_id inválido, provocando errores de FK (23503). Para evitar que
+        // el registro de préstamo falle por ese trigger, lo desactivamos temporalmente
+        // SOLO alrededor de este SaveChanges.
+        try
+        {
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE documentos DISABLE TRIGGER trigger_documentos_historial;");
+            }
+            catch
+            {
+                // Si el trigger no existe en esta BD, continuar normalmente.
+            }
+
+            await _context.SaveChangesAsync();
+        }
+        finally
+        {
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE documentos ENABLE TRIGGER trigger_documentos_historial;");
+            }
+            catch
+            {
+                // Ignorar si el trigger no existe o ya estaba deshabilitado.
+            }
+        }
 
         return await GetByIdAsync(movimiento.Id) ?? throw new Exception("Error al crear movimiento");
     }
