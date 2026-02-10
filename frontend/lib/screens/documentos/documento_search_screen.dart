@@ -40,6 +40,10 @@ class _DocumentoSearchScreenState extends State<DocumentoSearchScreen> {
       _textoBusquedaController.text = widget.query!;
       _codigoController.text = widget.query!;
     }
+
+    // Fechas por defecto: hoy, para que el formulario "jale" automáticamente la fecha actual.
+    _fechaDesde = DateTime.now();
+    _fechaHasta = DateTime.now();
   }
 
   @override

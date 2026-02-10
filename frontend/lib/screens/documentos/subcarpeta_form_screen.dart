@@ -39,6 +39,16 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Por defecto, usar la fecha actual para la subcarpeta
+    _fecha = DateTime.now();
+
+    // Si es una carpeta raíz (sin padre), sugerir la gestión con el año actual.
+    // Si tiene padre, se cargará la gestión del padre en _cargarGestionPadre().
+    if (widget.carpetaPadreId == null) {
+      _gestionController.text = DateTime.now().year.toString();
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _cargarGestionPadre());
   }
 

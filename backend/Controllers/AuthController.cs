@@ -428,17 +428,18 @@ public class AuthController : ControllerBase
             .Where(u => u.Activo && (u.Rol == UsuarioRol.Administrador || u.Rol == UsuarioRol.AdministradorDocumentos))
             .ToListAsync();
 
-        // Si no hay admins por rol, notificar al usuario "admin" por nombre (fallback)
-        if (admins.Count == 0)
+        // Asegurar que el administrador del sistema (usuario "admin") siempre reciba la notificación
+        var adminSistema = await _context.Usuarios
+            .FirstOrDefaultAsync(u => u.Activo && u.NombreUsuario.ToLower() == "admin");
+        if (adminSistema != null && !admins.Any(a => a.Id == adminSistema.Id))
         {
-            var fallbackAdmin = await _context.Usuarios
-                .FirstOrDefaultAsync(u => u.Activo && u.NombreUsuario.ToLower() == "admin");
-            if (fallbackAdmin != null)
-            {
-                admins = new List<Usuario> { fallbackAdmin };
-                _logger.LogWarning("SolicitudRecuperacion: no se encontraron admins por rol; se usó fallback por usuario 'admin' (Id={Id}). Revisa que el rol del admin en BD sea 'Administrador' o 'AdministradorSistema'.", fallbackAdmin.Id);
-            }
+            admins = admins.Concat(new[] { adminSistema }).ToList();
+            _logger.LogInformation("SolicitudRecuperacion: se añadió al administrador del sistema (usuario admin, Id={Id}) a los destinatarios.", adminSistema.Id);
         }
+
+        // Si no hay nadie por rol ni "admin", no hay a quién notificar
+        if (admins.Count == 0 && adminSistema == null)
+            _logger.LogWarning("SolicitudRecuperacion: no hay administradores activos ni usuario 'admin' en el sistema.");
 
         if (admins.Count > 0)
         {

@@ -105,11 +105,30 @@ class _VistaCarpetas extends StatelessWidget {
           itemCount: controller.carpetas.length,
           itemBuilder: (context, index) {
             final carpeta = controller.carpetas[index];
-            return CarpetaCard(
-              carpeta: carpeta,
-              onTap: () => controller.abrirCarpeta(carpeta),
-              theme: theme,
-              onDelete: () => _confirmarEliminarCarpeta(context, controller, carpeta),
+
+            // Animación suave para que las carpetas "aparezcan" en la lista
+            return TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOut,
+              builder: (context, value, child) {
+                final dx = 0.0;
+                final dy = 16 * (1 - value);
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(dx, dy),
+                    child: child,
+                  ),
+                );
+              },
+              child: CarpetaCard(
+                carpeta: carpeta,
+                onTap: () => controller.abrirCarpeta(carpeta),
+                theme: theme,
+                onDelete: () =>
+                    _confirmarEliminarCarpeta(context, controller, carpeta),
+              ),
             );
           },
         );
@@ -286,12 +305,30 @@ class _VistaDocumentosCarpeta extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final sub = controller.subcarpetas[index];
-          return SubcarpetaCard(
-            subcarpeta: sub,
-            onTap: () => controller.abrirCarpeta(sub),
-            theme: theme,
-            onDelete: () =>
-                _confirmarEliminarSubcarpeta(context, controller, sub),
+
+          // Animación horizontal para subcarpetas, da sensación de "movimiento"
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOut,
+            builder: (context, value, child) {
+              final dx = 24 * (1 - value);
+              final dy = 0.0;
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(dx, dy),
+                  child: child,
+                ),
+              );
+            },
+            child: SubcarpetaCard(
+              subcarpeta: sub,
+              onTap: () => controller.abrirCarpeta(sub),
+              theme: theme,
+              onDelete: () =>
+                  _confirmarEliminarSubcarpeta(context, controller, sub),
+            ),
           );
         },
       ),
