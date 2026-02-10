@@ -29,7 +29,7 @@ class CarpetaCard extends StatelessWidget {
     final romanoLine = (romano ?? '').isNotEmpty ? 'Romano $romano' : null;
     final rangoLine = (carpeta.rangoInicio != null && carpeta.rangoFin != null)
         ? 'Rango: ${carpeta.rangoInicio} - ${carpeta.rangoFin}'
-        : 'Rango: sin documentos';
+        : null;
 
     return InkWell(
       onTap: onTap,
@@ -98,13 +98,14 @@ class CarpetaCard extends StatelessWidget {
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
-                Text(
-                  rangoLine,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                if (rangoLine != null)
+                  Text(
+                    rangoLine,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
                   ),
-                ),
                 Text(
                   'Doc: ${carpeta.numeroDocumentos}',
                   style: GoogleFonts.inter(

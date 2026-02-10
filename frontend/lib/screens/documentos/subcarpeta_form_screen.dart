@@ -132,7 +132,11 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
 
       // No puede existir otra carpeta con el mismo rango (misma ubicación y gestión)
       if (rInicio != null && rFin != null) {
-        final rangoDuplicado = await _verificarRangoDuplicado(rInicio, rFin);
+        final rangoDuplicado = await _verificarRangoDuplicado(
+          rInicio,
+          rFin,
+          gestion,
+        );
         if (rangoDuplicado.duplicado) {
           _mostrarDialogoError(
             'Rango en uso',
@@ -265,11 +269,16 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
     );
   }
 
-  /// Verifica si ya existe una carpeta con el mismo rango (misma ubicación). Devuelve duplicado y último valor de rango en uso.
-  Future<({bool duplicado, int? ultimoValor})> _verificarRangoDuplicado(int rangoInicio, int rangoFin) async {
+  /// Verifica si ya existe una carpeta con el mismo rango (misma ubicación y gestión).
+  /// Devuelve si está duplicado y el último valor de rango en uso para sugerir al usuario.
+  Future<({bool duplicado, int? ultimoValor})> _verificarRangoDuplicado(
+    int rangoInicio,
+    int rangoFin,
+    String gestion,
+  ) async {
     try {
       final carpetaService = Provider.of<CarpetaService>(context, listen: false);
-      final todas = await carpetaService.getAll();
+      final todas = await carpetaService.getAll(gestion: gestion);
       final hermanas = todas
           .where((c) => c.carpetaPadreId == widget.carpetaPadreId)
           .where((c) => c.rangoInicio != null && c.rangoFin != null)

@@ -49,9 +49,10 @@ class SubcarpetaCard extends StatelessWidget {
                     color: Colors.blue.shade900,
                   ),
                 ),
-                if (subcarpeta.rangoInicio != null && subcarpeta.rangoFin != null)
+                if (subcarpeta.rangoInicio != null &&
+                    subcarpeta.rangoFin != null)
                   Text(
-                    '${subcarpeta.rangoInicio} - ${subcarpeta.rangoFin}',
+                    'Rango: ${subcarpeta.rangoInicio} - ${subcarpeta.rangoFin}',
                     style: GoogleFonts.inter(
                       fontSize: 10,
                       color: Colors.blue.shade700,
