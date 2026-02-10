@@ -186,13 +186,14 @@ class _VistaDocumentosCarpeta extends StatelessWidget {
     return Consumer<DocumentosController>(
       builder: (context, controller, _) {
         final docs = controller.documentosCarpeta;
+        final totalDocs = docs.length;
         final rango = controller.estaCargandoDocumentosCarpeta
             ? 'Cargando...'
             : controller.calcularRangoCorrelativos(docs);
 
         return Column(
           children: [
-            _buildCarpetaHeader(context, controller, rango),
+            _buildCarpetaHeader(context, controller, rango, totalDocs),
             if (controller.estaCargandoSubcarpetas)
               const LinearProgressIndicator(minHeight: 2)
             else if (controller.subcarpetas.isNotEmpty)
@@ -211,7 +212,18 @@ class _VistaDocumentosCarpeta extends StatelessWidget {
     BuildContext context,
     DocumentosController controller,
     String rango,
+    int totalDocs,
   ) {
+    // Cálculo de capacidad y restantes según el rango configurado en la carpeta
+    int? capacidad;
+    int? restantes;
+    if (carpeta.rangoInicio != null && carpeta.rangoFin != null) {
+      capacidad = (carpeta.rangoFin! - carpeta.rangoInicio! + 1);
+      if (capacidad < 0) capacidad = 0;
+      restantes = capacidad - totalDocs;
+      if (restantes < 0) restantes = 0;
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Row(
@@ -254,6 +266,51 @@ class _VistaDocumentosCarpeta extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.description_outlined,
+                      size: 14,
+                      color: theme.colorScheme.primary.withOpacity(0.8),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$totalDocs documento${totalDocs == 1 ? '' : 's'}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                    if (rango.isNotEmpty && rango != 'Cargando...') ...[
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.filter_list_rounded,
+                        size: 14,
+                        color: theme.colorScheme.secondary.withOpacity(0.8),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Rango: $rango',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                if (capacidad != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      'Rango ${carpeta.rangoInicio}-${carpeta.rangoFin} · Límite: $capacidad · Restantes: $restantes',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
                     ),
                   ),
               ],
