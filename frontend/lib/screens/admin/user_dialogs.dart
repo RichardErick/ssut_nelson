@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../services/api_service.dart';
 import '../../models/area.dart';
 import '../../models/usuario.dart';
 import '../../services/usuario_service.dart';
@@ -397,6 +398,130 @@ class _EditUserDialogState extends State<EditUserDialog> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class UserPermissionsDialog extends StatefulWidget {
+  final int userId;
+  final String userName;
+
+  const UserPermissionsDialog({
+    super.key,
+    required this.userId,
+    required this.userName,
+  });
+
+  @override
+  State<UserPermissionsDialog> createState() => _UserPermissionsDialogState();
+}
+
+class _UserPermissionsDialogState extends State<UserPermissionsDialog> {
+  List<dynamic> _permisos = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPermissions();
+  }
+
+  Future<void> _loadPermissions() async {
+    try {
+      final api = Provider.of<ApiService>(context, listen: false);
+      final response = await api.get('/permisos/usuarios/${widget.userId}');
+      if (mounted) {
+        setState(() {
+          _permisos = (response.data['permisos'] as List).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error cargando permisos: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _togglePermission(int permisoId, bool grant) async {
+    try {
+      final api = Provider.of<ApiService>(context, listen: false);
+      final endpoint = grant ? '/permisos/usuarios/asignar' : '/permisos/usuarios/revocar';
+      
+      await api.post(endpoint, {
+        'usuarioId': widget.userId,
+        // Enviar como entero para coincidir con backend expecting int
+        'permisoId': permisoId 
+      });
+      
+      await _loadPermissions();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error actualizando permiso: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Permisos: ${widget.userName}'),
+      content: SizedBox(
+        width: 450,
+        height: 500,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _permisos.isEmpty
+                ? const Center(child: Text('No hay permisos disponibles'))
+                : ListView.separated(
+                    itemCount: _permisos.length,
+                    separatorBuilder: (_, __) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final p = _permisos[index];
+                      // Backend fields: userHas (effective), roleHas (base), isDenied (override)
+                      final bool effectiveUserHas = p['userHas'] ?? false;
+                      final bool roleHas = p['roleHas'] ?? false;
+                      final bool isDenied = p['isDenied'] ?? false;
+                      
+                      String subtitle = p['descripcion'] ?? '';
+                      if (roleHas) {
+                        subtitle += isDenied 
+                            ? '\n(Denegado -> Bloqueado para este usuario)' 
+                            : '\n(Heredado del Rol)';
+                      } else if (effectiveUserHas) {
+                        subtitle += '\n(Asignado explícitamente)';
+                      }
+
+                      return SwitchListTile(
+                        title: Text(p['nombre'] ?? p['codigo']),
+                        subtitle: Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 12, 
+                            color: isDenied ? Colors.red : Colors.grey.shade600,
+                            fontWeight: isDenied ? FontWeight.bold : FontWeight.normal
+                          ),
+                        ),
+                        // El valor del switch es "Tiene Permiso Efectivo"
+                        value: effectiveUserHas,
+                        activeColor: Colors.green,
+                        // Si está denegado, el switch está en false (porque effectiveUserHas es false)
+                        onChanged: (val) => _togglePermission(p['id'], val),
+                      );
+                    },
+                  ),
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cerrar'),
+        ),
+      ],
     );
   }
 }

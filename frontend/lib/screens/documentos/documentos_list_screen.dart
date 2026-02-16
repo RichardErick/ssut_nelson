@@ -1688,23 +1688,58 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                       overflow: TextOverflow.ellipsis,
                     ),
                     SizedBox(height: esSubcarpeta ? 2 : 4),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: esSubcarpeta ? 8 : 12,
-                        vertical: esSubcarpeta ? 4 : 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        rango,
-                        style: GoogleFonts.inter(
-                          fontSize: esSubcarpeta ? 11 : 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue.shade800,
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: esSubcarpeta ? 8 : 12,
+                            vertical: esSubcarpeta ? 4 : 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            rango,
+                            style: GoogleFonts.inter(
+                              fontSize: esSubcarpeta ? 11 : 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue.shade800,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: esSubcarpeta ? 8 : 12,
+                            vertical: esSubcarpeta ? 4 : 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.calendar_today_rounded,
+                                size: esSubcarpeta ? 12 : 14,
+                                color: Colors.grey.shade600,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                DateFormat('dd/MM/yyyy').format(carpeta.fechaCreacion),
+                                style: GoogleFonts.inter(
+                                  fontSize: esSubcarpeta ? 11 : 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

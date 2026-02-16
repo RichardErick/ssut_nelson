@@ -184,11 +184,19 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     );
 
     if (result != null) {
-      // Necesitamos reconstruir la lógica de _guardarEdicionUsuario aquí o llamarla
-      // Pero EditUserDialog retorna un DTO.
-      // Vamos a adaptar _guardarEdicionUsuario para recibir el DTO.
       _guardarEdicionUsuario(usuario, result);
     }
+  }
+
+  void _showPermissionsDialog(Usuario usuario) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => UserPermissionsDialog(
+        userId: usuario.id,
+        userName: usuario.nombreUsuario,
+      ),
+    );
   }
 
   Future<void> _guardarEdicionUsuario(Usuario usuario, UpdateUsuarioDTO dto) async {
@@ -975,9 +983,15 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
       ),
       trailing:
           isDesktop
-              ? Row(
+               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.shield_outlined),
+                    onPressed: () => _showPermissionsDialog(usuario),
+                    tooltip: 'Gestionar Permisos',
+                    color: Colors.blueGrey,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.edit),
                     onPressed: () => _showRolDialog(usuario),
@@ -999,6 +1013,9 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
               : PopupMenuButton<String>(
                 onSelected: (value) {
                   switch (value) {
+                    case 'permisos':
+                      _showPermissionsDialog(usuario);
+                      break;
                     case 'rol':
                       _showRolDialog(usuario);
                       break;
@@ -1012,6 +1029,16 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
                 },
                 itemBuilder:
                     (context) => [
+                      const PopupMenuItem<String>(
+                        value: 'permisos',
+                        child: Row(
+                          children: [
+                            Icon(Icons.shield_outlined, size: 18),
+                            SizedBox(width: 8),
+                            Text('Permisos'),
+                          ],
+                        ),
+                      ),
                       const PopupMenuItem<String>(
                         value: 'rol',
                         child: Row(
@@ -1157,6 +1184,12 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.shield_outlined, size: 18),
+                    onPressed: () => _showPermissionsDialog(usuario),
+                    tooltip: 'Permisos',
+                    color: Colors.blueGrey,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.edit, size: 18),
                     onPressed: () => _showRolDialog(usuario),

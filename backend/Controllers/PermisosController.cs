@@ -378,6 +378,92 @@ public class PermisosController : ControllerBase
             return StatusCode(500, new { message = $"Error al revocar permiso: {ex.Message}" });
         }
     }
+    // GET: api/permisos/global/movimientos
+    [HttpGet("global/movimientos")]
+    [Authorize(Roles = "AdministradorSistema")]
+    public async Task<ActionResult<bool>> GetMovimientosGlobalStatus()
+    {
+        var permiso = await _context.Permisos.FirstOrDefaultAsync(p => p.Codigo == "ver_movimientos");
+        if (permiso == null) return Ok(false); 
+        
+        // Verifica si el rol 'Gerente' (rol base de menor privilegio) tiene acceso.
+        var hasPermission = await _context.RolPermisos
+            .AnyAsync(rp => rp.Rol == "Gerente" && rp.PermisoId == permiso.Id && rp.Activo);
+            
+        return Ok(hasPermission);
+    }
+
+    // POST: api/permisos/global/movimientos/toggle
+    [HttpPost("global/movimientos/toggle")]
+    [Authorize(Roles = "AdministradorSistema")]
+    public async Task<ActionResult> ToggleMovimientosGlobal([FromBody] ToggleGlobalDTO dto)
+    {
+        try 
+        {
+            var permiso = await _context.Permisos.FirstOrDefaultAsync(p => p.Codigo == "ver_movimientos");
+            if (permiso == null) 
+            {
+               permiso = new Permiso { 
+                   Codigo = "ver_movimientos", 
+                   Nombre = "Ver Movimientos", 
+                   Descripcion = "Permite ver el historial de movimientos de documentos",
+                   Modulo = "Movimientos",
+                   Activo = true 
+               };
+               _context.Permisos.Add(permiso);
+               await _context.SaveChangesAsync();
+            }
+
+            var rolesTarget = new[] { "AdministradorDocumentos", "Contador", "Gerente" };
+            
+            var rolPermisos = await _context.RolPermisos
+                .Where(rp => rolesTarget.Contains(rp.Rol) && rp.PermisoId == permiso.Id)
+                .ToListAsync();
+
+            if (dto.Habilitar)
+            {
+                foreach (var rol in rolesTarget)
+                {
+                    var rp = rolPermisos.FirstOrDefault(x => x.Rol == rol);
+                    if (rp == null)
+                    {
+                        _context.RolPermisos.Add(new RolPermiso { Rol = rol, PermisoId = permiso.Id, Activo = true });
+                    }
+                    else
+                    {
+                         rp.Activo = true;
+                         _context.RolPermisos.Update(rp);
+                    }
+                }
+            }
+            else
+            {
+                foreach(var rp in rolPermisos)
+                {
+                    rp.Activo = false;
+                    _context.RolPermisos.Update(rp);
+                }
+            }
+            
+            var adminRp = await _context.RolPermisos.FirstOrDefaultAsync(rp => rp.Rol == "AdministradorSistema" && rp.PermisoId == permiso.Id);
+            if (adminRp == null)
+            {
+                 _context.RolPermisos.Add(new RolPermiso { Rol = "AdministradorSistema", PermisoId = permiso.Id, Activo = true });
+            }
+            else if (!adminRp.Activo)
+            {
+                adminRp.Activo = true;
+                _context.RolPermisos.Update(adminRp);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = $"Permiso de movimientos global {(dto.Habilitar ? "habilitado" : "deshabilitado")}" });
+        }
+        catch (Exception ex)
+        {
+             return StatusCode(500, new { message = $"Error: {ex.Message}" });
+        }
+    }
 }
 
 // DTOs
@@ -397,4 +483,9 @@ public class AsignarPermisoUsuarioDTO
 {
     public int UsuarioId { get; set; }
     public int PermisoId { get; set; }
+}
+
+public class ToggleGlobalDTO
+{
+    public bool Habilitar { get; set; }
 }
