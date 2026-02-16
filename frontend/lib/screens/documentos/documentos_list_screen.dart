@@ -1644,6 +1644,41 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   ),
                 ),
               ),
+              if (carpeta.carpetaPadreId != null) ...[
+                SizedBox(width: esSubcarpeta ? 8 : 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(esSubcarpeta ? 10 : 12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    onPressed: () {
+                       setState(() {
+                         _carpetaSeleccionada = null;
+                         // Clear navigation stack if you maintain one, strictly speaking just selecting null shows folders list
+                       });
+                    },
+                    icon: Icon(
+                      Icons.home_rounded,
+                      size: esSubcarpeta ? 20 : 24,
+                    ),
+                    color: Colors.blue.shade700,
+                    padding: EdgeInsets.all(esSubcarpeta ? 6 : 12),
+                    constraints: BoxConstraints(
+                      minWidth: esSubcarpeta ? 36 : 48,
+                      minHeight: esSubcarpeta ? 36 : 48,
+                    ),
+                    tooltip: 'Ir al Inicio',
+                  ),
+                ),
+              ],
               SizedBox(width: esSubcarpeta ? 10 : 16),
               // Icono de la carpeta
               Hero(
@@ -1827,24 +1862,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             },
           ),
           // Botón Agregar documento visible al entrar a la carpeta
-          if (Provider.of<AuthProvider>(context).hasPermission('subir_documento')) ...[
-            SizedBox(height: esSubcarpeta ? 12 : 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => _agregarDocumento(carpeta),
-                icon: const Icon(Icons.add_rounded, size: 22),
-                label: const Text('Agregar documento'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
-                  padding: EdgeInsets.symmetric(vertical: esSubcarpeta ? 10 : 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ],
+
         ],
       ),
     );
@@ -3688,7 +3706,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       return FloatingActionButton(
         onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
         tooltip: 'Nuevo Documento',
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: Colors.green.shade700,
+        foregroundColor: Colors.white,
         heroTag: 'fab_documento',
         child: const Icon(Icons.add),
       );
@@ -3697,7 +3716,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       onPressed: () => _agregarDocumento(_carpetaSeleccionada!),
       icon: const Icon(Icons.add),
       label: const Text('Nuevo Documento'),
-      backgroundColor: Colors.blue.shade700,
+      backgroundColor: Colors.green.shade700,
+      foregroundColor: Colors.white,
       heroTag: 'fab_documento',
     );
   }
