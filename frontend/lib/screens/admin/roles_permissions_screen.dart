@@ -15,6 +15,7 @@ import '../../widgets/animated_card.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/glass_container.dart';
 import '../../widgets/loading_shimmer.dart';
+import 'user_dialogs.dart';
 
 class RolesPermissionsScreen extends StatefulWidget {
   /// Si se especifica, la pantalla intentará enfocar/abrir directamente al usuario indicado.
@@ -70,7 +71,60 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     _searchController.addListener(_onSearchChanged);
   }
 
-import 'user_dialogs.dart';
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() => _searchQuery = _searchController.text);
+  }
+
+  Future<void> _loadData({bool showRefreshIndicator = false}) async {
+    if (showRefreshIndicator) {
+      setState(() => _isRefreshing = true);
+    } else {
+      setState(() => _isLoading = true);
+    }
+    try {
+      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      final usuariosFuture = usuarioService.getAll(incluirInactivos: true);
+      final areasResponse = await apiService.get('/areas');
+      final usuarios = await usuariosFuture;
+
+      if (mounted) {
+        setState(() {
+          _usuarios = usuarios;
+          _areas = (areasResponse.data as List).map((json) => Area.fromJson(json)).toList();
+          _isLoading = false;
+          _isRefreshing = false;
+        });
+        if (!_initialUserHandled && widget.initialUserId != null) {
+          _initialUserHandled = true;
+          final target = _usuarios.firstWhere((u) => u.id == widget.initialUserId, orElse: () => _usuarios.first);
+          _searchController.text = target.nombreUsuario;
+          _searchQuery = target.nombreUsuario;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _showRolDialog(target);
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() { _isLoading = false; _isRefreshing = false; });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar datos: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _createUsuario(CreateUsuarioDTO dto) async {
     try {
@@ -168,6 +222,134 @@ import 'user_dialogs.dart';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al actualizar: ${ErrorHelper.getErrorMessage(e)}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Map<String, int> get _estadisticas {
+    final stats = <String, int>{
+      'total': _usuarios.length,
+      'activos': _usuarios.where((u) => u.activo).length,
+      'inactivos': _usuarios.where((u) => !u.activo).length,
+    };
+    for (final rol in _roles) {
+      if (rol == 'AdministradorSistema') {
+        stats['rol_$rol'] = _usuarios.where((u) => u.rol == rol || u.rol == 'Administrador').length;
+      } else {
+        stats['rol_$rol'] = _usuarios.where((u) => u.rol == rol).length;
+      }
+    }
+    return stats;
+  }
+
+  List<Usuario> get _usuariosFiltrados {
+    var filtered = _usuarios;
+    final query = _searchQuery.trim();
+    if (query.isNotEmpty) {
+      final q = query.toLowerCase();
+      filtered = filtered.where((usuario) {
+        return usuario.nombreCompleto.toLowerCase().contains(q) ||
+            usuario.nombreUsuario.toLowerCase().contains(q) ||
+            (usuario.email.toLowerCase().contains(q));
+      }).toList();
+    }
+    if (_selectedRolFilter != null) {
+      filtered = filtered.where((usuario) {
+        if (usuario.rol == _selectedRolFilter) return true;
+        if (_selectedRolFilter == 'AdministradorSistema' && usuario.rol == 'Administrador') return true;
+        return false;
+      }).toList();
+    }
+    if (_selectedAreaFilter != null) {
+      final areaId = int.tryParse(_selectedAreaFilter!);
+      if (areaId != null) {
+        filtered = filtered.where((usuario) => usuario.areaId == areaId).toList();
+      }
+    }
+    if (_selectedEstadoFilter != null) {
+      filtered = filtered.where((usuario) => usuario.activo == _selectedEstadoFilter).toList();
+    }
+    return filtered;
+  }
+
+  Future<void> _toggleEstado(Usuario usuario) async {
+    try {
+      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      await usuarioService.updateEstado(usuario.id, !usuario.activo);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Usuario ${usuario.activo ? 'desactivado' : 'activado'}'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadData(showRefreshIndicator: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al actualizar estado: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteUsuario(Usuario usuario) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Eliminar usuario'),
+        content: Text(
+          'Se eliminará permanentemente a "${usuario.nombreCompleto}" (${usuario.nombreUsuario}). Esta acción no se puede deshacer. ¿Continuar?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final usuarioService = Provider.of<UsuarioService>(context, listen: false);
+      await usuarioService.deleteUsuario(usuario.id, hard: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Usuario eliminado permanentemente.'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadData(showRefreshIndicator: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar: ${ErrorHelper.getErrorMessage(e)}'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
