@@ -99,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     debugPrint('[HOME] _buildNavItems() role=$role');
 
     _navItems = [];
-    // Carpetas y Movimientos solo si tiene permiso ver_documento (si está desactivado no puede acceder)
+    // Carpetas solo si tiene permiso ver_documento (si está desactivado no puede acceder)
     if (authProvider.hasPermission('ver_documento')) {
       _navItems.add(
         NavigationItem(
@@ -109,14 +109,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           screen: DocumentosListScreen(key: _documentosKey),
         ),
       );
-      _navItems.add(
-        NavigationItem(
-          label: 'Movimientos',
-          icon: Icons.swap_horiz_outlined,
-          selectedIcon: Icons.swap_horiz,
-          screen: const MovimientosScreen(),
-        ),
-      );
+      // Movimientos solo para Administrador de Documentos
+      if (role == UserRole.administradorDocumentos) {
+        _navItems.add(
+          NavigationItem(
+            label: 'Movimientos',
+            icon: Icons.swap_horiz_outlined,
+            selectedIcon: Icons.swap_horiz,
+            screen: const MovimientosScreen(),
+          ),
+        );
+      }
     }
 
     // Acceso a reportes si tiene permiso de ver documentos (todos) o es admin sistema

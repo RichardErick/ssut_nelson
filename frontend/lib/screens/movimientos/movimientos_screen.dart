@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/movimiento.dart';
+import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/movimiento_service.dart';
 import '../../utils/error_helper.dart';
@@ -196,7 +197,8 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    if (!authProvider.hasPermission('ver_documento')) {
+    // Solo el Administrador de Documentos puede ver Movimientos
+    if (authProvider.role != UserRole.administradorDocumentos) {
       return _buildSinPermisoAcceso(context);
     }
     final theme = Theme.of(context);

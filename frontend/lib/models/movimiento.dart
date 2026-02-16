@@ -12,6 +12,7 @@ class Movimiento {
   final String? observaciones;
   final DateTime fechaMovimiento;
   final DateTime? fechaDevolucion;
+  final DateTime? fechaLimiteDevolucion;
   final String estado;
 
   Movimiento({
@@ -28,6 +29,7 @@ class Movimiento {
     this.observaciones,
     required this.fechaMovimiento,
     this.fechaDevolucion,
+    this.fechaLimiteDevolucion,
     required this.estado,
   });
 
@@ -49,6 +51,10 @@ class Movimiento {
           json['fechaDevolucion'] != null
               ? DateTime.parse(json['fechaDevolucion'])
               : null,
+      fechaLimiteDevolucion:
+          json['fechaLimiteDevolucion'] != null
+              ? DateTime.parse(json['fechaLimiteDevolucion'])
+              : null,
       estado: json['estado'],
     );
   }
@@ -61,6 +67,7 @@ class CreateMovimientoDTO {
   final int? areaDestinoId;
   final int? usuarioId;
   final String? observaciones;
+  final DateTime? fechaLimiteDevolucion;
 
   CreateMovimientoDTO({
     required this.documentoId,
@@ -69,6 +76,7 @@ class CreateMovimientoDTO {
     this.areaDestinoId,
     this.usuarioId,
     this.observaciones,
+    this.fechaLimiteDevolucion,
   });
 
   Map<String, dynamic> toJson() {
@@ -79,6 +87,8 @@ class CreateMovimientoDTO {
       'areaDestinoId': areaDestinoId,
       'usuarioId': usuarioId,
       'observaciones': observaciones,
+      if (fechaLimiteDevolucion != null)
+        'fechaLimiteDevolucion': fechaLimiteDevolucion!.toIso8601String(),
     };
   }
 }

@@ -16,6 +16,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../models/anexo.dart';
 import '../../models/documento.dart';
 import '../../models/movimiento.dart';
+import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/anexo_service.dart';
 import '../../services/documento_service.dart';
@@ -661,8 +662,9 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           const SizedBox(height: 20),
         ],
         _buildQrCard(doc, theme),
-        const SizedBox(height: 24),
-        _buildHistorialMovimientos(theme),
+        ...(Provider.of<AuthProvider>(context).role == UserRole.administradorDocumentos
+            ? [const SizedBox(height: 24), _buildHistorialMovimientos(theme)]
+            : []),
       ],
     );
   }

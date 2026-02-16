@@ -34,7 +34,8 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
   Usuario? _usuarioResponsable;
   int? _areaDestinoId;
   DateTime _fechaInicio = DateTime.now();
-  DateTime? _fechaVencimiento;
+  /// Fecha límite de devolución del préstamo (obligatoria).
+  DateTime _fechaLimiteDevolucion = DateTime.now().add(const Duration(days: 7));
   bool _isLoadingCatalogos = true;
   bool _isSubmitting = false;
 
@@ -92,14 +93,14 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
       AppAlert.warning(context, 'Falta información', 'Seleccione el usuario responsable del préstamo.');
       return;
     }
+    if (_fechaLimiteDevolucion.isBefore(_fechaInicio)) {
+      AppAlert.warning(context, 'Fecha inválida', 'La fecha límite de devolución debe ser igual o posterior a la fecha de inicio.');
+      return;
+    }
 
     setState(() => _isSubmitting = true);
     try {
-      String? obs = _observacionesController.text.trim().isEmpty ? null : _observacionesController.text.trim();
-      if (_fechaVencimiento != null) {
-        final venc = DateFormat('dd/MM/yyyy').format(_fechaVencimiento!);
-        obs = obs == null ? 'Vencimiento previsto: $venc' : '$obs. Vencimiento previsto: $venc';
-      }
+      final obs = _observacionesController.text.trim().isEmpty ? null : _observacionesController.text.trim();
       final movimientoService = Provider.of<MovimientoService>(context, listen: false);
       await movimientoService.create(CreateMovimientoDTO(
         documentoId: _documentoSeleccionado!.id,
@@ -108,14 +109,15 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
         areaDestinoId: _areaDestinoId,
         usuarioId: _usuarioResponsable!.id,
         observaciones: obs,
+        fechaLimiteDevolucion: _fechaLimiteDevolucion,
       ));
 
       if (mounted) {
+        final vencStr = DateFormat('dd/MM/yyyy').format(_fechaLimiteDevolucion);
         await AppAlert.success(
           context,
           'Préstamo registrado',
-          'El documento "${_documentoSeleccionado!.codigo}" ha sido registrado como prestado. El estado del documento se actualizó a Prestado y se creó la entrada en el historial.'
-              + (_fechaVencimiento != null ? ' Se registró la fecha de vencimiento para seguimiento.' : ''),
+          'El documento "${_documentoSeleccionado!.codigo}" ha sido registrado como prestado. Fecha límite de devolución: $vencStr.',
           buttonText: 'Entendido',
         );
         if (mounted) Navigator.of(context).pop(true);
@@ -236,7 +238,14 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
                           firstDate: DateTime(2020),
                           lastDate: DateTime.now().add(const Duration(days: 365)),
                         );
-                        if (picked != null) setState(() => _fechaInicio = picked);
+                        if (picked != null) {
+                          setState(() {
+                            _fechaInicio = picked;
+                            if (_fechaLimiteDevolucion.isBefore(picked)) {
+                              _fechaLimiteDevolucion = picked.add(const Duration(days: 7));
+                            }
+                          });
+                        }
                       },
                       borderRadius: BorderRadius.circular(12),
                       child: InputDecorator(
@@ -250,42 +259,33 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Fecha de vencimiento (opcional)',
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurfaceVariant),
+                      'Fecha límite de préstamo',
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
                     ),
                     const SizedBox(height: 8),
                     InkWell(
                       onTap: () async {
                         final picked = await showDatePicker(
                           context: context,
-                          initialDate: _fechaVencimiento ?? _fechaInicio.add(const Duration(days: 7)),
+                          initialDate: _fechaLimiteDevolucion,
                           firstDate: _fechaInicio,
                           lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
                         );
-                        if (picked != null) setState(() => _fechaVencimiento = picked);
+                        if (picked != null) setState(() => _fechaLimiteDevolucion = picked);
                       },
                       borderRadius: BorderRadius.circular(12),
                       child: InputDecorator(
                         decoration: InputDecoration(
-                          labelText: 'Fecha vencimiento',
+                          labelText: 'Fecha límite de devolución',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           suffixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
                         ),
                         child: Text(
-                          _fechaVencimiento != null ? DateFormat('dd/MM/yyyy').format(_fechaVencimiento!) : 'Seleccionar (para alerta de vencimiento)',
-                          style: GoogleFonts.inter(fontSize: 14, color: _fechaVencimiento != null ? null : Colors.grey),
+                          DateFormat('dd/MM/yyyy').format(_fechaLimiteDevolucion),
+                          style: GoogleFonts.inter(fontSize: 14),
                         ),
                       ),
                     ),
-                    if (_fechaVencimiento != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: TextButton.icon(
-                          onPressed: () => setState(() => _fechaVencimiento = null),
-                          icon: const Icon(Icons.clear, size: 18),
-                          label: const Text('Quitar fecha vencimiento'),
-                        ),
-                      ),
                     const SizedBox(height: 24),
                     Text(
                       'Área destino (opcional)',

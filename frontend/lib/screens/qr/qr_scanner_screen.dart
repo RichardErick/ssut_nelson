@@ -12,6 +12,7 @@ import '../../services/documento_service.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/animated_card.dart';
 import '../documentos/documento_detail_screen.dart';
+import 'components/mobile_scanner_widget.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -567,19 +568,17 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     return processed;
   }
 
-  void _showScanInfo() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
-            SizedBox(width: 12),
-            Expanded(child: Text('Escaneo disponible en dispositivos móviles')),
-          ],
+  void _abrirCamaraScanner() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MobileScannerWidget(
+          onDetect: (codigo) {
+            final codigoLimpio = _quitarPrefijoQr(codigo);
+            _qrCodeController.text = codigoLimpio;
+            _buscarPorCodigo(codigoLimpio);
+          },
         ),
-        backgroundColor: Colors.blueGrey.shade700,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -773,9 +772,9 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                           const SizedBox(width: 12),
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: _showScanInfo,
+                              onPressed: _isSearching ? null : _abrirCamaraScanner,
                               icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
-                              label: const Text('Escanear'),
+                              label: const Text('Escanear con Cámara'),
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(
