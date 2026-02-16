@@ -70,6 +70,8 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     _searchController.addListener(_onSearchChanged);
   }
 
+import 'user_dialogs.dart';
+
   Future<void> _createUsuario(CreateUsuarioDTO dto) async {
     try {
       final usuarioService = Provider.of<UsuarioService>(
@@ -101,528 +103,43 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     }
   }
 
-  void _showCreateUserDialog() {
-    final nombreUsuarioController = TextEditingController();
-    final nombreCompletoController = TextEditingController();
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
-    String rol = _roles.contains('Gerente') ? 'Gerente' : _roles.first;
-    int? areaId;
-    bool activo = true;
-
-    showDialog(
+  void _showCreateUserDialog() async {
+    final result = await showDialog<CreateUsuarioDTO>(
       context: context,
-      builder:
-          (dialogContext) => StatefulBuilder(
-            builder:
-                (context, setStateDialog) => AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  title: const Text('Nuevo usuario'),
-                  content: SizedBox(
-                    width: 420,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextField(
-                            controller: nombreUsuarioController,
-                            decoration: const InputDecoration(
-                              labelText: 'Usuario',
-                              prefixIcon: Icon(Icons.person_outline),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: nombreCompletoController,
-                            decoration: const InputDecoration(
-                              labelText: 'Nombre completo',
-                              prefixIcon: Icon(Icons.badge_outlined),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: emailController,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                              prefixIcon: Icon(Icons.email_outlined),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: passwordController,
-                            obscureText: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Contraseña',
-                              prefixIcon: Icon(Icons.lock_outline),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            value: rol,
-                            decoration: const InputDecoration(
-                              labelText: 'Rol',
-                              prefixIcon: Icon(
-                                Icons.admin_panel_settings_outlined,
-                              ),
-                            ),
-                            items:
-                                _roles
-                                    .map(
-                                      (r) => DropdownMenuItem(
-                                        value: r,
-                                        child: Text(_getRolDisplayName(r)),
-                                      ),
-                                    )
-                                    .toList(),
-                            onChanged: (v) {
-                              if (v == null) return;
-                              setStateDialog(() => rol = v);
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<int?>(
-                            value: areaId,
-                            decoration: const InputDecoration(
-                              labelText: 'Área (opcional)',
-                              prefixIcon: Icon(Icons.business_outlined),
-                            ),
-                            items: [
-                              const DropdownMenuItem<int?>(
-                                value: null,
-                                child: Text('Sin área'),
-                              ),
-                              ..._areas.map(
-                                (a) => DropdownMenuItem<int?>(
-                                  value: a.id,
-                                  child: Text(a.nombre),
-                                ),
-                              ),
-                            ],
-                            onChanged: (v) => setStateDialog(() => areaId = v),
-                          ),
-                          const SizedBox(height: 8),
-                          SwitchListTile(
-                            value: activo,
-                            onChanged: (v) => setStateDialog(() => activo = v),
-                            title: const Text('Activo'),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(dialogContext),
-                      child: const Text('Cancelar'),
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        final dto = CreateUsuarioDTO(
-                          nombreUsuario: nombreUsuarioController.text,
-                          nombreCompleto: nombreCompletoController.text,
-                          email: emailController.text,
-                          password: passwordController.text,
-                          rol: rol,
-                          areaId: areaId,
-                          activo: activo,
-                        );
-                        Navigator.pop(dialogContext);
-                        _createUsuario(dto);
-                      },
-                      child: const Text('Crear'),
-                    ),
-                  ],
-                ),
-          ),
-    ).then((_) {
-      nombreUsuarioController.dispose();
-      nombreCompletoController.dispose();
-      emailController.dispose();
-      passwordController.dispose();
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged() {
-    setState(() => _searchQuery = _searchController.text);
-  }
-
-  Future<void> _loadData({bool showRefreshIndicator = false}) async {
-    if (showRefreshIndicator) {
-      setState(() => _isRefreshing = true);
-    } else {
-      setState(() => _isLoading = true);
-    }
-    try {
-      final usuarioService = Provider.of<UsuarioService>(
-        context,
-        listen: false,
-      );
-      final apiService = Provider.of<ApiService>(context, listen: false);
-      // Incluir inactivos para poder verlos en gris y reactivarlos desde el admin
-      final usuariosFuture = usuarioService.getAll(incluirInactivos: true);
-      final areasResponse = await apiService.get('/areas');
-      final usuarios = await usuariosFuture;
-
-      if (mounted) {
-        setState(() {
-          _usuarios = usuarios;
-          _areas =
-              (areasResponse.data as List)
-                  .map((json) => Area.fromJson(json))
-                  .toList();
-          _isLoading = false;
-          _isRefreshing = false;
-        });
-        // Si venimos desde una notificación con un usuario específico, tratar de enfocarlo una sola vez
-        if (!_initialUserHandled && widget.initialUserId != null) {
-          _initialUserHandled = true;
-          final target =
-              _usuarios.firstWhere((u) => u.id == widget.initialUserId, orElse: () => _usuarios.first);
-          // Prellenar búsqueda con el usuario para que quede filtrado
-          _searchController.text = target.nombreUsuario;
-          _searchQuery = target.nombreUsuario;
-          // Abrir diálogo de edición después de que el frame termine de construirse
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              _showRolDialog(target);
-            }
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _isRefreshing = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar datos: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  Map<String, int> get _estadisticas {
-    final stats = <String, int>{
-      'total': _usuarios.length,
-      'activos': _usuarios.where((u) => u.activo).length,
-      'inactivos': _usuarios.where((u) => !u.activo).length,
-    };
-    for (final rol in _roles) {
-      if (rol == 'AdministradorSistema') {
-        stats['rol_$rol'] =
-            _usuarios
-                .where((u) => u.rol == rol || u.rol == 'Administrador')
-                .length;
-      } else {
-        stats['rol_$rol'] = _usuarios.where((u) => u.rol == rol).length;
-      }
-    }
-    return stats;
-  }
-
-  List<Usuario> get _usuariosFiltrados {
-    var filtered = _usuarios;
-    final query = _searchQuery.trim();
-    if (query.isNotEmpty) {
-      final q = query.toLowerCase();
-      filtered =
-          filtered.where((usuario) {
-            return usuario.nombreCompleto.toLowerCase().contains(q) ||
-                usuario.nombreUsuario.toLowerCase().contains(q) ||
-                (usuario.email.toLowerCase().contains(q));
-          }).toList();
-    }
-    if (_selectedRolFilter != null) {
-      filtered =
-          filtered.where((usuario) {
-            if (usuario.rol == _selectedRolFilter) return true;
-            if (_selectedRolFilter == 'AdministradorSistema' &&
-                usuario.rol == 'Administrador')
-              return true;
-            return false;
-          }).toList();
-    }
-    if (_selectedAreaFilter != null) {
-      final areaId = int.tryParse(_selectedAreaFilter!);
-      if (areaId != null) {
-        filtered =
-            filtered.where((usuario) => usuario.areaId == areaId).toList();
-      }
-    }
-    if (_selectedEstadoFilter != null) {
-      filtered =
-          filtered
-              .where((usuario) => usuario.activo == _selectedEstadoFilter)
-              .toList();
-    }
-    return filtered;
-  }
-
-  Future<void> _toggleEstado(Usuario usuario) async {
-    try {
-      final usuarioService = Provider.of<UsuarioService>(
-        context,
-        listen: false,
-      );
-      await usuarioService.updateEstado(usuario.id, !usuario.activo);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 8),
-                Text('Usuario ${usuario.activo ? 'desactivado' : 'activado'}'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        _loadData(showRefreshIndicator: true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al actualizar estado: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  /// Elimina al usuario de forma permanente (borrado real). Desactivar se hace solo con el Switch.
-  Future<void> _confirmDeleteUsuario(Usuario usuario) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text('Eliminar usuario'),
-            content: Text(
-              'Se eliminará permanentemente a "${usuario.nombreCompleto}" (${usuario.nombreUsuario}). Esta acción no se puede deshacer. ¿Continuar?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Eliminar'),
-              ),
-            ],
-          ),
-    );
-    if (confirmed != true) return;
-    try {
-      final usuarioService = Provider.of<UsuarioService>(
-        context,
-        listen: false,
-      );
-      await usuarioService.deleteUsuario(usuario.id, hard: true);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Usuario eliminado permanentemente.'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        _loadData(showRefreshIndicator: true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al eliminar: ${ErrorHelper.getErrorMessage(e)}'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  void _showRolDialog(Usuario usuario) {
-    String nombreCompleto = usuario.nombreCompleto;
-    String email = usuario.email;
-    String rol = usuario.rol == 'Administrador' ? 'AdministradorSistema' : usuario.rol;
-    int? areaId = usuario.areaId;
-    bool activo = usuario.activo;
-    String password = '';
-
-    final nombreCompletoController = TextEditingController(text: usuario.nombreCompleto);
-    final emailController = TextEditingController(text: usuario.email);
-    final passwordController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: _getRolColor(usuario.rol).withOpacity(0.2),
-                child: Icon(_getRolIcon(usuario.rol), color: _getRolColor(usuario.rol)),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text('Editar usuario', style: TextStyle(fontSize: 18)),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: 420,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Usuario: ${usuario.nombreUsuario}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: nombreCompletoController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre completo',
-                      prefixIcon: Icon(Icons.badge_outlined),
-                    ),
-                    onChanged: (v) => nombreCompleto = v,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    onChanged: (v) => email = v,
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _roles.contains(rol) ? rol : _roles.first,
-                    decoration: const InputDecoration(
-                      labelText: 'Rol',
-                      prefixIcon: Icon(Icons.admin_panel_settings_outlined),
-                    ),
-                    items: _roles
-                        .map((r) => DropdownMenuItem(value: r, child: Text(_getRolDisplayName(r))))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) setStateDialog(() => rol = v);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<int?>(
-                    value: areaId,
-                    decoration: const InputDecoration(
-                      labelText: 'Área (opcional)',
-                      prefixIcon: Icon(Icons.business_outlined),
-                    ),
-                    items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('Sin área')),
-                      ..._areas.map((a) => DropdownMenuItem<int?>(value: a.id, child: Text(a.nombre))),
-                    ],
-                    onChanged: (v) => setStateDialog(() => areaId = v),
-                  ),
-                  const SizedBox(height: 8),
-                  SwitchListTile(
-                    value: activo,
-                    onChanged: (v) => setStateDialog(() => activo = v),
-                    title: const Text('Activo'),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Nueva contraseña (dejar vacío para no cambiar)',
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                    onChanged: (v) => password = v,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                nombreCompleto = nombreCompletoController.text.trim();
-                email = emailController.text.trim();
-                password = passwordController.text.trim();
-                if (nombreCompleto.isEmpty || email.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Nombre completo y email son obligatorios')),
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext);
-                await _guardarEdicionUsuario(
-                  usuario,
-                  nombreCompleto: nombreCompleto,
-                  email: email,
-                  rol: rol,
-                  areaId: areaId,
-                  activo: activo,
-                  password: password.isEmpty ? null : password,
-                );
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
-        ),
+      builder: (context) => CreateUserDialog(
+        roles: _roles,
+        areas: _areas,
       ),
     );
+
+    if (result != null) {
+      _createUsuario(result);
+    }
   }
 
-  Future<void> _guardarEdicionUsuario(
-    Usuario usuario, {
-    required String nombreCompleto,
-    required String email,
-    required String rol,
-    int? areaId,
-    required bool activo,
-    String? password,
-  }) async {
+  void _showRolDialog(Usuario usuario) async {
+    final result = await showDialog<UpdateUsuarioDTO>(
+      context: context,
+      builder: (context) => EditUserDialog(
+        usuario: usuario,
+        roles: _roles,
+        areas: _areas,
+      ),
+    );
+
+    if (result != null) {
+      // Necesitamos reconstruir la lógica de _guardarEdicionUsuario aquí o llamarla
+      // Pero EditUserDialog retorna un DTO.
+      // Vamos a adaptar _guardarEdicionUsuario para recibir el DTO.
+      _guardarEdicionUsuario(usuario, result);
+    }
+  }
+
+  Future<void> _guardarEdicionUsuario(Usuario usuario, UpdateUsuarioDTO dto) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final currentUserId = authProvider.user?['id'] as int?;
-    if (currentUserId != null && usuario.id == currentUserId && !activo) {
+    // Usamos dto.activo en lugar de usuario.activo para la comprobación
+    if (currentUserId != null && usuario.id == currentUserId && dto.activo == false) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -635,14 +152,6 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
     }
     try {
       final usuarioService = Provider.of<UsuarioService>(context, listen: false);
-      final dto = UpdateUsuarioDTO(
-        nombreCompleto: nombreCompleto,
-        email: email,
-        rol: rol,
-        areaId: areaId,
-        activo: activo,
-        password: password,
-      );
       await usuarioService.updateUsuario(usuario.id, dto);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
