@@ -51,6 +51,11 @@ namespace SistemaGestionDocumental.Migrations
                     ultimo_acceso TIMESTAMPTZ,
                     intentos_fallidos INTEGER DEFAULT 0,
                     bloqueado_hasta TIMESTAMPTZ,
+                    solicitud_rechazada BOOLEAN DEFAULT FALSE,
+                    reset_token VARCHAR(255),
+                    reset_token_expiry TIMESTAMPTZ,
+                    pregunta_secreta_id INTEGER,
+                    respuesta_secreta_hash VARCHAR(255),
                     fecha_registro TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                     fecha_actualizacion TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
                 );
