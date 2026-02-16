@@ -160,6 +160,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   void _showCreateUserDialog() async {
     final result = await showDialog<CreateUsuarioDTO>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => CreateUserDialog(
         roles: _roles,
         areas: _areas,
@@ -174,6 +175,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
   void _showRolDialog(Usuario usuario) async {
     final result = await showDialog<UpdateUsuarioDTO>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => EditUserDialog(
         usuario: usuario,
         roles: _roles,
