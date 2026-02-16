@@ -60,6 +60,19 @@ namespace SistemaGestionDocumental.Migrations
                     fecha_actualizacion TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
                 );
 
+                -- Tabla de Carpetas
+                CREATE TABLE IF NOT EXISTS carpetas (
+                    id SERIAL PRIMARY KEY,
+                    nombre VARCHAR(100) NOT NULL,
+                    codigo VARCHAR(20),
+                    gestion VARCHAR(4) NOT NULL,
+                    descripcion VARCHAR(300),
+                    carpeta_padre_id INTEGER REFERENCES carpetas(id) ON DELETE CASCADE,
+                    activo BOOLEAN DEFAULT TRUE,
+                    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    usuario_creacion_id INTEGER REFERENCES usuarios(id)
+                );
+
                 -- Tabla de Documentos
                 CREATE TABLE IF NOT EXISTS documentos (
                     id SERIAL PRIMARY KEY,
@@ -79,6 +92,7 @@ namespace SistemaGestionDocumental.Migrations
                     nivel_confidencialidad INTEGER DEFAULT 1,
                     fecha_vencimiento TIMESTAMP,
                     id_documento VARCHAR(100),
+                    carpeta_id INTEGER REFERENCES carpetas(id),
                     url_qr VARCHAR(500),
                     activo BOOLEAN DEFAULT TRUE,
                     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -167,19 +181,6 @@ namespace SistemaGestionDocumental.Migrations
                     fecha_lectura TIMESTAMPTZ,
                     documento_id INTEGER REFERENCES documentos(id),
                     movimiento_id INTEGER REFERENCES movimientos(id)
-                );
-
-                -- Tabla de Carpetas
-                CREATE TABLE IF NOT EXISTS carpetas (
-                    id SERIAL PRIMARY KEY,
-                    nombre VARCHAR(100) NOT NULL,
-                    codigo VARCHAR(20),
-                    gestion VARCHAR(4) NOT NULL,
-                    descripcion VARCHAR(300),
-                    carpeta_padre_id INTEGER REFERENCES carpetas(id) ON DELETE CASCADE,
-                    activo BOOLEAN DEFAULT TRUE,
-                    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    usuario_creacion_id INTEGER REFERENCES usuarios(id)
                 );
 
                 -- Tabla de Palabras Clave

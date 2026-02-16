@@ -396,6 +396,23 @@ END $fix$;";
             {
                 logger.LogWarning("Hotfix denegado: {Message}", ex.Message);
             }
+
+            // Hotfix: agregar carpeta_id a documentos si falta (Error 500 documentos)
+            try
+            {
+                const string carpetaIdSql = @"
+DO $fix$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'documentos' AND column_name = 'carpeta_id') THEN
+        ALTER TABLE documentos ADD COLUMN carpeta_id INTEGER REFERENCES carpetas(id);
+    END IF;
+END $fix$;";
+                db.Database.ExecuteSqlRaw(carpetaIdSql);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Hotfix carpeta_id: {Message}", ex.Message);
+            }
         }
         //aqui no deberia entrar nunca
         else
