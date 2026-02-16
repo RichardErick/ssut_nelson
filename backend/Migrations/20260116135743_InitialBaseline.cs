@@ -91,7 +91,6 @@ namespace SistemaGestionDocumental.Migrations
                     observaciones VARCHAR(500),
                     fecha_movimiento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     fecha_devolucion TIMESTAMP,
-                    fecha_limite_devolucion TIMESTAMP,
                     estado VARCHAR(20) DEFAULT 'Activo'
                 );
 
@@ -175,9 +174,7 @@ namespace SistemaGestionDocumental.Migrations
                     carpeta_padre_id INTEGER REFERENCES carpetas(id) ON DELETE CASCADE,
                     activo BOOLEAN DEFAULT TRUE,
                     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    usuario_creacion_id INTEGER REFERENCES usuarios(id),
-                    rango_inicio INTEGER,
-                    rango_fin INTEGER
+                    usuario_creacion_id INTEGER REFERENCES usuarios(id)
                 );
 
                 -- Tabla de Palabras Clave
