@@ -362,6 +362,23 @@ END $r11b$;";
             {
                 logger.LogWarning("Migración 011 (pregunta_secreta): {Message}", ex.Message);
             }
+
+            // Hotfix: agregar solicitud_rechazada si falta (Error 42703)
+            try
+            {
+                const string solicitudRechazadaSql = @"
+DO $fix$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'usuarios' AND column_name = 'solicitud_rechazada') THEN
+        ALTER TABLE usuarios ADD COLUMN solicitud_rechazada BOOLEAN DEFAULT FALSE;
+    END IF;
+END $fix$;";
+                db.Database.ExecuteSqlRaw(solicitudRechazadaSql);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Hotfix solicitud_rechazada: {Message}", ex.Message);
+            }
         }
         //aqui no deberia entrar nunca
         else
