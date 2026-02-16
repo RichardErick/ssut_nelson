@@ -17,6 +17,8 @@ public class MovimientoDTO
     public string? Observaciones { get; set; }
     public DateTime FechaMovimiento { get; set; }
     public DateTime? FechaDevolucion { get; set; }
+    /// <summary>Fecha límite de devolución del préstamo.</summary>
+    public DateTime? FechaLimiteDevolucion { get; set; }
     public string Estado { get; set; } = string.Empty;
 }
 
@@ -28,6 +30,8 @@ public class CreateMovimientoDTO
     public int? AreaDestinoId { get; set; }
     public int? UsuarioId { get; set; }
     public string? Observaciones { get; set; }
+    /// <summary>Fecha límite de devolución del préstamo (obligatoria para Salida).</summary>
+    public DateTime? FechaLimiteDevolucion { get; set; }
 }
 
 public class DevolverDocumentoDTO

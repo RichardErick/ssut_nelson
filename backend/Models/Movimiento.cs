@@ -50,6 +50,10 @@ public class Movimiento
     [Column("fecha_devolucion")]
     public DateTime? FechaDevolucion { get; set; }
 
+    /// <summary>Fecha límite de devolución del préstamo (cuando debe devolverse).</summary>
+    [Column("fecha_limite_devolucion")]
+    public DateTime? FechaLimiteDevolucion { get; set; }
+
     [Column("estado")]
     [StringLength(20)]
     public string Estado { get; set; } = "Activo"; // Activo, Devuelto, Cancelado

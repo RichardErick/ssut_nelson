@@ -95,6 +95,7 @@ public class MovimientoService : IMovimientoService
             UsuarioId = dto.UsuarioId,
             Observaciones = dto.Observaciones,
             FechaMovimiento = DateTime.UtcNow,
+            FechaLimiteDevolucion = dto.FechaLimiteDevolucion,
             Estado = "Activo"
         };
 
@@ -192,6 +193,7 @@ public class MovimientoService : IMovimientoService
             Observaciones = m.Observaciones,
             FechaMovimiento = m.FechaMovimiento,
             FechaDevolucion = m.FechaDevolucion,
+            FechaLimiteDevolucion = m.FechaLimiteDevolucion,
             Estado = m.Estado
         };
     }
