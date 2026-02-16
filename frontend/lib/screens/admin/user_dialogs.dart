@@ -452,7 +452,7 @@ class _UserPermissionsDialogState extends State<UserPermissionsDialog> {
       final api = Provider.of<ApiService>(context, listen: false);
       final endpoint = grant ? '/permisos/usuarios/asignar' : '/permisos/usuarios/revocar';
       
-      await api.post(endpoint, {
+      await api.post(endpoint, data: {
         'usuarioId': widget.userId,
         // Enviar como entero para coincidir con backend expecting int
         'permisoId': permisoId 

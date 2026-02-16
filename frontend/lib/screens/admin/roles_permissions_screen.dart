@@ -982,7 +982,7 @@ class _RolesPermissionsScreenState extends State<RolesPermissionsScreen> {
         ),
       ),
       trailing:
-          isDesktop
+          isDesktop ?
                Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
