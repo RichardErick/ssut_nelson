@@ -379,6 +379,23 @@ END $fix$;";
             {
                 logger.LogWarning("Hotfix solicitud_rechazada: {Message}", ex.Message);
             }
+
+            // Hotfix: agregar denegado a usuario_permisos si falta (Error 42703 denegado)
+            try
+            {
+                const string denegadoSql = @"
+DO $fix$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'usuario_permisos' AND column_name = 'denegado') THEN
+        ALTER TABLE usuario_permisos ADD COLUMN denegado BOOLEAN DEFAULT FALSE;
+    END IF;
+END $fix$;";
+                db.Database.ExecuteSqlRaw(denegadoSql);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Hotfix denegado: {Message}", ex.Message);
+            }
         }
         //aqui no deberia entrar nunca
         else

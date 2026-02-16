@@ -274,6 +274,7 @@ namespace SistemaGestionDocumental.Migrations
                     usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
                     permiso_id INTEGER NOT NULL REFERENCES permisos(id) ON DELETE CASCADE,
                     activo BOOLEAN NOT NULL DEFAULT TRUE,
+                    denegado BOOLEAN DEFAULT FALSE,
                     fecha_asignacion TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                     CONSTRAINT ""UQ_usuario_permisos_usuario_id_permiso_id"" UNIQUE (usuario_id, permiso_id)
                 );
