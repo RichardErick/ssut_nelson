@@ -49,6 +49,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
 
   // State
   final Map<String, Map<String, bool>> _permisosActivos = {};
+  final Map<String, Map<String, bool>> _initialPermisosActivos = {};
 
   Usuario? _usuarioSeleccionado;
   bool _isLoading = true;
@@ -143,6 +144,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
       }
       setState(() {
         _permisosActivos[usuario.nombreUsuario] = mapa;
+        _initialPermisosActivos[usuario.nombreUsuario] = Map.from(mapa);
         _isLoadingPermisosUsuario = false;
       });
     } catch (e) {
@@ -273,11 +275,28 @@ class _PermisosScreenState extends State<PermisosScreen> {
     final permisoService = Provider.of<PermisoService>(context, listen: false);
     final usuario = _usuarioSeleccionado!;
     final permisosActivos = _permisosActivos[usuario.nombreUsuario] ?? {};
-    // Guardar los 4 permisos: activar o revocar según el toggle de cada uno
-    final codigosAGuardar = _permisosDisponibles.keys.toList();
+    final permisosIniciales = _initialPermisosActivos[usuario.nombreUsuario] ?? {};
+    
+    // Solo enviar los que realmente cambiaron
+    final codigosAGuardar = _permisosDisponibles.keys.where((codigo) {
+      return (permisosActivos[codigo] ?? false) != (permisosIniciales[codigo] ?? false);
+    }).toList();
 
+    if (codigosAGuardar.isEmpty) {
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay cambios pendientes para guardar'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    
     int ok = 0;
     int fail = 0;
+    List<String> errorMessages = [];
+    
     for (final codigo in codigosAGuardar) {
       final activo = permisosActivos[codigo] ?? false;
 
@@ -302,14 +321,19 @@ class _PermisosScreenState extends State<PermisosScreen> {
           await permisoService.revocarPermiso(usuario.id, permiso.id);
           ok++;
         }
-      } catch (_) {
+      } catch (e) {
         fail++;
+        final msg = ErrorHelper.getErrorMessage(e);
+        if (!errorMessages.contains(msg)) {
+          errorMessages.add(msg);
+        }
       }
     }
 
     if (mounted) {
       setState(() => _isSaving = false);
       await _cargarPermisosUsuario(usuario);
+      
       if (fail == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -327,13 +351,44 @@ class _PermisosScreenState extends State<PermisosScreen> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Se guardaron $ok; $fail fallaron. La lista se actualizó desde el servidor.',
+        // Mostrar alerta detallada si hay errores
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800),
+                const SizedBox(width: 10),
+                const Text('Atención al guardar'),
+              ],
             ),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Se guardaron $ok cambios, pero $fail fallaron.'),
+                const SizedBox(height: 16),
+                const Text('Motivos del error:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...errorMessages.map((msg) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(child: Text(msg)),
+                    ],
+                  ),
+                )),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Entendido'),
+              ),
+            ],
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
         );
       }

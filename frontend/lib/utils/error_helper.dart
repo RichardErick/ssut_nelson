@@ -93,12 +93,13 @@ class ErrorHelper {
         }
 
         if (serverMessage != null && serverMessage.isNotEmpty) {
-          // Si el backend manda un mensaje específico, respetarlo.
-          if (statusCode == 401) return serverMessage;
-          if (statusCode == 423) return serverMessage;
+          // Si el backend manda un mensaje específico, respetarlo para códigos de cliente.
+          if (statusCode != null && statusCode >= 400 && statusCode < 500) {
+            return serverMessage;
+          }
         }
 
-        // Mensajes específicos por código de estado
+        // Mensajes específicos por código de estado (fallback)
         if (statusCode == 400) {
           return serverMessage?.isNotEmpty == true
               ? serverMessage!
@@ -109,10 +110,10 @@ class ErrorHelper {
               'Credenciales inválidas. Verifique su usuario y contraseña.';
         }
         if (statusCode == 403) {
-          return 'No tiene permisos para realizar esta acción.';
+          return serverMessage ?? 'No tiene permisos para realizar esta acción.';
         }
         if (statusCode == 404) {
-          return 'Recurso no encontrado.';
+          return serverMessage ?? 'Recurso no encontrado.';
         }
         if (statusCode == 423) {
           return serverMessage ??

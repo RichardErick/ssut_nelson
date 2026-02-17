@@ -363,7 +363,7 @@ public class PermisosController : ControllerBase
                 // If they only have it via user assignment, just deactivate it
                 if (usuarioPermiso == null)
                 {
-                    return NotFound(new { message = "Permiso no asignado a este usuario" });
+                    return Ok(new { message = "El permiso ya se encuentra revocado o no estaba asignado" });
                 }
 
                 usuarioPermiso.Activo = false; // Soft delete
