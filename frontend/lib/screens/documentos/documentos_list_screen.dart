@@ -1735,7 +1735,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                         shadows: [
-                          Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 4),
+                          Shadow(color: Colors.black26, offset: const Offset(0, 1), blurRadius: 4),
                         ],
                       ),
                       maxLines: 1,
