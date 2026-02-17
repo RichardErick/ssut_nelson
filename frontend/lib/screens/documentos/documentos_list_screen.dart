@@ -387,19 +387,27 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   /// Documentos de la carpeta actual. Filtros avanzados (número comprobante, fecha, responsable, QR) se aplican en el API; aquí solo búsqueda por texto y estado.
   List<Documento> get _documentosCarpetaFiltrados {
     var filtrados = _documentosCarpeta;
+
+    // Filtro texto
     if (_consultaBusqueda.trim().isNotEmpty) {
       final query = _consultaBusqueda.toLowerCase().trim();
-      filtrados =
-          filtrados.where((doc) {
-            return doc.codigo.toLowerCase().contains(query) ||
-                doc.numeroCorrelativo.toLowerCase().contains(query) ||
-                (doc.tipoDocumentoNombre ?? '').toLowerCase().contains(query) ||
-                (doc.descripcion ?? '').toLowerCase().contains(query);
-          }).toList();
+      filtrados = filtrados.where((doc) {
+        return doc.codigo.toLowerCase().contains(query) ||
+            doc.numeroCorrelativo.toLowerCase().contains(query) ||
+            (doc.tipoDocumentoNombre ?? '').toLowerCase().contains(query) ||
+            (doc.descripcion ?? '').toLowerCase().contains(query);
+      }).toList();
     }
+    
+    // Filtro estado
+    if (_filtroSeleccionado != 'todos') {
+      filtrados =
+          filtrados
               .where((doc) => doc.estado.toLowerCase() == _filtroSeleccionado)
               .toList();
     }
+
+    // Filtro tipo doc
     if (_filtroTipoDocumento != 'todos') {
       filtrados =
           filtrados
@@ -2261,32 +2269,31 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final isSelected = _filtroTipoDocumento == value;
     return InkWell(
       onTap: () => setState(() => _filtroTipoDocumento = value),
-      borderRadius: BorderRadius.circular(20),
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      decoration: BoxDecoration(
-        color:
-            isSelected ? theme.colorScheme.primary : Colors.transparent,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color:
-              isSelected
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.outline.withOpacity(0.2),
+      borderRadius: BorderRadius.circular(24),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withOpacity(0.2),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            color: isSelected
+                ? Colors.white
+                : theme.colorScheme.onSurface.withOpacity(0.7),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 13,
+          ),
         ),
       ),
-      child: Text(
-        label,
-        style: GoogleFonts.inter(
-          color: isSelected ? Colors.white : theme.colorScheme.onSurface.withOpacity(0.7),
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          fontSize: 13,
-        ),
-      ),
-    );
-  }
     );
   }
 
