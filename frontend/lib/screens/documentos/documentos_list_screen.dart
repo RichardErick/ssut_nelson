@@ -45,6 +45,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   bool _vistaGrid = true;
   String _consultaBusqueda = '';
   String _filtroSeleccionado = 'todos';
+  String _filtroTipoDocumento = 'todos';
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
 
@@ -349,6 +350,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       _carpetaSeleccionada = carpeta;
       _documentosCarpeta = [];
       _subcarpetas = [];
+      _filtroTipoDocumento = 'todos';
     });
 
     final esCarpeta = carpeta.carpetaPadreId == null;
@@ -395,10 +397,17 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 (doc.descripcion ?? '').toLowerCase().contains(query);
           }).toList();
     }
-    if (_filtroSeleccionado != 'todos') {
+              .where((doc) => doc.estado.toLowerCase() == _filtroSeleccionado)
+              .toList();
+    }
+    if (_filtroTipoDocumento != 'todos') {
       filtrados =
           filtrados
-              .where((doc) => doc.estado.toLowerCase() == _filtroSeleccionado)
+              .where(
+                (doc) => (doc.tipoDocumentoNombre ?? '')
+                    .toLowerCase()
+                    .contains(_filtroTipoDocumento),
+              )
               .toList();
     }
     return filtrados;
@@ -1292,6 +1301,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildCarpetaHeader(carpeta, rango, theme, mostrarMenuDrawer: !mostrarPanelLateral),
+        _buildTipoDocumentoTabs(theme),
         _buildViewControls(theme),
         Expanded(
           child: LayoutBuilder(
@@ -1555,6 +1565,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 
   Widget _buildCarpetaHeader(Carpeta carpeta, String rango, ThemeData theme, {bool mostrarMenuDrawer = false}) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final canEdit = authProvider.hasPermission('editar_metadatos');
+    final canDelete = authProvider.hasPermission('borrar_documento');
+
     final esCarpeta = carpeta.carpetaPadreId == null;
     final esSubcarpeta = !esCarpeta;
     final margin = esSubcarpeta ? 12.0 : 24.0;
@@ -1779,6 +1793,68 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   ],
                 ),
               ),
+
+              if (canEdit || canDelete) ...[
+                SizedBox(width: esSubcarpeta ? 8 : 16),
+                if (canEdit)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(esSubcarpeta ? 10 : 12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      onPressed: () => _abrirEditarCarpeta(carpeta),
+                      icon: Icon(
+                        Icons.edit_rounded,
+                        size: esSubcarpeta ? 20 : 24,
+                      ),
+                      color: Colors.blue.shade700,
+                      padding: EdgeInsets.all(esSubcarpeta ? 6 : 12),
+                      constraints: BoxConstraints(
+                        minWidth: esSubcarpeta ? 36 : 48,
+                        minHeight: esSubcarpeta ? 36 : 48,
+                      ),
+                      tooltip: 'Editar carpeta',
+                    ),
+                  ),
+                if (canDelete) ...[
+                  SizedBox(width: esSubcarpeta ? 8 : 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(esSubcarpeta ? 10 : 12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      onPressed: () => _confirmarEliminarCarpeta(carpeta),
+                      icon: Icon(
+                        Icons.delete_rounded,
+                        size: esSubcarpeta ? 20 : 24,
+                      ),
+                      color: Colors.red.shade700,
+                      padding: EdgeInsets.all(esSubcarpeta ? 6 : 12),
+                      constraints: BoxConstraints(
+                        minWidth: esSubcarpeta ? 36 : 48,
+                        minHeight: esSubcarpeta ? 36 : 48,
+                      ),
+                      tooltip: 'Eliminar carpeta',
+                    ),
+                  ),
+                ],
+              ],
             ],
           ),
           // Estadísticas: resumen dentro de la carpeta
@@ -2144,6 +2220,67 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+
+
+  Widget _buildTipoDocumentoTabs(ThemeData theme) {
+    if (_carpetaSeleccionada == null) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _buildTabItem('Todos', 'todos', theme),
+          const SizedBox(width: 12),
+          _buildTabItem('Comprobante de Egreso', 'egreso', theme),
+          const SizedBox(width: 12),
+          _buildTabItem('Comprobante de Ingreso', 'ingreso', theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabItem(String label, String value, ThemeData theme) {
+    final isSelected = _filtroTipoDocumento == value;
+    return InkWell(
+      onTap: () => setState(() => _filtroTipoDocumento = value),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color:
+              isSelected ? theme.colorScheme.primary : theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color:
+                isSelected
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.outline.withOpacity(0.3),
+          ),
+          boxShadow:
+              isSelected
+                  ? [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                  : null,
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 13,
           ),
         ),
       ),
