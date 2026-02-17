@@ -1796,6 +1796,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     ),
                   ],
                 ),
+              ),
 
 
               if (canEdit || canDelete) ...[
