@@ -448,6 +448,22 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ),
                       const SizedBox(height: 16),
 
+                      const SizedBox(height: 16),
+                      // Tipo de Documento (Egreso/Ingreso, etc)
+                      DropdownButtonFormField<int>(
+                        value: _tipoDocumentoId,
+                        decoration: _inputDecoration('Tipo de Documento'),
+                        items: _tiposDocumento.map((t) {
+                          return DropdownMenuItem<int>(
+                            value: t['id'],
+                            child: Text(t['nombre']),
+                          );
+                        }).toList(),
+                        onChanged: (v) => setState(() => _tipoDocumentoId = v),
+                        validator: (v) => v == null ? 'Seleccione el tipo' : null,
+                      ),
+                      const SizedBox(height: 16),
+
                       // 1. Número comprobante(s) — máximo 10 dígitos, solo números
                       TextFormField(
                         controller: _numeroCorrelativoController,
