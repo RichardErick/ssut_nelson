@@ -311,7 +311,14 @@ class _PermisosScreenState extends State<PermisosScreen> {
           activo: true,
         ),
       );
-      if (permiso.id == 0) continue;
+      
+      if (permiso.id == 0) {
+        fail++;
+        if (!errorMessages.contains('El permiso "$codigo" no está registrado en el sistema.')) {
+          errorMessages.add('El permiso "$codigo" no está registrado en el sistema. Contacte al administrador.');
+        }
+        continue;
+      }
 
       try {
         if (activo) {
@@ -343,7 +350,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
                 const SizedBox(width: 8),
                 Text(ok > 0
                     ? 'Permisos guardados correctamente'
-                    : 'Sin cambios que guardar'),
+                    : 'Los permisos ya estaban actualizados'),
               ],
             ),
             backgroundColor: Colors.green,

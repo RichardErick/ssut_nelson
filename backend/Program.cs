@@ -403,6 +403,42 @@ END $fix$;";
                 logger.LogWarning("Hotfix denegado: {Message}", ex.Message);
             }
 
+            // Hotfix: asegurar que el permiso ver_movimientos existe
+            try
+            {
+                const string verMovimientosSql = @"
+DO $fix$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM permisos WHERE codigo = 'ver_movimientos') THEN
+        INSERT INTO permisos (codigo, nombre, descripcion, modulo, activo) 
+        VALUES ('ver_movimientos', 'Ver Movimientos', 'Permite el acceso al historial de movimientos', 'Movimientos', TRUE);
+    END IF;
+END $fix$;";
+                db.Database.ExecuteSqlRaw(verMovimientosSql);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Hotfix ver_movimientos: {Message}", ex.Message);
+            }
+
+            // Hotfix: asegurar que el permiso borrar_documento existe (por si acaso)
+            try
+            {
+                const string borrarDocSql = @"
+DO $fix$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM permisos WHERE codigo = 'borrar_documento') THEN
+        INSERT INTO permisos (codigo, nombre, descripcion, modulo, activo) 
+        VALUES ('borrar_documento', 'Borrar Documento', 'Permite eliminar documentos del sistema', 'Documentos', TRUE);
+    END IF;
+END $fix$;";
+                db.Database.ExecuteSqlRaw(borrarDocSql);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Hotfix borrar_documento: {Message}", ex.Message);
+            }
+
             // Hotfix: agregar carpeta_id a documentos si falta (Error 500 documentos)
             try
             {

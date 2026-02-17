@@ -35,37 +35,38 @@ INSERT INTO permisos (codigo, nombre, descripcion, modulo) VALUES
 ('subir_documento', 'Subir Documento', 'Permite subir/crear nuevos documentos', 'Documentos'),
 ('editar_metadatos', 'Editar Metadatos', 'Permite editar información de documentos', 'Documentos'),
 ('borrar_documento', 'Borrar Documento', 'Permite eliminar documentos', 'Documentos'),
+('ver_movimientos', 'Ver Movimientos', 'Permite ver el historial de movimientos de documentos', 'Movimientos'),
 ('gestionar_seguridad', 'Gestionar Seguridad', 'Permite administrar usuarios, roles y permisos', 'Seguridad')
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Asignar permisos según la matriz:
--- Administrador de Sistema: ver_documento + gestionar_seguridad
--- Administrador de Documentos: todos los permisos de Documentos
--- Contador: ver_documento, subir_documento
--- Gerente: solo ver_documento
+-- Administrador de Sistema: ver_documento + gestionar_seguridad + movimientos
+-- Administrador de Documentos: todos los permisos de Documentos + movimientos
+-- Contador: ver_documento, subir_documento + movimientos
+-- Gerente: ver_documento + movimientos
 
--- Administrador de Sistema: solo ver_documento y gestionar seguridad
+-- Administrador de Sistema
 INSERT INTO rol_permisos (rol, permiso_id, activo)
 SELECT 'AdministradorSistema', id, true
-FROM permisos WHERE codigo IN ('ver_documento', 'gestionar_seguridad')
+FROM permisos WHERE codigo IN ('ver_documento', 'gestionar_seguridad', 'ver_movimientos')
 ON CONFLICT (rol, permiso_id) DO UPDATE SET activo = true;
 
--- Administrador de Documentos: todos los permisos de Documentos
+-- Administrador de Documentos
 INSERT INTO rol_permisos (rol, permiso_id, activo)
 SELECT 'AdministradorDocumentos', id, true
-FROM permisos WHERE codigo IN ('ver_documento', 'subir_documento', 'editar_metadatos', 'borrar_documento')
+FROM permisos WHERE codigo IN ('ver_documento', 'subir_documento', 'editar_metadatos', 'borrar_documento', 'ver_movimientos')
 ON CONFLICT (rol, permiso_id) DO UPDATE SET activo = true;
 
--- Contador: ver_documento, subir_documento
+-- Contador
 INSERT INTO rol_permisos (rol, permiso_id, activo)
 SELECT 'Contador', id, true
-FROM permisos WHERE codigo IN ('ver_documento', 'subir_documento')
+FROM permisos WHERE codigo IN ('ver_documento', 'subir_documento', 'ver_movimientos')
 ON CONFLICT (rol, permiso_id) DO UPDATE SET activo = true;
 
--- Gerente: solo ver_documento
+-- Gerente
 INSERT INTO rol_permisos (rol, permiso_id, activo)
 SELECT 'Gerente', id, true
-FROM permisos WHERE codigo = 'ver_documento'
+FROM permisos WHERE codigo IN ('ver_documento', 'ver_movimientos')
 ON CONFLICT (rol, permiso_id) DO UPDATE SET activo = true;
 
 COMMIT;

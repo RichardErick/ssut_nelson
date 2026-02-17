@@ -224,22 +224,13 @@ public class PermisosController : ControllerBase
             var usuarioGrantedSet = new HashSet<int>(permisosUsuarioGrantedIds);
             var usuarioDeniedSet = new HashSet<int>(permisosUsuarioDeniedIds);
 
-            // Solo mostrar permisos "relevantes" al rol del usuario:
-            // - Los heredados por el rol (roleHas)
-            // - Los asignados explícitamente al usuario
-            // - Los denegados explícitamente (para que el admin vea el override)
-            var relevantIds = permisosRolIds
-                .Union(permisosUsuarioGrantedIds)
-                .Union(permisosUsuarioDeniedIds)
-                .Distinct()
-                .ToList();
-
+            // Mostrar TODOS los permisos activos del catálogo
             var permisos = await _context.Permisos
-                .Where(p => p.Activo && relevantIds.Contains(p.Id))
+                .Where(p => p.Activo)
                 .OrderBy(p => p.Modulo)
                 .ThenBy(p => p.Nombre)
                 .ToListAsync();
-
+ 
             var response = permisos.Select(p => new
             {
                 p.Id,
@@ -253,7 +244,7 @@ public class PermisosController : ControllerBase
                 userHas = (rolSet.Contains(p.Id) && !usuarioDeniedSet.Contains(p.Id)) || usuarioGrantedSet.Contains(p.Id),
                 isDenied = usuarioDeniedSet.Contains(p.Id)
             }).ToList();
-
+ 
             return Ok(new { usuarioId = id, rol, permisos = response });
         }
         catch (Exception ex)
