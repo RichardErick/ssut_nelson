@@ -179,7 +179,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'El permiso "Ver documento" está desactivado para tu usuario. Contacta al administrador si necesitas acceso.',
+                'El permiso "Ver movimientos" está desactivado para tu usuario. Contacta al administrador si necesitas acceso.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 15,
@@ -197,8 +197,8 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    // Solo el Administrador de Documentos puede ver Movimientos
-    if (authProvider.role != UserRole.administradorDocumentos) {
+    // Verificar permiso granular en lugar de rol estático
+    if (!authProvider.hasPermission('ver_movimientos')) {
       return _buildSinPermisoAcceso(context);
     }
     final theme = Theme.of(context);
@@ -632,6 +632,10 @@ class _MovementCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (esPrestamo && movimiento.estado == 'Activo' && movimiento.fechaLimiteDevolucion != null) ...[
+                        const SizedBox(height: 10),
+                        _buildTiempoRestante(movimiento.fechaLimiteDevolucion!, theme),
+                      ],
                       if (movimiento.observaciones != null &&
                           movimiento.observaciones!.trim().isNotEmpty) ...[
                         const SizedBox(height: 8),
@@ -676,6 +680,59 @@ class _MovementCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTiempoRestante(DateTime fechaLimite, ThemeData theme) {
+    final ahora = DateTime.now();
+    final fechaL = DateTime(fechaLimite.year, fechaLimite.month, fechaLimite.day);
+    final fechaA = DateTime(ahora.year, ahora.month, ahora.day);
+    final diferencia = fechaL.difference(fechaA).inDays;
+
+    Color color;
+    String texto;
+    IconData icon;
+
+    if (diferencia == 0) {
+      color = Colors.orange.shade700;
+      texto = 'Vence HOY';
+      icon = Icons.warning_amber_rounded;
+    } else if (diferencia == 1) {
+      color = Colors.orange.shade600;
+      texto = 'Vence mañana';
+      icon = Icons.info_outline_rounded;
+    } else if (diferencia < 0) {
+      color = Colors.red.shade700;
+      texto = 'Vencido hace ${diferencia.abs()} días';
+      icon = Icons.error_outline_rounded;
+    } else {
+      color = theme.colorScheme.primary;
+      texto = 'Tiempo restante: $diferencia días';
+      icon = Icons.timer_outlined;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            texto,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

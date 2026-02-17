@@ -24,8 +24,8 @@ public class ReporteService : IReporteService
 
     public async Task<IEnumerable<MovimientoDTO>> GenerarReporteMovimientosAsync(ReporteMovimientosDTO filtros)
     {
-        var fechaDesdeUtc = NormalizeToUtc(filtros.FechaDesde);
-        var fechaHastaUtc = NormalizeToUtc(filtros.FechaHasta);
+        var fechaDesdeUtc = NormalizeToUtc(filtros.FechaDesde.Date);
+        var fechaHastaUtc = NormalizeToUtc(filtros.FechaHasta.Date.AddDays(1).AddTicks(-1));
 
         var query = _context.Movimientos
             .Include(m => m.Documento)
@@ -99,6 +99,12 @@ public class ReporteService : IReporteService
             .Select(g => new { Tipo = g.Key ?? "Sin tipo", Cantidad = g.Count() })
             .ToDictionaryAsync(x => x.Tipo, x => x.Cantidad);
 
+        var documentosPorArea = await _context.Documentos
+            .Include(d => d.AreaOrigen)
+            .GroupBy(d => d.AreaOrigen!.Nombre)
+            .Select(g => new { Area = g.Key ?? "Sin área", Cantidad = g.Count() })
+            .ToDictionaryAsync(x => x.Area, x => x.Cantidad);
+
         var movimientosPorTipo = await _context.Movimientos
             .GroupBy(m => m.TipoMovimiento)
             .Select(g => new { Tipo = g.Key, Cantidad = g.Count() })
@@ -112,6 +118,7 @@ public class ReporteService : IReporteService
             DocumentosArchivados = documentosArchivados,
             MovimientosMes = movimientosMes,
             DocumentosPorTipo = documentosPorTipo,
+            DocumentosPorArea = documentosPorArea,
             MovimientosPorTipo = movimientosPorTipo
         };
     }

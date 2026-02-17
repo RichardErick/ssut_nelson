@@ -30,6 +30,7 @@ class _PermisosScreenState extends State<PermisosScreen> {
     'subir_documento': 'Subir Documento',
     'editar_metadatos': 'Editar Metadatos',
     'borrar_documento': 'Borrar Documento',
+    'ver_movimientos': 'Ver Movimientos',
   };
 
   // Matriz: solo estos permisos por rol. Admin Sistema solo ver; Admin Documentos ver+subir+editar metadatos+borrar; Contador ver+subir; Gerente solo ver.
@@ -40,9 +41,10 @@ class _PermisosScreenState extends State<PermisosScreen> {
       'subir_documento',
       'editar_metadatos',
       'borrar_documento',
+      'ver_movimientos',
     ],
-    UserRole.contador: ['ver_documento', 'subir_documento'],
-    UserRole.gerente: ['ver_documento'],
+    UserRole.contador: ['ver_documento', 'subir_documento', 'ver_movimientos'],
+    UserRole.gerente: ['ver_documento', 'ver_movimientos'],
   };
 
   // State
@@ -772,6 +774,8 @@ class _PermisosScreenState extends State<PermisosScreen> {
         return Icons.edit;
       case 'borrar_documento':
         return Icons.delete;
+      case 'ver_movimientos':
+        return Icons.swap_horiz_rounded;
       default:
         return Icons.security;
     }

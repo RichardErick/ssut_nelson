@@ -24,6 +24,7 @@ public class EstadisticaDocumentoDTO
     public int DocumentosArchivados { get; set; }
     public int MovimientosMes { get; set; }
     public Dictionary<string, int> DocumentosPorTipo { get; set; } = new();
+    public Dictionary<string, int> DocumentosPorArea { get; set; } = new();
     public Dictionary<string, int> MovimientosPorTipo { get; set; } = new();
 }
 

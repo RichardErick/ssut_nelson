@@ -293,6 +293,43 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } catch (_) {}
   }
 
+  Future<void> _clearAllAlerts() async {
+    if (_alertas.isEmpty) return;
+    
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Limpiar notificaciones'),
+        content: const Text('¿Estás seguro de que deseas eliminar todas tus notificaciones?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Limpiar todo'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      await apiService.delete('/alertas/clear-all');
+      setState(() {
+        _alertas.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Notificaciones limpiadas'), behavior: SnackBarBehavior.floating),
+      );
+    } catch (e) {
+      if (mounted) {
+        AppAlert.error(context, 'Error', 'No se pudieron limpiar las notificaciones');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -308,6 +345,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         elevation: 0,
         foregroundColor: theme.colorScheme.onSurface,
         actions: [
+          if (_alertas.isNotEmpty)
+            Tooltip(
+              message: 'Limpiar todo',
+              child: IconButton(
+                icon: const Icon(Icons.delete_sweep_outlined),
+                onPressed: _clearAllAlerts,
+                color: Colors.red.shade400,
+              ),
+            ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),

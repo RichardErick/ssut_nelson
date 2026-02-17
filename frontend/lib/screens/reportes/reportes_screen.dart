@@ -252,51 +252,75 @@ class _ReportesScreenState extends State<ReportesScreen> {
   }
 
   Widget _buildDetailedReports(ThemeData theme, bool isDesktop) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
       children: [
-        Expanded(
-          flex: 2,
-          child: _buildTypeReportList(theme),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildDistributionList(
+                'DISTRIBUCIÓN POR TIPO',
+                _estadisticas!['documentosPorTipo'] as Map? ?? {},
+                Icons.folder_open_rounded,
+                theme,
+              ),
+            ),
+            const SizedBox(width: 32),
+            Expanded(
+              child: _buildDistributionList(
+                'DISTRIBUCIÓN POR ÁREA',
+                _estadisticas!['documentosPorArea'] as Map? ?? {},
+                Icons.business_center_rounded,
+                theme,
+              ),
+            ),
+          ],
         ),
-        if (isDesktop) ...[
-          const SizedBox(width: 32),
-          Expanded(
-            flex: 1,
-            child: SingleChildScrollView(child: _buildExportSection(theme)),
-          ),
+        if (!isDesktop) ...[
+          const SizedBox(height: 40),
+          _buildExportSection(theme),
         ],
       ],
     );
   }
 
-  Widget _buildTypeReportList(ThemeData theme) {
-    final types = (_estadisticas!['documentosPorTipo'] as Map? ?? {});
+  Widget _buildDistributionList(String title, Map data, IconData icon, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('DISTRIBUCIÓN POR TIPO', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(title, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: theme.colorScheme.outline.withOpacity(0.05)),
           ),
-          child: Column(
-            children: types.entries.map((e) => _buildTypeTile(e.key.toString(), e.value.toString(), theme)).toList(),
-          ),
+          child: data.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Center(
+                    child: Text(
+                      'Sin datos registrados',
+                      style: GoogleFonts.inter(color: Colors.grey),
+                    ),
+                  ),
+                )
+              : Column(
+                  children: data.entries.map((e) => _buildDistributionTile(e.key.toString(), e.value.toString(), icon, theme)).toList(),
+                ),
         ),
       ],
     );
   }
 
-  Widget _buildTypeTile(String name, String value, ThemeData theme) {
+  Widget _buildDistributionTile(String name, String value, IconData icon, ThemeData theme) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-        child: Icon(Icons.folder_open_rounded, color: theme.colorScheme.primary, size: 20),
+        child: Icon(icon, color: theme.colorScheme.primary, size: 20),
       ),
       title: Text(name, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
       trailing: Text(value, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: theme.colorScheme.primary)),
@@ -576,43 +600,62 @@ class _ReportesScreenState extends State<ReportesScreen> {
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(24),
-          header: (ctx) => pw.Text(
-            'Reporte de movimientos · ${DateFormat('dd/MM/yyyy').format(_fechaDesde)} - ${DateFormat('dd/MM/yyyy').format(_fechaHasta)}',
-            style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+          header: (ctx) => pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('SISTEMA DE GESTIÓN DOCUMENTAL SSUT', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+              pw.Text(DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now()), style: const pw.TextStyle(fontSize: 8)),
+            ],
           ),
           build: (ctx) => [
+            pw.Header(
+              level: 0,
+              child: pw.Text('REPORTE DE MOVIMIENTOS DOCUMENTALES', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+            ),
+            pw.Text(
+              'Período: ${DateFormat('dd/MM/yyyy').format(_fechaDesde)} al ${DateFormat('dd/MM/yyyy').format(_fechaHasta)}',
+              style: const pw.TextStyle(fontSize: 12),
+            ),
+            if (_tipoMovimientoFilter != null)
+              pw.Text('Tipo: $_tipoMovimientoFilter', style: const pw.TextStyle(fontSize: 12)),
+            pw.SizedBox(height: 20),
             pw.Table(
-              border: pw.TableBorder.all(color: PdfColors.grey300),
+              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
               columnWidths: {
                 0: const pw.FlexColumnWidth(2),
                 1: const pw.FlexColumnWidth(1.5),
-                2: const pw.FlexColumnWidth(2),
-                3: const pw.FlexColumnWidth(1.5),
+                2: const pw.FlexColumnWidth(2.5),
+                3: const pw.FlexColumnWidth(2),
                 4: const pw.FlexColumnWidth(1),
               },
               children: [
                 pw.TableRow(
-                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey100),
                   children: [
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Documento', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Tipo', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Responsable', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Fecha', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Estado', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Código Doc.', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Transacción', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Usuario/Responsable', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Fecha/Hora', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Estado', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
                   ],
                 ),
                 ..._reporteMovimientos.map(
                   (m) => pw.TableRow(
                     children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(m.documentoCodigo ?? '—', style: const pw.TextStyle(fontSize: 8))),
-                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(m.tipoMovimiento, style: const pw.TextStyle(fontSize: 8))),
-                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(m.usuarioNombre ?? '—', style: const pw.TextStyle(fontSize: 8))),
-                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(dateFormat.format(m.fechaMovimiento), style: const pw.TextStyle(fontSize: 8))),
-                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(m.estado, style: const pw.TextStyle(fontSize: 8))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(m.documentoCodigo ?? '—', style: const pw.TextStyle(fontSize: 9))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(m.tipoMovimiento, style: const pw.TextStyle(fontSize: 9))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(m.usuarioNombre ?? '—', style: const pw.TextStyle(fontSize: 9))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(dateFormat.format(m.fechaMovimiento), style: const pw.TextStyle(fontSize: 9))),
+                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(m.estado, style: const pw.TextStyle(fontSize: 9))),
                     ],
                   ),
                 ),
               ],
+            ),
+            pw.SizedBox(height: 30),
+            pw.Align(
+              alignment: pw.Alignment.centerRight,
+              child: pw.Text('Total de transacciones: ${_reporteMovimientos.length}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
             ),
           ],
         ),

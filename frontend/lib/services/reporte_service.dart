@@ -55,28 +55,11 @@ class ReporteService {
   }
 
   Future<Map<String, dynamic>> obtenerEstadisticas() async {
-    try {
-      final apiService = Provider.of<ApiService>(
-        navigatorKey.currentContext!,
-        listen: false,
-      );
-      final response = await apiService.get('/reportes/estadisticas');
-      return response.data;
-    } catch (e) {
-      print('API Error: $e. Returning mock stats.');
-      return {
-        'totalDocumentos': 1250,
-        'documentosActivos': 450,
-        'documentosPrestados': 12,
-        'movimientosMes': 328,
-        'documentosPorTipo': {
-          'Informes': 450,
-          'Memorandums': 300,
-          'Facturas': 250,
-          'Contratos': 150,
-          'Otros': 100,
-        },
-      };
-    }
+    final apiService = Provider.of<ApiService>(
+      navigatorKey.currentContext!,
+      listen: false,
+    );
+    final response = await apiService.get('/reportes/estadisticas');
+    return response.data;
   }
 }
