@@ -1581,15 +1581,17 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.blue.shade50, Colors.indigo.shade50],
+          colors: [
+            Colors.indigo.shade900,
+            Colors.blue.shade800,
+          ],
         ),
-        borderRadius: BorderRadius.circular(esSubcarpeta ? 14 : 20),
-        border: Border.all(color: Colors.blue.shade100),
+        borderRadius: BorderRadius.circular(esSubcarpeta ? 16 : 24),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.1),
-            blurRadius: esSubcarpeta ? 12 : 20,
-            offset: const Offset(0, 8),
+            color: Colors.blue.shade900.withOpacity(0.3),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -1729,9 +1731,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     Text(
                       carpeta.nombre,
                       style: GoogleFonts.poppins(
-                        fontSize: esSubcarpeta ? 16 : 20,
+                        fontSize: esSubcarpeta ? 16 : 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 4),
+                        ],
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1745,7 +1750,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                             vertical: esSubcarpeta ? 4 : 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade100,
+                            color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -1753,7 +1758,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                             style: GoogleFonts.inter(
                               fontSize: esSubcarpeta ? 11 : 12,
                               fontWeight: FontWeight.w600,
-                              color: Colors.blue.shade800,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -1764,9 +1769,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                             vertical: esSubcarpeta ? 4 : 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: Colors.black.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade300),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -1774,7 +1778,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                               Icon(
                                 Icons.calendar_today_rounded,
                                 size: esSubcarpeta ? 12 : 14,
-                                color: Colors.grey.shade600,
+                                color: Colors.white.withOpacity(0.8),
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -1782,7 +1786,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                 style: GoogleFonts.inter(
                                   fontSize: esSubcarpeta ? 11 : 12,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.grey.shade700,
+                                  color: Colors.white.withOpacity(0.9),
                                 ),
                               ),
                             ],
@@ -1792,22 +1796,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     ),
                   ],
                 ),
-              ),
+
 
               if (canEdit || canDelete) ...[
                 SizedBox(width: esSubcarpeta ? 8 : 16),
                 if (canEdit)
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(esSubcarpeta ? 10 : 12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
                     ),
                     child: IconButton(
                       onPressed: () => _abrirEditarCarpeta(carpeta),
@@ -1815,7 +1812,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         Icons.edit_rounded,
                         size: esSubcarpeta ? 20 : 24,
                       ),
-                      color: Colors.blue.shade700,
+                      color: Colors.white,
                       padding: EdgeInsets.all(esSubcarpeta ? 6 : 12),
                       constraints: BoxConstraints(
                         minWidth: esSubcarpeta ? 36 : 48,
@@ -1828,15 +1825,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   SizedBox(width: esSubcarpeta ? 8 : 12),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(esSubcarpeta ? 10 : 12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
                     ),
                     child: IconButton(
                       onPressed: () => _confirmarEliminarCarpeta(carpeta),
@@ -1844,7 +1834,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         Icons.delete_rounded,
                         size: esSubcarpeta ? 20 : 24,
                       ),
-                      color: Colors.red.shade700,
+                      color: Colors.red.shade200,
                       padding: EdgeInsets.all(esSubcarpeta ? 6 : 12),
                       constraints: BoxConstraints(
                         minWidth: esSubcarpeta ? 36 : 48,
@@ -1858,7 +1848,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             ],
           ),
           // Estadísticas: resumen dentro de la carpeta
-          SizedBox(height: esSubcarpeta ? 10 : 20),
+          SizedBox(height: esSubcarpeta ? 16 : 24),
           Builder(
             builder: (context) {
               final tieneRangoConfig =
@@ -1956,35 +1946,54 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final valueSize = compact ? 14.0 : 18.0;
     final labelSize = compact ? 10.0 : 12.0;
     return Container(
-      padding: EdgeInsets.all(pad),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(compact ? 10 : 12),
-        border: Border.all(color: color.withOpacity(0.2)),
+      padding: EdgeInsets.symmetric(
+        horizontal: pad,
+        vertical: pad * 0.8,
       ),
-      child: Column(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(compact ? 12 : 16),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: iconSize),
-          SizedBox(height: compact ? 4 : 8),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: valueSize,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade800,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            child: Icon(icon, color: Colors.white, size: iconSize * 0.9),
           ),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: labelSize,
-              color: Colors.grey.shade600,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          SizedBox(width: compact ? 8 : 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: GoogleFonts.poppins(
+                  fontSize: valueSize,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  height: 1.1,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: labelSize,
+                  color: Colors.white.withOpacity(0.7),
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ],
       ),
@@ -2252,38 +2261,31 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     return InkWell(
       onTap: () => setState(() => _filtroTipoDocumento = value),
       borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color:
+            isSelected ? theme.colorScheme.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
           color:
-              isSelected ? theme.colorScheme.primary : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color:
-                isSelected
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.outline.withOpacity(0.3),
-          ),
-          boxShadow:
               isSelected
-                  ? [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                  : null,
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            color: isSelected ? Colors.white : theme.colorScheme.onSurface,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            fontSize: 13,
-          ),
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outline.withOpacity(0.2),
         ),
       ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          color: isSelected ? Colors.white : theme.colorScheme.onSurface.withOpacity(0.7),
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
     );
   }
 
