@@ -188,6 +188,12 @@ class CarpetaCard extends StatelessWidget {
                       _buildInfoChip('Nº', nroLine, Colors.green),
                       if (rangoLine != null)
                         _buildInfoChip('Rango', rangoLine, Colors.orange),
+                      if (carpeta.tipo != null)
+                        _buildInfoChip(
+                          'Tipo',
+                          (carpeta.tipo?.contains('Ingreso') ?? false) ? 'Ingreso' : 'Egreso',
+                          (carpeta.tipo?.contains('Ingreso') ?? false) ? Colors.teal : Colors.deepOrange,
+                        ),
                     ],
                   ),
                   const SizedBox(height: 8),

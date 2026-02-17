@@ -35,6 +35,10 @@ public class Carpeta
     [Column("rango_fin")]
     public int? RangoFin { get; set; }
 
+    [Column("tipo")]
+    [StringLength(50)]
+    public string? Tipo { get; set; }
+
     [Column("carpeta_padre_id")]
     public int? CarpetaPadreId { get; set; }
 

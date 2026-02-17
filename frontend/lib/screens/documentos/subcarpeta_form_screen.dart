@@ -33,6 +33,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
   final _rangoFinController = TextEditingController();
 
   DateTime? _fecha; // Fecha de la carpeta (opcional)
+  String? _tipoSeleccionado; // 'Comprobante de Ingreso' o 'Comprobante de Egreso'
 
   bool _isLoading = false;
 
@@ -164,6 +165,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
         carpetaPadreId: widget.carpetaPadreId,
         rangoInicio: rInicio,
         rangoFin: rFin,
+        tipo: _tipoSeleccionado,
       );
 
       await carpetaService.create(dto);
@@ -472,6 +474,36 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                             if (v.trim().length != 4) return '4 dígitos (ej: 2024)';
                             return null;
                           },
+                        ),
+                        const SizedBox(height: 24),
+                        // Tipo de Carpeta (Combobox)
+                        _buildSectionHeader('Tipo de Carpeta', Icons.category_rounded, Colors.purple),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: _tipoSeleccionado,
+                          decoration: InputDecoration(
+                            hintText: 'Seleccione el tipo',
+                            prefixIcon: Icon(Icons.list_alt_rounded, size: 20, color: Colors.grey.shade600),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'Comprobante de Ingreso',
+                              child: Text('Comprobante de Ingreso'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Comprobante de Egreso',
+                              child: Text('Comprobante de Egreso'),
+                            ),
+                          ],
+                          onChanged: (val) => setState(() => _tipoSeleccionado = val),
+                          validator: (v) => v == null ? 'Seleccione un tipo' : null,
                         ),
                         const SizedBox(height: 24),
                         // Rango

@@ -61,7 +61,8 @@ public class CarpetasController : ControllerBase
                 NumeroDocumentos = c.Documentos.Count,
                 // Rango configurado explícitamente en la carpeta (tope lógico)
                 c.RangoInicio,
-                c.RangoFin
+                c.RangoFin,
+                c.Tipo
             })
             .ToListAsync();
 
@@ -97,7 +98,8 @@ public class CarpetasController : ControllerBase
                 // Si la carpeta tiene un rango configurado, usarlo como tope;
                 // si no, mostrar el rango calculado a partir de los documentos.
                 RangoInicio = c.RangoInicio ?? (rangoMap.TryGetValue(c.Id, out var r) ? r.Inicio : null),
-                RangoFin = c.RangoFin ?? (rangoMap.TryGetValue(c.Id, out var r2) ? r2.Fin : null)
+                RangoFin = c.RangoFin ?? (rangoMap.TryGetValue(c.Id, out var r2) ? r2.Fin : null),
+                Tipo = c.Tipo
             };
         });
 
@@ -171,7 +173,8 @@ public class CarpetasController : ControllerBase
                 }).ToList(),
                 NumeroDocumentos = c.Documentos.Count,
                 c.RangoInicio,
-                c.RangoFin
+                c.RangoFin,
+                c.Tipo
             })
             .FirstOrDefaultAsync();
 
@@ -199,7 +202,8 @@ public class CarpetasController : ControllerBase
             NumeroCarpeta = numeroMap.TryGetValue(id, out var n) ? n : (int?)null,
             CodigoRomano = numeroMap.TryGetValue(id, out var rn) ? ToRoman(rn) : null,
             RangoInicio = carpeta.RangoInicio ?? (rangoMap.TryGetValue(id, out var r) ? r.Inicio : null),
-            RangoFin = carpeta.RangoFin ?? (rangoMap.TryGetValue(id, out var r2) ? r2.Fin : null)
+            RangoFin = carpeta.RangoFin ?? (rangoMap.TryGetValue(id, out var r2) ? r2.Fin : null),
+            Tipo = carpeta.Tipo
         });
     }
 
@@ -227,7 +231,8 @@ public class CarpetasController : ControllerBase
                     NumeroDocumentos = sc.Documentos.Count
                 }).ToList(),
                 c.RangoInicio,
-                c.RangoFin
+                c.RangoFin,
+                c.Tipo
             })
             .ToListAsync();
 
@@ -247,7 +252,8 @@ public class CarpetasController : ControllerBase
             NumeroCarpeta = numeroMap.TryGetValue(c.Id, out var n) ? n : (int?)null,
             CodigoRomano = numeroMap.TryGetValue(c.Id, out var rn) ? ToRoman(rn) : null,
             RangoInicio = c.RangoInicio ?? (rangoMap.TryGetValue(c.Id, out var r) ? r.Inicio : null),
-            RangoFin = c.RangoFin ?? (rangoMap.TryGetValue(c.Id, out var r2) ? r2.Fin : null)
+            RangoFin = c.RangoFin ?? (rangoMap.TryGetValue(c.Id, out var r2) ? r2.Fin : null),
+            Tipo = c.Tipo
         });
 
         return Ok(result);
@@ -312,6 +318,7 @@ public class CarpetasController : ControllerBase
             CarpetaPadreId = dto.CarpetaPadreId,
             RangoInicio = dto.RangoInicio,
             RangoFin = dto.RangoFin,
+            Tipo = dto.Tipo,
             Activo = true,
             FechaCreacion = DateTime.UtcNow
             // TODO: UsuarioCreacionId = obtener del contexto de autenticación
@@ -339,7 +346,8 @@ public class CarpetasController : ControllerBase
             NumeroCarpeta = numeroCarpeta,
             CodigoRomano = codigoRomano,
             RangoInicio = carpeta.RangoInicio,
-            RangoFin = carpeta.RangoFin
+            RangoFin = carpeta.RangoFin,
+            Tipo = carpeta.Tipo
         });
     }
 
@@ -362,6 +370,9 @@ public class CarpetasController : ControllerBase
 
         if (dto.Activo.HasValue)
             carpeta.Activo = dto.Activo.Value;
+
+        if (dto.Tipo != null)
+            carpeta.Tipo = dto.Tipo;
 
         await _context.SaveChangesAsync();
 
@@ -595,6 +606,7 @@ public class CreateCarpetaDTO
     public int? CarpetaPadreId { get; set; }
     public int? RangoInicio { get; set; }
     public int? RangoFin { get; set; }
+    public string? Tipo { get; set; }
 }
 
 public class UpdateCarpetaDTO
@@ -603,4 +615,5 @@ public class UpdateCarpetaDTO
     public string? Codigo { get; set; }
     public string? Descripcion { get; set; }
     public bool? Activo { get; set; }
+    public string? Tipo { get; set; }
 }

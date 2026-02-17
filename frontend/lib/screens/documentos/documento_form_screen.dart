@@ -47,6 +47,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
   int? _carpetaId;
   int _nivelConfidencialidad = 1;
   String _estadoDocumento = 'Activo'; // SSUT: visible en formulario (año, estado y nivel)
+  bool _bloquearTipoDocumento = false;
   PlatformFile? _pickedFile;
 
   static const List<String> _estadosDocumento = ['Activo', 'Prestado', 'Archivado', 'Inactivo'];
@@ -220,6 +221,8 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
           if (_tiposDocumento.isNotEmpty && _tipoDocumentoId == null) {
             _tipoDocumentoId = _tiposDocumento.first['id'];
           }
+          
+          _verificarTipoPorCarpeta();
           _isLoading = false;
         });
       }
@@ -228,6 +231,35 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
         print('Error cargando datos auxiliares: $e');
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  void _verificarTipoPorCarpeta() {
+    if (_carpetaId == null) {
+      setState(() {
+        _bloquearTipoDocumento = false;
+      });
+      return;
+    }
+
+    final carpeta = _carpetas.where((c) => c.id == _carpetaId).firstOrNull;
+
+    if (carpeta != null && carpeta.tipo != null && carpeta.tipo!.isNotEmpty) {
+      // Intentar encontrar el tipo de documento que coincida con el nombre
+      final tipoDoc = _tiposDocumento.where(
+        (t) => t['nombre'].toString().toLowerCase().trim() == carpeta.tipo!.toLowerCase().trim()
+      ).firstOrNull;
+
+      if (tipoDoc != null) {
+        setState(() {
+          _tipoDocumentoId = tipoDoc['id'];
+          _bloquearTipoDocumento = true;
+        });
+      } else {
+        setState(() => _bloquearTipoDocumento = false);
+      }
+    } else {
+      setState(() => _bloquearTipoDocumento = false);
     }
   }
 
@@ -452,14 +484,19 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                       // Tipo de Documento (Egreso/Ingreso, etc)
                       DropdownButtonFormField<int>(
                         value: _tipoDocumentoId,
-                        decoration: _inputDecoration('Tipo de Documento'),
+                        decoration: _inputDecoration('Tipo de Documento').copyWith(
+                          helperText: _bloquearTipoDocumento 
+                            ? 'Tipo automático por la carpeta seleccionada' 
+                            : null,
+                          helperStyle: TextStyle(color: Colors.blue.shade700, fontSize: 11),
+                        ),
                         items: _tiposDocumento.map((t) {
                           return DropdownMenuItem<int>(
                             value: t['id'],
                             child: Text(t['nombre']),
                           );
                         }).toList(),
-                        onChanged: (v) => setState(() => _tipoDocumentoId = v),
+                        onChanged: _bloquearTipoDocumento ? null : (v) => setState(() => _tipoDocumentoId = v),
                         validator: (v) => v == null ? 'Seleccione el tipo' : null,
                       ),
                       const SizedBox(height: 16),
@@ -709,7 +746,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                             ),
                           ],
                           onChanged:
-                              (v) => setState(() => _carpetaId = v),
+                              (v) {
+                                setState(() => _carpetaId = v);
+                                _verificarTipoPorCarpeta();
+                              },
                         ),
                       ],
 

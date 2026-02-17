@@ -15,6 +15,7 @@ class Carpeta {
   final String? codigoRomano;
   final int? rangoInicio;
   final int? rangoFin;
+  final String? tipo;
   final List<Carpeta> subcarpetas;
 
   Carpeta({
@@ -34,6 +35,7 @@ class Carpeta {
     this.codigoRomano,
     this.rangoInicio,
     this.rangoFin,
+    this.tipo,
     this.subcarpetas = const [],
   });
 
@@ -67,6 +69,7 @@ class Carpeta {
       codigoRomano: json['codigoRomano']?.toString() ?? json['CodigoRomano']?.toString(),
       rangoInicio: json['rangoInicio'] ?? json['RangoInicio'],
       rangoFin: json['rangoFin'] ?? json['RangoFin'],
+      tipo: json['tipo']?.toString() ?? json['Tipo']?.toString(),
       subcarpetas: json['subcarpetas'] != null || json['Subcarpetas'] != null
           ? ((json['subcarpetas'] ?? json['Subcarpetas']) as List)
               .map((e) => Carpeta.fromJson(e as Map<String, dynamic>))
@@ -84,6 +87,7 @@ class CreateCarpetaDTO {
   final int? carpetaPadreId;
   final int? rangoInicio;
   final int? rangoFin;
+  final String? tipo;
 
   CreateCarpetaDTO({
     required this.nombre,
@@ -93,6 +97,7 @@ class CreateCarpetaDTO {
     this.carpetaPadreId,
     this.rangoInicio,
     this.rangoFin,
+    this.tipo,
   });
 
   Map<String, dynamic> toJson() {
@@ -104,6 +109,7 @@ class CreateCarpetaDTO {
       'carpetaPadreId': carpetaPadreId,
       'rangoInicio': rangoInicio,
       'rangoFin': rangoFin,
+      'tipo': tipo,
     };
   }
 }
