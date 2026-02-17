@@ -1519,6 +1519,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         ),
       ),
     );
+  }
 
 
   Widget _buildCarpetaStat(
@@ -2906,6 +2907,180 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       backgroundColor: Colors.green.shade700,
       foregroundColor: Colors.white,
       heroTag: 'fab_documento',
+    );
+  }
+
+  // --- Helper Methods ---
+
+  String _formatearFecha(DateTime fecha) {
+    return '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
+  }
+
+  Color _obtenerColorEstado(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'activo':
+        return AppTheme.colorExito;
+      case 'archivado':
+        return AppTheme.colorInfo;
+      case 'prestado':
+        return AppTheme.colorAdvertencia;
+      default:
+        return AppTheme.colorPrimario;
+    }
+  }
+
+  String _estadoParaMostrar(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'activo':
+        return 'Disponible';
+      case 'prestado':
+        return 'Prestado';
+      case 'archivado':
+        return 'Archivado';
+      default:
+        return estado;
+    }
+  }
+
+  IconData _obtenerIconoTipoDocumento(String tipo) {
+    switch (tipo.toLowerCase()) {
+      case 'factura':
+        return Icons.receipt_long_rounded;
+      case 'contrato':
+        return Icons.handshake_rounded;
+      case 'informe':
+        return Icons.analytics_rounded;
+      default:
+        return Icons.description_rounded;
+    }
+  }
+
+  Widget _buildEstadoBadge(String estado) {
+    final color = _obtenerColorEstado(estado);
+    final texto = _estadoParaMostrar(estado);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        texto.toUpperCase(),
+        style: GoogleFonts.inter(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _navegarAlDetalle(Documento doc) async {
+      // TODO: Implement detail view or dialog
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ver detalle: ${doc.codigo}')));
+  }
+
+  Future<void> _abrirEditarDocumento(Documento doc) async {
+      // TODO: Implement edit view
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Editar: ${doc.codigo}')));
+  }
+
+  Future<void> _eliminarDocumento(Documento doc) async {
+    try {
+      final docService = Provider.of<DocumentoService>(context, listen: false);
+      final success = await docService.eliminarDocumento(doc.id);
+      if (success) {
+        if (mounted) {
+           _mostrarSnackBarExito('Documento eliminado correctamente.');
+           if (_carpetaSeleccionada != null) {
+              await _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+           }
+           setState(() {});
+        }
+      } else {
+        if (mounted) _mostrarSnackBarError('No se pudo eliminar el documento.');
+      }
+    } catch (e) {
+      if (mounted) _mostrarSnackBarError('Error: $e');
+    }
+  }
+
+  void _confirmarEliminarDocumento(Documento doc) {
+    // Basic confirmation dialog logic or reuse AppAlert if available
+     showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Documento'),
+        content: Text('¿Seguro que desea eliminar "${doc.codigo}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(onPressed: () {
+            Navigator.pop(context);
+            _eliminarDocumento(doc);
+          }, child: const Text('Eliminar', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+  }
+
+  void _confirmarEliminarCarpeta(Carpeta carpeta) {
+      showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Carpeta'),
+        content: Text('¿Seguro que desea eliminar "${carpeta.nombre}" y todo su contenido?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(onPressed: () {
+            Navigator.pop(context);
+            _eliminarCarpeta(carpeta);
+          }, child: const Text('Eliminar', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _eliminarCarpeta(Carpeta carpeta) async {
+      try {
+      final carpetaService = Provider.of<CarpetaService>(context, listen: false);
+      final success = await carpetaService.eliminarCarpeta(carpeta.id);
+       if (success) {
+        if (mounted) {
+           _mostrarSnackBarExito('Carpeta eliminada correctamente.');
+           // If we deleted a subfolder while inside a parent, refresh parent
+           if (_carpetaSeleccionada != null) {
+              await _cargarDocumentosCarpeta(_carpetaSeleccionada!.id);
+           } else {
+             // Refresh root list
+             final dataProvider = Provider.of<DataProvider>(context, listen: false);
+             dataProvider.refresh();
+           }
+           setState(() {});
+        }
+      } else {
+        if (mounted) _mostrarSnackBarError('No se pudo eliminar la carpeta.');
+      }
+    } catch (e) {
+      if (mounted) _mostrarSnackBarError('Error: $e');
+    }
+  }
+
+  void _mostrarSnackBarExito(String mensaje) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _mostrarSnackBarError(String mensaje) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: Colors.red,
+      ),
     );
   }
 }

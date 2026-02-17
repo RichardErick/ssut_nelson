@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../models/documento.dart';
 import '../../../providers/auth_provider.dart';
-import '../../../config/theme.dart';
+import '../../../theme/app_theme.dart';
 
 class DocumentoCard extends StatelessWidget {
   final Documento doc;
