@@ -59,6 +59,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
   /// Error del servidor para el campo N° Correlativo (código). Se muestra en rojo debajo del campo.
   String? _numeroCorrelativoError;
 
+  /// Sugerencia de número sucesivo
+  int? _siguienteCorrelativoSugerido;
+  bool _obteniendoCorrelativo = false;
+
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -153,6 +157,72 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
     _estadoDocumento = doc.estado;
   }
 
+  String? _buildHelperText() {
+    if (_numeroCorrelativoError != null) return null;
+    
+    String base = 'Máximo 10 dígitos, solo números';
+    if (_carpetaId != null) {
+      final carpeta = _carpetas.where((c) => c.id == _carpetaId).firstOrNull;
+      if (carpeta != null && carpeta.rangoInicio != null && carpeta.rangoFin != null) {
+        String texto = '$base\nRango permitido: ${carpeta.rangoInicio} al ${carpeta.rangoFin}';
+        if (_siguienteCorrelativoSugerido != null && widget.documento == null) {
+          texto += '\nSugerido (Sucesivo): $_siguienteCorrelativoSugerido';
+        }
+        return texto;
+      }
+    }
+    return base;
+  }
+
+  Future<void> _obtenerSiguienteCorrelativo() async {
+    if (_carpetaId == null || widget.documento != null) return;
+
+    setState(() => _obteniendoCorrelativo = true);
+
+    try {
+      final service = Provider.of<DocumentoService>(context, listen: false);
+      final carpeta = _carpetas.where((c) => c.id == _carpetaId).firstOrNull;
+      
+      if (carpeta == null) return;
+
+      // Buscar documentos en esta carpeta para ver el último número
+      final busqueda = BusquedaDocumentoDTO(
+        carpetaId: _carpetaId,
+        page: 1,
+        pageSize: 1,
+        orderBy: 'numeroCorrelativo',
+        orderDirection: 'DESC',
+      );
+
+      final resp = await service.buscar(busqueda);
+      
+      int siguiente = carpeta.rangoInicio ?? 1;
+
+      if (resp.items.isNotEmpty) {
+        final ultimoNum = int.tryParse(resp.items.first.numeroCorrelativo);
+        if (ultimoNum != null) {
+          siguiente = ultimoNum + 1;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _siguienteCorrelativoSugerido = siguiente;
+          // Si el campo está vacío, lo sugerimos automáticamente
+          if (_numeroCorrelativoController.text.isEmpty) {
+            _numeroCorrelativoController.text = siguiente.toString();
+          }
+          _obteniendoCorrelativo = false;
+        });
+      }
+    } catch (e) {
+      print('Error al sugerir correlativo: $e');
+      if (mounted) {
+        setState(() => _obteniendoCorrelativo = false);
+      }
+    }
+  }
+
   Future<void> _loadData() async {
     // Cargar usuarios, carpetas, áreas y tipos
     try {
@@ -195,7 +265,15 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
               : todosUsuarios.where((u) => u.activo).toList();
           _carpetas = results[1] as List<Carpeta>;
           _areas = (results[2] as List<Map<String, dynamic>>);
-          _tiposDocumento = (results[3] as List<Map<String, dynamic>>);
+          
+          final todosTipos = (results[3] as List<Map<String, dynamic>>);
+          // Filtrar tipos no deseados por SSUT
+          _tiposDocumento = todosTipos.where((t) {
+            final nombre = t['nombre'].toString().toLowerCase();
+            return !nombre.contains('memorandum') && 
+                   !nombre.contains('oficio') && 
+                   !nombre.contains('resolucion');
+          }).toList();
 
           // Filtrar solo Contabilidad
           final contabilidad =
@@ -225,6 +303,11 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
           _verificarTipoPorCarpeta();
           _isLoading = false;
         });
+
+        // Una vez cargadas las carpetas, si tenemos una seleccionada, sugerimos el correlativo
+        if (_carpetaId != null) {
+          _obtenerSiguienteCorrelativo();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -236,30 +319,38 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
 
   void _verificarTipoPorCarpeta() {
     if (_carpetaId == null) {
-      setState(() {
-        _bloquearTipoDocumento = false;
-      });
+      if (mounted) setState(() => _bloquearTipoDocumento = false);
       return;
     }
 
     final carpeta = _carpetas.where((c) => c.id == _carpetaId).firstOrNull;
 
-    if (carpeta != null && carpeta.tipo != null && carpeta.tipo!.isNotEmpty) {
-      // Intentar encontrar el tipo de documento que coincida con el nombre
-      final tipoDoc = _tiposDocumento.where(
-        (t) => t['nombre'].toString().toLowerCase().trim() == carpeta.tipo!.toLowerCase().trim()
-      ).firstOrNull;
+    if (carpeta != null) {
+      // Priorizar el campo 'tipo', si no usar el 'nombre' (que en SSUT es el tipo)
+      final searchType = (carpeta.tipo != null && carpeta.tipo!.isNotEmpty) 
+          ? carpeta.tipo! 
+          : carpeta.nombre;
+
+      final tipoDoc = _tiposDocumento.where((t) {
+        final nombreTipo = t['nombre'].toString().toLowerCase().trim();
+        final matchType = searchType.toLowerCase().trim();
+        return nombreTipo == matchType || 
+               nombreTipo.contains(matchType) || 
+               matchType.contains(nombreTipo);
+      }).firstOrNull;
 
       if (tipoDoc != null) {
-        setState(() {
-          _tipoDocumentoId = tipoDoc['id'];
-          _bloquearTipoDocumento = true;
-        });
+        if (mounted) {
+          setState(() {
+            _tipoDocumentoId = tipoDoc['id'];
+            _bloquearTipoDocumento = true;
+          });
+        }
       } else {
-        setState(() => _bloquearTipoDocumento = false);
+        if (mounted) setState(() => _bloquearTipoDocumento = false);
       }
     } else {
-      setState(() => _bloquearTipoDocumento = false);
+      if (mounted) setState(() => _bloquearTipoDocumento = false);
     }
   }
 
@@ -480,25 +571,63 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ),
                       const SizedBox(height: 16),
 
-                      const SizedBox(height: 16),
                       // Tipo de Documento (Egreso/Ingreso, etc)
-                      DropdownButtonFormField<int>(
-                        value: _tipoDocumentoId,
-                        decoration: _inputDecoration('Tipo de Documento').copyWith(
-                          helperText: _bloquearTipoDocumento 
-                            ? 'Tipo automático por la carpeta seleccionada' 
-                            : null,
-                          helperStyle: TextStyle(color: Colors.blue.shade700, fontSize: 11),
+                      if (_bloquearTipoDocumento)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.auto_awesome, size: 20, color: Colors.blue.shade700),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Tipo de Documento',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        color: Colors.blue.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      _tiposDocumento.firstWhere(
+                                        (t) => t['id'] == _tipoDocumentoId,
+                                        orElse: () => {'nombre': 'Cargando...'},
+                                      )['nombre'],
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue.shade900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        DropdownButtonFormField<int>(
+                          value: _tipoDocumentoId,
+                          decoration: _inputDecoration('Tipo de Documento'),
+                          items: _tiposDocumento.map((t) {
+                            return DropdownMenuItem<int>(
+                              value: t['id'],
+                              child: Text(t['nombre']),
+                            );
+                          }).toList(),
+                          onChanged: (v) => setState(() => _tipoDocumentoId = v),
+                          validator: (v) => v == null ? 'Seleccione el tipo' : null,
                         ),
-                        items: _tiposDocumento.map((t) {
-                          return DropdownMenuItem<int>(
-                            value: t['id'],
-                            child: Text(t['nombre']),
-                          );
-                        }).toList(),
-                        onChanged: _bloquearTipoDocumento ? null : (v) => setState(() => _tipoDocumentoId = v),
-                        validator: (v) => v == null ? 'Seleccione el tipo' : null,
-                      ),
                       const SizedBox(height: 16),
 
                       // 1. Número comprobante(s) — máximo 10 dígitos, solo números
@@ -507,11 +636,8 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         decoration: _inputDecoration('Número comprobante(s)').copyWith(
                           errorText: _numeroCorrelativoError,
                           errorStyle: const TextStyle(color: Colors.red),
-                          helperText:
-                              _numeroCorrelativoError == null
-                                  ? 'Máximo 10 dígitos, solo números'
-                                  : null,
-                          helperMaxLines: 1,
+                          helperText: _buildHelperText(),
+                          helperMaxLines: 2,
                         ),
                         keyboardType: TextInputType.number,
                         maxLength: 10,
@@ -528,6 +654,25 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           if (digits.isEmpty) {
                             return 'Solo números';
                           }
+
+                          // Validar rango según carpeta
+                          final numVal = int.tryParse(digits);
+                          if (numVal != null && _carpetaId != null) {
+                            final carpeta = _carpetas.where((c) => c.id == _carpetaId).firstOrNull;
+                            if (carpeta != null && carpeta.rangoInicio != null && carpeta.rangoFin != null) {
+                              if (numVal < carpeta.rangoInicio! || numVal > carpeta.rangoFin!) {
+                                return 'Fuera de rango (${carpeta.rangoInicio}-${carpeta.rangoFin})';
+                              }
+                            }
+                            
+                            // Validar que sea sucesivo para SSUT
+                            if (_siguienteCorrelativoSugerido != null && widget.documento == null) {
+                              if (numVal != _siguienteCorrelativoSugerido) {
+                                return 'Debe ser sucesivo. Siguiente esperado: $_siguienteCorrelativoSugerido';
+                              }
+                            }
+                          }
+
                           if (digits.length > 10) {
                             return 'Máximo 10 dígitos';
                           }
@@ -747,8 +892,12 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           ],
                           onChanged:
                               (v) {
-                                setState(() => _carpetaId = v);
+                                setState(() {
+                                  _carpetaId = v;
+                                  _numeroCorrelativoController.clear();
+                                });
                                 _verificarTipoPorCarpeta();
+                                _obtenerSiguienteCorrelativo();
                               },
                         ),
                       ],

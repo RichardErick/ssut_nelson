@@ -26,25 +26,27 @@ class DocumentoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 400 + (index * 100)),
+      duration: Duration(milliseconds: 350 + (index * 50)),
       tween: Tween(begin: 0.0, end: 1.0),
-      curve: Curves.easeOutBack,
+      curve: Curves.easeOutCubic,
       builder: (context, value, child) {
-        final clampedValue = value.clamp(0.0, 1.0);
-        return Transform.scale(
-          scale: 0.9 + (0.1 * clampedValue),
-          child: Opacity(opacity: clampedValue, child: child),
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 15 * (1 - value)),
+            child: child,
+          ),
         );
       },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade100),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.grey.shade100, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 20,
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 15,
               offset: const Offset(0, 8),
             ),
           ],
@@ -53,128 +55,136 @@ class DocumentoCard extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: () => onDetail(doc),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
+            hoverColor: theme.colorScheme.primary.withOpacity(0.02),
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header con icono y estado
+                  // Logo Tipo y Badge Estado
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.blue.shade400,
-                              Colors.blue.shade600,
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.blue.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
+                          color: _obtenerColorTipo(doc.tipoDocumentoNombre ?? '').withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          _obtenerIconoTipoDocumento(doc.tipoDocumentoNombre ?? ''),
+                          color: _obtenerColorTipo(doc.tipoDocumentoNombre ?? ''),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              doc.codigo,
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                color: theme.colorScheme.onSurface,
+                                letterSpacing: -0.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              doc.tipoDocumentoNombre ?? 'Documento',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
                           ],
                         ),
-                        child: Icon(
-                          _obtenerIconoTipoDocumento(
-                            doc.tipoDocumentoNombre ?? '',
-                          ),
-                          color: Colors.white,
-                          size: 24,
-                        ),
                       ),
-                      const Spacer(),
                       _buildEstadoBadge(doc.estado),
                     ],
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Código del documento
+                  // Descripción con estilo limpio
                   Text(
-                    doc.codigo,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.grey.shade800,
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  // Descripción
-                  Text(
-                    doc.descripcion ?? 'Sin descripción',
-                    maxLines: 2,
+                    doc.descripcion ?? 'Sin descripción proporcionada',
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(
                       fontSize: 13,
-                      color: Colors.grey.shade600,
-                      height: 1.4,
+                      color: Colors.grey.shade700,
+                      height: 1.5,
                     ),
                   ),
 
                   const Spacer(),
 
-                  // Divider
+                  // Info de Registro y Folder ID
                   Container(
-                    height: 1,
-                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.grey.shade200,
-                          Colors.grey.shade100,
-                          Colors.grey.shade200,
-                        ],
-                      ),
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                  ),
-
-                  // Footer con información adicional
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today_rounded,
-                        size: 14,
-                        color: Colors.grey.shade500,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
+                    child: Row(
+                      children: [
+                        Icon(Icons.tag_rounded, size: 14, color: Colors.blue.shade700),
+                        const SizedBox(width: 4),
+                        Text(
+                          doc.numeroCorrelativo,
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade800,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(Icons.event_note_rounded, size: 14, color: Colors.grey.shade500),
+                        const SizedBox(width: 4),
+                        Text(
                           _formatearFecha(doc.fechaRegistro),
                           style: GoogleFonts.inter(
-                            fontSize: 12,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
                             color: Colors.grey.shade600,
                           ),
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Responsable y Acciones
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.blue.shade100,
                         child: Text(
-                          'Nº ${doc.numeroCorrelativo}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blue.shade700,
-                          ),
+                          (doc.responsableNombre ?? 'U').substring(0, 1).toUpperCase(),
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.blue.shade800),
                         ),
                       ),
                       const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          doc.responsableNombre ?? 'Sin responsable',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       _buildActionButton(context, doc),
                     ],
                   ),
@@ -187,20 +197,33 @@ class DocumentoCard extends StatelessWidget {
     );
   }
 
+  Color _obtenerColorTipo(String tipo) {
+    switch (tipo.toLowerCase()) {
+      case 'factura':
+        return Colors.green.shade600;
+      case 'contrato':
+        return Colors.indigo.shade600;
+      case 'informe':
+        return Colors.orange.shade700;
+      default:
+        return Colors.blue.shade600;
+    }
+  }
+
   Widget _buildEstadoBadge(String estado) {
     final color = _obtenerColorEstado(estado);
     final texto = _estadoParaMostrar(estado);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.15)),
       ),
       child: Text(
         texto.toUpperCase(),
         style: GoogleFonts.inter(
-          fontSize: 10,
+          fontSize: 9,
           fontWeight: FontWeight.w800,
           color: color,
           letterSpacing: 0.5,
@@ -211,7 +234,6 @@ class DocumentoCard extends StatelessWidget {
 
   Widget _buildActionButton(BuildContext context, Documento doc) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
     final canEdit = authProvider.hasPermission('editar_metadatos');
     final canDelete = authProvider.hasPermission('borrar_documento');
 
@@ -221,45 +243,34 @@ class DocumentoCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (canEdit)
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: IconButton(
-              onPressed: () => onEdit(doc),
-              icon: Icon(
-                Icons.edit_outlined,
-                color: Colors.blue.shade600,
-                size: 18,
-              ),
-              iconSize: 18,
-              padding: const EdgeInsets.all(6),
-              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-              tooltip: 'Editar documento',
-            ),
+          _buildTinyAction(
+            onTap: () => onEdit(doc),
+            icon: Icons.edit_rounded,
+            color: Colors.blue.shade700,
           ),
-        if (canEdit && canDelete) const SizedBox(width: 6),
+        if (canEdit && canDelete) const SizedBox(width: 4),
         if (canDelete)
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: IconButton(
-              onPressed: () => onDelete(doc),
-              icon: Icon(
-                Icons.delete_outline_rounded,
-                color: Colors.red.shade600,
-                size: 18,
-              ),
-              iconSize: 18,
-              padding: const EdgeInsets.all(6),
-              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-              tooltip: 'Eliminar documento',
-            ),
+          _buildTinyAction(
+            onTap: () => onDelete(doc),
+            icon: Icons.delete_rounded,
+            color: Colors.red.shade700,
           ),
       ],
+    );
+  }
+
+  Widget _buildTinyAction({required VoidCallback onTap, required IconData icon, required Color color}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color, size: 16),
+      ),
     );
   }
 

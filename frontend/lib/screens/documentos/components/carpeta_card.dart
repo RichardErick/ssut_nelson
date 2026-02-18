@@ -32,211 +32,161 @@ class CarpetaCard extends StatelessWidget {
         ? '${carpeta.rangoInicio} - ${carpeta.rangoFin}'
         : null;
 
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 300),
-      tween: Tween(begin: 0.0, end: 1.0),
-      curve: Curves.easeOutBack,
-      builder: (context, value, child) {
-        final clampedValue = value.clamp(0.0, 1.0);
-        return Transform.scale(
-          scale: 0.95 + (0.05 * clampedValue),
-          child: Opacity(opacity: clampedValue, child: child),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.white, Colors.grey.shade50],
+    final colorPrimario = (carpeta.tipo?.contains('Ingreso') ?? false) ? Colors.teal : Colors.amber.shade700;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: TweenAnimationBuilder<double>(
+        duration: const Duration(milliseconds: 300),
+        tween: Tween(begin: 0.0, end: 1.0),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Opacity(
+            opacity: value,
+            child: Transform.translate(
+              offset: Offset(0, 20 * (1 - value)),
+              child: child,
+            ),
+          );
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: colorPrimario.withOpacity(0.08),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 25,
-              offset: const Offset(0, 12),
-              spreadRadius: -5,
-            ),
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => onOpen(carpeta),
-            borderRadius: BorderRadius.circular(24),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header con icono y botón de borrar
-                  Row(
-                    children: [
-                      Hero(
-                        tag: 'folder_${carpeta.id}',
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Colors.amber.shade400,
-                                Colors.orange.shade500,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => onOpen(carpeta),
+              borderRadius: BorderRadius.circular(28),
+              hoverColor: colorPrimario.withOpacity(0.02),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Hero(
+                          tag: 'folder_${carpeta.id}',
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: (carpeta.tipo?.contains('Ingreso') ?? false)
+                                    ? [Colors.teal.shade300, Colors.teal.shade500]
+                                    : [Colors.amber.shade400, Colors.orange.shade500],
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorPrimario.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.amber.withOpacity(0.4),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.folder_rounded,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      if (canEdit)
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.blue.shade100,
-                              width: 1,
-                            ),
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () => onEdit(carpeta),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Icon(
-                                  Icons.edit_outlined,
-                                  color: Colors.blue.shade600,
-                                  size: 20,
-                                ),
-                              ),
+                            child: const Icon(
+                              Icons.folder_rounded,
+                              color: Colors.white,
+                              size: 28,
                             ),
                           ),
                         ),
-                      if (canEdit && canDelete) const SizedBox(width: 8),
-                      if (canDelete)
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.red.shade100,
-                              width: 1,
-                            ),
+                        const Spacer(),
+                        if (canEdit)
+                          _buildActionCircle(
+                            onTap: () => onEdit(carpeta),
+                            icon: Icons.edit_rounded,
+                            color: Colors.blue,
                           ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () => onDelete(carpeta),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Icon(
-                                  Icons.delete_outline_rounded,
-                                  color: Colors.red.shade600,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
+                        if (canEdit && canDelete) const SizedBox(width: 8),
+                        if (canDelete)
+                          _buildActionCircle(
+                            onTap: () => onDelete(carpeta),
+                            icon: Icons.delete_rounded,
+                            color: Colors.red,
                           ),
-                        ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 10),
-                  // Nombre de la carpeta
-                  Text(
-                    carpeta.nombre,
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
-                      height: 1.2,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  // Información en chips
-                  Wrap(
-                    spacing: 5,
-                    runSpacing: 3,
-                    children: [
-                      _buildInfoChip('Gestión', gestionLine, Colors.blue),
-                      _buildInfoChip('Nº', nroLine, Colors.green),
-                      if (rangoLine != null)
-                        _buildInfoChip('Rango', rangoLine, Colors.orange),
-                      if (carpeta.tipo != null)
-                        _buildInfoChip(
-                          'Tipo',
-                          (carpeta.tipo?.contains('Ingreso') ?? false) ? 'Ingreso' : 'Egreso',
-                          (carpeta.tipo?.contains('Ingreso') ?? false) ? Colors.teal : Colors.deepOrange,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Footer: SSUT solo carpeta principal, solo documentos
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 6,
-                      horizontal: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.shade100),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.folder_open_outlined,
-                          color: Colors.blue.shade600,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            '${carpeta.numeroDocumentos} documentos',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blue.shade700,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: Colors.blue.shade400,
-                          size: 14,
-                        ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 18),
+                    Text(
+                      carpeta.nombre,
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                        height: 1.1,
+                        letterSpacing: -0.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildInfoBadge('Gestión', gestionLine, colorPrimario),
+                        _buildInfoBadge('Carpeta Nº', nroLine, colorPrimario),
+                        if (rangoLine != null)
+                          _buildInfoBadge('Rango', rangoLine, Colors.grey.shade700),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurface.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.description_rounded, color: colorPrimario, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${carpeta.numeroDocumentos} documentos',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  'Archivos registrados',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.arrow_forward_ios_rounded, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3), size: 14),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -245,30 +195,51 @@ class CarpetaCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoChip(String label, String value, Color color) {
+  Widget _buildActionCircle({required VoidCallback onTap, required IconData icon, required Color color}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        shape: BoxShape.circle,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          shape: const CircleBorder(),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Icon(icon, color: color, size: 18),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoBadge(String label, String value, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.2)),
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.1)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$label: ',
+            label.toUpperCase(),
             style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color.withOpacity(0.8),
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              color: color.withOpacity(0.6),
+              letterSpacing: 0.5,
             ),
           ),
           Text(
             value,
             style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
@@ -276,4 +247,5 @@ class CarpetaCard extends StatelessWidget {
       ),
     );
   }
+}
 }

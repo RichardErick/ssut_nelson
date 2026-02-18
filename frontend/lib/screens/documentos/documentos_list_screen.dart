@@ -894,14 +894,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       physics: const BouncingScrollPhysics(),
       slivers: [
         SliverAppBar(
-          expandedHeight: 180.0,
+          expandedHeight: 220.0,
           floating: false,
           pinned: true,
           elevation: 0,
+          stretch: true,
           backgroundColor: theme.scaffoldBackgroundColor,
           surfaceTintColor: theme.scaffoldBackgroundColor,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.colorScheme.onSurface, size: 20),
             onPressed: () {
               if (_carpetaSeleccionada?.carpetaPadreId != null) {
                 _navegarACarpetaPadre(_carpetaSeleccionada!.carpetaPadreId!);
@@ -924,28 +925,39 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           actions: [
             if (!mostrarPanelLateral)
               IconButton(
-                icon: Icon(Icons.menu_rounded, color: theme.colorScheme.onSurface),
+                icon: Icon(Icons.menu_open_rounded, color: theme.colorScheme.onSurface),
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
-            IconButton(
-              icon: Icon(Icons.search_rounded, color: theme.colorScheme.onSurface),
-              onPressed: () {
-                // TODO: Implementar focus a búsqueda
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.more_vert_rounded, color: theme.colorScheme.onSurface),
-              onPressed: () {},
-            ),
+            const SizedBox(width: 8),
           ],
           flexibleSpace: FlexibleSpaceBar(
+            stretchModes: const [StretchMode.blurBackground, StretchMode.zoomBackground],
             background: Container(
-              color: theme.scaffoldBackgroundColor,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    theme.colorScheme.primary.withOpacity(0.05),
+                    theme.scaffoldBackgroundColor,
+                  ],
+                ),
+              ),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
+                   // Decoración sutil de fondo
                   Positioned(
-                    bottom: 20,
+                    top: -20,
+                    right: -20,
+                    child: Icon(
+                      Icons.folder_copy_rounded,
+                      size: 200,
+                      color: (carpeta.carpetaPadreId == null ? Colors.amber : Colors.blue).withOpacity(0.03),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 30,
                     left: 24,
                     right: 24,
                     child: Column(
@@ -953,26 +965,39 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: carpeta.carpetaPadreId == null
-                                    ? Colors.amber.shade100
-                                    : Colors.blue.shade100,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Icon(
-                                carpeta.carpetaPadreId == null
-                                    ? Icons.folder_rounded
-                                    : Icons.folder_shared_rounded,
-                                size: 32,
-                                color: carpeta.carpetaPadreId == null
-                                    ? Colors.amber.shade700
-                                    : Colors.blue.shade700,
+                            Hero(
+                              tag: 'folder_icon_${carpeta.id}',
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: carpeta.carpetaPadreId == null
+                                        ? [Colors.amber.shade400, Colors.orange.shade600]
+                                        : [Colors.blue.shade400, Colors.blue.shade700],
+                                  ),
+                                  borderRadius: BorderRadius.circular(22),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: (carpeta.carpetaPadreId == null ? Colors.orange : Colors.blue).withOpacity(0.3),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  carpeta.carpetaPadreId == null
+                                      ? Icons.folder_rounded
+                                      : Icons.folder_shared_rounded,
+                                  size: 36,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 20),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -980,31 +1005,34 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                   Text(
                                     carpeta.nombre,
                                     style: GoogleFonts.poppins(
-                                      fontSize: 24,
+                                      fontSize: 28,
                                       fontWeight: FontWeight.bold,
                                       color: theme.colorScheme.onSurface,
-                                      height: 1.2,
+                                      height: 1.1,
+                                      letterSpacing: -0.5,
                                     ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(height: 4),
-                                  if (carpeta.descripcion != null)
+                                  if (carpeta.descripcion != null && carpeta.descripcion!.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
                                     Text(
                                       carpeta.descripcion!,
                                       style: GoogleFonts.inter(
                                         fontSize: 14,
-                                        color: theme.colorScheme.onSurfaceVariant,
+                                        color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                                        fontWeight: FontWeight.w400,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
+                                  ],
                                 ],
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 28),
                         _buildHeaderStats(carpeta, docs, theme),
                       ],
                     ),
@@ -1017,16 +1045,16 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         SliverPersistentHeader(
           pinned: true,
           delegate: _SliverAppBarDelegate(
-            minHeight: 110,
-            maxHeight: 110,
+            minHeight: 80,
+            maxHeight: 80,
             child: Container(
-              color: theme.scaffoldBackgroundColor,
-              child: Column(
-                children: [
-                   Divider(height: 1, color: theme.dividerColor.withOpacity(0.1)),
-                   Expanded(child: _buildViewControls(theme)),
-                ],
+              decoration: BoxDecoration(
+                color: theme.scaffoldBackgroundColor.withOpacity(0.95),
+                border: Border(
+                  bottom: BorderSide(color: theme.dividerColor.withOpacity(0.05)),
+                ),
               ),
+              child: _buildViewControls(theme),
             ),
           ),
         ),
@@ -1035,14 +1063,18 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             child: _buildDocumentosLoading(),
           )
         else if (docs.isEmpty)
-           SliverFillRemaining(
-            child: _buildDocumentosEmpty(),
-          )
+           SliverPadding(
+             padding: const EdgeInsets.only(top: 40),
+             sliver: SliverFillRemaining(
+               hasScrollBody: false,
+               child: _buildDocumentosEmpty(),
+             ),
+           )
         else
           _vistaGrid
               ? _construirSliverGrid(docs, theme)
               : _construirSliverList(docs, theme),
-        const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
       ],
     );
 
@@ -1073,44 +1105,67 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final rango = _estaCargandoDocumentosCarpeta ? '...' : _calcularRangoCorrelativos(docs);
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.calendar_today, size: 14, color: theme.colorScheme.primary),
-              const SizedBox(width: 6),
-              Text(
-                'Gestión ${carpeta.gestion}',
-                style: GoogleFonts.inter(color: theme.colorScheme.primary, fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
+        _buildStatChip(
+          icon: Icons.calendar_today_rounded,
+          label: 'Gestión ${carpeta.gestion}',
+          color: theme.colorScheme.primary,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         if (rango != 'Sin correlativos' && rango != '...')
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.orange.shade100),
-            ),
-            child: Text(
-              rango,
-              style: GoogleFonts.inter(color: Colors.orange.shade800, fontSize: 13, fontWeight: FontWeight.w600),
-            ),
+          _buildStatChip(
+            icon: Icons.tag_rounded,
+            label: rango,
+            color: Colors.orange.shade700,
+            backgroundColor: Colors.orange.shade50,
           ),
         const Spacer(),
-        Text(
-          '${docs.length} documentos',
-          style: GoogleFonts.inter(color: theme.colorScheme.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w500),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.onSurface.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            '${docs.length} documentos',
+            style: GoogleFonts.inter(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStatChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+    Color? backgroundColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor ?? color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              color: color,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1472,145 +1527,87 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
 
   Widget _buildViewControls(ThemeData theme) {
-    final compact = _carpetaSeleccionada?.carpetaPadreId != null;
-    final marginV = compact ? 8.0 : 16.0;
-    final marginH = compact ? 12.0 : 24.0;
-    final height = compact ? 40.0 : 48.0;
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: marginH, vertical: marginV),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
-          Expanded(
-            child: Container(
-              height: height,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () => setState(() => _vistaGrid = true),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          bottomLeft: Radius.circular(16),
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient:
-                                _vistaGrid
-                                    ? LinearGradient(
-                                      colors: [
-                                        Colors.blue.shade600,
-                                        Colors.blue.shade700,
-                                      ],
-                                    )
-                                    : null,
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              bottomLeft: Radius.circular(16),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.grid_view_rounded,
-                                size: 18,
-                                color:
-                                    _vistaGrid
-                                        ? Colors.white
-                                        : Colors.grey.shade600,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Cuadrícula',
-                                style: GoogleFonts.poppins(
-                                  color:
-                                      _vistaGrid
-                                          ? Colors.white
-                                          : Colors.grey.shade600,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Container(width: 1, color: Colors.grey.shade200),
-                  Expanded(
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () => setState(() => _vistaGrid = false),
-                        borderRadius: const BorderRadius.only(
-                          topRight: Radius.circular(16),
-                          bottomRight: Radius.circular(16),
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient:
-                                !_vistaGrid
-                                    ? LinearGradient(
-                                      colors: [
-                                        Colors.blue.shade600,
-                                        Colors.blue.shade700,
-                                      ],
-                                    )
-                                    : null,
-                            borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(16),
-                              bottomRight: Radius.circular(16),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.list_rounded,
-                                size: 18,
-                                color:
-                                    !_vistaGrid
-                                        ? Colors.white
-                                        : Colors.grey.shade600,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Lista',
-                                style: GoogleFonts.poppins(
-                                  color:
-                                      !_vistaGrid
-                                          ? Colors.white
-                                          : Colors.grey.shade600,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          Text(
+            'Vista',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Container(
+            height: 40,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurface.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                _buildViewToggleItem(
+                  icon: Icons.grid_view_rounded,
+                  selected: _vistaGrid,
+                  onTap: () => setState(() => _vistaGrid = true),
+                  theme: theme,
+                ),
+                _buildViewToggleItem(
+                  icon: Icons.list_rounded,
+                  selected: !_vistaGrid,
+                  onTap: () => setState(() => _vistaGrid = false),
+                  theme: theme,
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          IconButton.filledTonal(
+            onPressed: () => _abrirBusquedaAvanzada(theme),
+            icon: const Icon(Icons.tune_rounded, size: 20),
+            tooltip: 'Filtros avanzados',
+            style: IconButton.styleFrom(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildViewToggleItem({
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+    required ThemeData theme,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.4),
+        ),
       ),
     );
   }
