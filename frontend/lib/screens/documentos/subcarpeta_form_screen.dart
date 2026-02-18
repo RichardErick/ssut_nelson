@@ -27,7 +27,7 @@ class SubcarpetaFormScreen extends StatefulWidget {
 class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final _nombreController = TextEditingController();
+
   final _gestionController = TextEditingController(); // Gestión (año): 2024, 2025, etc.
   final _rangoInicioController = TextEditingController();
   final _rangoFinController = TextEditingController();
@@ -67,7 +67,7 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
 
   @override
   void dispose() {
-    _nombreController.dispose();
+
     _gestionController.dispose();
     _rangoInicioController.dispose();
     _rangoFinController.dispose();
@@ -124,9 +124,9 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
         return;
       }
 
-      final nombre = _nombreController.text.trim();
-      if (nombre.isEmpty) {
-        _mostrarDialogoError('Nombre requerido', 'Ingrese el nombre de la carpeta.', Icons.folder, Colors.orange);
+      final nombre = _tipoSeleccionado ?? 'Nueva Carpeta';
+      if (_tipoSeleccionado == null) {
+        _mostrarDialogoError('Tipo requerido', 'Seleccione el tipo de carpeta.', Icons.category, Colors.orange);
         setState(() => _isLoading = false);
         return;
       }
@@ -453,15 +453,6 @@ class _SubcarpetaFormScreenState extends State<SubcarpetaFormScreen> {
                         
                         const SizedBox(height: 24),
 
-                        // Nombre
-                        _buildFormField(
-                          label: 'Nombre',
-                          controller: _nombreController,
-                          icon: Icons.folder,
-                          hint: 'Ej: Comprobantes 2025, Rango 1-50',
-                          validator: (v) => v == null || v.trim().isEmpty ? FormValidators.requerido : null,
-                        ),
-                        const SizedBox(height: 24),
                         // Gestión (año)
                         _buildFormField(
                           label: 'Gestión (año)',
