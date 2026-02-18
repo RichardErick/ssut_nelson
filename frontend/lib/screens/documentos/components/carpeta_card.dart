@@ -205,7 +205,7 @@ class CarpetaCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          shape: const CircleBorder(),
+          customBorder: const CircleBorder(),
           child: Padding(
             padding: const EdgeInsets.all(10),
             child: Icon(icon, color: color, size: 18),
@@ -247,5 +247,4 @@ class CarpetaCard extends StatelessWidget {
       ),
     );
   }
-}
 }

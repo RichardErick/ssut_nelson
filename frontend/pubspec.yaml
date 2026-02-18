@@ -44,7 +44,7 @@ dependencies:
   # Utilidades
   path_provider: ^2.1.1
   image_picker: ^1.0.5
-  file_picker: ^6.1.1
+  file_picker: ^8.1.0
   image: ^4.2.0
   zxing2: ^0.2.4
   universal_html: ^2.2.4
