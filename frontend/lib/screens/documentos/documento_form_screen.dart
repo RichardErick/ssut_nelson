@@ -513,6 +513,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isEditing = widget.documento != null;
     final ocultarSelectorCarpeta =
         !isEditing && widget.initialCarpetaId != null;

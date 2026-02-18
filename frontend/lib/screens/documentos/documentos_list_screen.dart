@@ -960,7 +960,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     bottom: 30,
                     left: 24,
                     right: 24,
-                    child: FadeInUp(
+                    child: _fadeInUp(
                       duration: const Duration(milliseconds: 600),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1124,12 +1124,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
-  // Widget para animaciones simples sin paquetes externos
-  Widget FadeInUp({required Widget child, required Duration duration}) {
+  // Widget helper para animación de entrada
+  Widget _fadeInUp({required Widget child, required Duration duration}) {
     return TweenAnimationBuilder<double>(
       duration: duration,
       tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
+      builder: (context, value, _) {
         return Transform.translate(
           offset: Offset(0, 30 * (1 - value)),
           child: Opacity(opacity: value, child: child),
