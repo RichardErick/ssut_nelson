@@ -18,7 +18,7 @@ class BreadcrumbHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 0),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(

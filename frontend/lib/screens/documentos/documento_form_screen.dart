@@ -610,9 +610,9 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Tipo de documento por carpeta',
+                                      'Carpeta Actual',
                                       style: GoogleFonts.inter(
-                                        fontSize: 11,
+                                        fontSize: 10,
                                         color: Colors.blue.shade800,
                                         fontWeight: FontWeight.w600,
                                         letterSpacing: 0.3,
@@ -624,7 +624,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                         orElse: () => {'nombre': 'Cargando...'},
                                       )['nombre'],
                                       style: GoogleFonts.poppins(
-                                        fontSize: 16,
+                                        fontSize: 15,
                                         fontWeight: FontWeight.bold,
                                         color: theme.colorScheme.onSurface,
                                       ),
@@ -648,7 +648,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           onChanged: (v) => setState(() => _tipoDocumentoId = v),
                           validator: (v) => v == null ? 'Seleccione el tipo' : null,
                         ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
                       // 1. Número comprobante(s) — máximo 10 dígitos, solo números
                       TextFormField(
@@ -699,36 +699,36 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
-                      // 2. Responsable
-                      DropdownButtonFormField<int>(
-                        value:
-                            _usuarios.any((u) => u.id == _responsableId)
-                                ? _responsableId
-                                : null,
-                        decoration: _inputDecoration('Responsable'),
-                        items:
-                            _usuarios
-                                .map(
-                                  (u) => DropdownMenuItem<int>(
-                                    value: u.id,
-                                    child: Text(u.nombreCompleto),
-                                  ),
-                                )
-                                .toList(),
-                        onChanged: (v) => setState(() => _responsableId = v),
-                        validator:
-                            (v) =>
-                                v == null ? 'Seleccione un responsable' : null,
-                      ),
-                      const SizedBox(height: 12),
-
-                      // 3. Área
+                      // 2. Responsable y Área
                       Row(
                         children: [
                           Expanded(
-                            flex: 3,
+                            child: DropdownButtonFormField<int>(
+                              value:
+                                  _usuarios.any((u) => u.id == _responsableId)
+                                      ? _responsableId
+                                      : null,
+                              decoration: _inputDecoration('Responsable'),
+                              isExpanded: true,
+                              items:
+                                  _usuarios
+                                      .map(
+                                        (u) => DropdownMenuItem<int>(
+                                          value: u.id,
+                                          child: Text(u.nombreCompleto, overflow: TextOverflow.ellipsis),
+                                        ),
+                                      )
+                                      .toList(),
+                              onChanged: (v) => setState(() => _responsableId = v),
+                              validator:
+                                  (v) =>
+                                      v == null ? 'Requerido' : null,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
                             child: DropdownButtonFormField<int>(
                               value:
                                   _areas.any((a) => a['id'] == _areaOrigenId)
@@ -756,13 +756,18 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                               validator:
                                   (v) =>
                                       v == null
-                                          ? 'Seleccione un área'
+                                          ? 'Requerido'
                                           : null,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // 3. Gestión y Fecha
+                      Row(
+                        children: [
                           Expanded(
-                            flex: 2,
                             child: TextFormField(
                               controller: _gestionController,
                               decoration: _inputDecoration('Gestión'),
@@ -773,40 +778,38 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                       v == null ||
                                               v.trim().isEmpty ||
                                               v.trim().length != 4
-                                          ? 'Año 4 dígitos (ej: 2025)'
+                                          ? 'Año 4 dígitos'
                                           : null,
                               onChanged: (v) {
                                 if (v.length == 4) _loadData();
                               },
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => _selectDate(context),
+                              child: InputDecorator(
+                                decoration: _inputDecoration('Fecha'),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      DateFormat('dd/MM/yyyy').format(_fechaDocumento),
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                    const Icon(Icons.calendar_today, size: 16),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
-                      // 4. Fecha
-                      InkWell(
-                        onTap: () => _selectDate(context),
-                        child: InputDecorator(
-                          decoration: _inputDecoration('Fecha'),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                DateFormat(
-                                  'dd/MM/yyyy',
-                                ).format(_fechaDocumento),
-                              ),
-                              const Icon(Icons.calendar_today, size: 20),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // 5. Nivel
+                      // 4. Nivel y Estado
                       Row(
                         children: [
                           Expanded(
@@ -845,7 +848,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ],
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
                       // 6. Estante (y ubicación)
                       Row(
@@ -868,7 +871,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ],
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
                       // 7. Descripción
                       TextFormField(
@@ -883,7 +886,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                       ),
 
                       if (!ocultarSelectorCarpeta) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         DropdownButtonFormField<int>(
                           value:
                               _carpetaId == null ||
@@ -922,10 +925,10 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ),
                       ],
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
                       _buildSectionTitle('Archivo Digital'),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       _buildArchivoDigitalSection(),
 
                       const SizedBox(height: 32),
@@ -1171,16 +1174,16 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
             letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Container(
-          height: 3,
-          width: 40,
+          height: 2,
+          width: 30,
           decoration: BoxDecoration(
             color: Colors.blue.shade700,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
       ],
     );
   }

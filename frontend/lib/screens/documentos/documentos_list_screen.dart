@@ -894,23 +894,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       physics: const BouncingScrollPhysics(),
       slivers: [
         SliverAppBar(
-          expandedHeight: 220.0,
+          expandedHeight: 140.0,
           floating: false,
           pinned: true,
           elevation: 0,
           stretch: true,
           backgroundColor: theme.scaffoldBackgroundColor,
           surfaceTintColor: theme.scaffoldBackgroundColor,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.colorScheme.onSurface, size: 20),
-            onPressed: () {
-              if (_carpetaSeleccionada?.carpetaPadreId != null) {
-                _navegarACarpetaPadre(_carpetaSeleccionada!.carpetaPadreId!);
-              } else {
-                setState(() => _carpetaSeleccionada = null);
-              }
-            },
-          ),
+          centerTitle: false,
+          toolbarHeight: 50,
           title: BreadcrumbHeader(
             currentName: carpeta.nombre,
             parentName: carpeta.carpetaPadreNombre,
@@ -921,7 +913,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             },
             onRootTap: () => setState(() => _carpetaSeleccionada = null),
           ),
-          centerTitle: false,
           actions: [
             if (!mostrarPanelLateral)
               IconButton(
@@ -957,7 +948,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     ),
                   ),
                   Positioned(
-                    bottom: 30,
+                    bottom: 15,
                     left: 24,
                     right: 24,
                     child: _fadeInUp(
@@ -977,33 +968,52 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                     setState(() => _carpetaSeleccionada = null);
                                   }
                                 },
-                                child: Hero(
-                                  tag: 'folder_icon_${carpeta.id}',
-                                  child: Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: (carpeta.tipo?.contains('Ingreso') ?? false)
-                                            ? [Colors.teal.shade300, Colors.teal.shade500]
-                                            : [Colors.amber.shade400, Colors.orange.shade500],
-                                      ),
-                                      borderRadius: BorderRadius.circular(22),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: (carpeta.tipo?.contains('Ingreso') ?? false ? Colors.teal : Colors.orange).withOpacity(0.3),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 10),
+                                child: Stack(
+                                  children: [
+                                    Hero(
+                                      tag: 'folder_icon_${carpeta.id}',
+                                      child: Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: (carpeta.tipo?.contains('Ingreso') ?? false)
+                                                ? [Colors.teal.shade300, Colors.teal.shade500]
+                                                : [Colors.amber.shade400, Colors.orange.shade500],
+                                          ),
+                                          borderRadius: BorderRadius.circular(15),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: (carpeta.tipo?.contains('Ingreso') ?? false ? Colors.teal : Colors.orange).withOpacity(0.3),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 6),
+                                            ),
+                                          ],
                                         ),
-                                      ],
+                                        child: Icon(
+                                          (carpeta.tipo?.contains('Ingreso') ?? false) ? Icons.folder_zip_rounded : Icons.folder_rounded,
+                                          size: 24,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                     ),
-                                    child: const Icon(
-                                      Icons.arrow_back_rounded,
-                                      size: 32,
-                                      color: Colors.white,
+                                    Positioned(
+                                      right: -2,
+                                      bottom: -2,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+                                          ],
+                                        ),
+                                        child: Icon(Icons.arrow_back_rounded, size: 10, color: (carpeta.tipo?.contains('Ingreso') ?? false) ? Colors.teal : Colors.orange),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ),
                               const SizedBox(width: 20),
@@ -1014,44 +1024,57 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                     Text(
                                       carpeta.nombre,
                                       style: GoogleFonts.poppins(
-                                        fontSize: 28,
+                                        fontSize: 22,
                                         fontWeight: FontWeight.bold,
                                         color: theme.colorScheme.onSurface,
-                                        height: 1.1,
+                                        height: 1.0,
                                         letterSpacing: -0.5,
                                       ),
-                                      maxLines: 2,
+                                      maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.primary.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.folder_shared_rounded, size: 14, color: theme.colorScheme.primary),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            'Espacio de Trabajo / ${(carpeta.tipo?.contains('Ingreso') ?? false) ? 'Ingresos' : 'Egresos'}',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: theme.colorScheme.primary,
-                                            ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primary.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(20),
                                           ),
-                                        ],
-                                      ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.folder_shared_rounded, size: 14, color: theme.colorScheme.primary),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                'Espacio de Trabajo / ${(carpeta.tipo?.contains('Ingreso') ?? false) ? 'Ingresos' : 'Egresos'}',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: theme.colorScheme.primary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Fecha: ${DateFormat('dd/MM/yyyy').format(carpeta.fechaCreacion)}',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 12),
                           _buildHeaderStats(carpeta, docs, theme),
                         ],
                       ),
@@ -1065,8 +1088,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         SliverPersistentHeader(
           pinned: true,
           delegate: _SliverAppBarDelegate(
-            minHeight: 80,
-            maxHeight: 80,
+            minHeight: 60,
+            maxHeight: 60,
             child: Container(
               decoration: BoxDecoration(
                 color: theme.scaffoldBackgroundColor.withOpacity(0.95),
