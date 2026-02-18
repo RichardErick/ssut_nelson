@@ -960,81 +960,101 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     bottom: 30,
                     left: 24,
                     right: 24,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Hero(
-                              tag: 'folder_icon_${carpeta.id}',
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: carpeta.carpetaPadreId == null
-                                        ? [Colors.amber.shade400, Colors.orange.shade600]
-                                        : [Colors.blue.shade400, Colors.blue.shade700],
-                                  ),
-                                  borderRadius: BorderRadius.circular(22),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: (carpeta.carpetaPadreId == null ? Colors.orange : Colors.blue).withOpacity(0.3),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 10),
+                    child: FadeInUp(
+                      duration: const Duration(milliseconds: 600),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  if (_carpetaSeleccionada?.carpetaPadreId != null) {
+                                    _navegarACarpetaPadre(_carpetaSeleccionada!.carpetaPadreId!);
+                                  } else {
+                                    setState(() => _carpetaSeleccionada = null);
+                                  }
+                                },
+                                child: Hero(
+                                  tag: 'folder_icon_${carpeta.id}',
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: (carpeta.tipo?.contains('Ingreso') ?? false)
+                                            ? [Colors.teal.shade300, Colors.teal.shade500]
+                                            : [Colors.amber.shade400, Colors.orange.shade500],
+                                      ),
+                                      borderRadius: BorderRadius.circular(22),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: (carpeta.tipo?.contains('Ingreso') ?? false ? Colors.teal : Colors.orange).withOpacity(0.3),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 10),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  carpeta.carpetaPadreId == null
-                                      ? Icons.folder_rounded
-                                      : Icons.folder_shared_rounded,
-                                  size: 36,
-                                  color: Colors.white,
+                                    child: const Icon(
+                                      Icons.arrow_back_rounded,
+                                      size: 32,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 20),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    carpeta.nombre,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      color: theme.colorScheme.onSurface,
-                                      height: 1.1,
-                                      letterSpacing: -0.5,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  if (carpeta.descripcion != null && carpeta.descripcion!.isNotEmpty) ...[
-                                    const SizedBox(height: 6),
+                              const SizedBox(width: 20),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      carpeta.descripcion!,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 14,
-                                        color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
-                                        fontWeight: FontWeight.w400,
+                                      carpeta.nombre,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.onSurface,
+                                        height: 1.1,
+                                        letterSpacing: -0.5,
                                       ),
-                                      maxLines: 1,
+                                      maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                     ),
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primary.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.folder_shared_rounded, size: 14, color: theme.colorScheme.primary),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'Espacio de Trabajo / ${(carpeta.tipo?.contains('Ingreso') ?? false) ? 'Ingresos' : 'Egresos'}',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: theme.colorScheme.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
-                                ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 28),
-                        _buildHeaderStats(carpeta, docs, theme),
-                      ],
+                            ],
+                          ),
+                          const SizedBox(height: 28),
+                          _buildHeaderStats(carpeta, docs, theme),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -1080,21 +1100,42 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
     final panelCarpetas = _buildPanelCarpetasLateral(theme);
 
-    if (mostrarPanelLateral) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          panelCarpetas,
-          Expanded(child: contenidoPrincipal),
-        ],
-      );
-    }
-
     return Scaffold(
-      body: contenidoPrincipal,
-      drawer: Drawer(
-        child: panelCarpetas,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 500),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        child: Container(
+          key: ValueKey(_carpetaSeleccionada?.id ?? -1),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (mostrarPanelLateral) panelCarpetas,
+              Expanded(child: contenidoPrincipal),
+            ],
+          ),
+        ),
       ),
+      drawer: !mostrarPanelLateral
+          ? Drawer(
+              child: panelCarpetas,
+            )
+          : null,
+    );
+  }
+
+  // Widget para animaciones simples sin paquetes externos
+  Widget FadeInUp({required Widget child, required Duration duration}) {
+    return TweenAnimationBuilder<double>(
+      duration: duration,
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, 30 * (1 - value)),
+          child: Opacity(opacity: value, child: child),
+        );
+      },
+      child: child,
     );
   }
 
@@ -1296,14 +1337,30 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   _abrirCarpeta(c);
                 },
                 borderRadius: BorderRadius.circular(12),
-                child: Padding(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: seleccionada ? Colors.blue.withOpacity(0.08) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: seleccionada ? [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ] : null,
+                  ),
                   child: Row(
                     children: [
-                      Icon(
-                        seleccionada ? Icons.folder_open_rounded : Icons.folder_rounded,
-                        size: 20,
-                        color: seleccionada ? Colors.blue.shade700 : Colors.amber.shade700,
+                      AnimatedRotation(
+                        duration: const Duration(milliseconds: 300),
+                        turns: seleccionada ? 0 : -0.05,
+                        child: Icon(
+                          seleccionada ? Icons.folder_open_rounded : Icons.folder_rounded,
+                          size: 20,
+                          color: seleccionada ? Colors.blue.shade700 : Colors.amber.shade700,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -1312,8 +1369,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: seleccionada ? FontWeight.w600 : null,
-                            color: seleccionada ? Colors.blue.shade800 : null,
+                            fontWeight: seleccionada ? FontWeight.bold : FontWeight.w500,
+                            color: seleccionada ? Colors.blue.shade800 : theme.colorScheme.onSurface.withOpacity(0.7),
                           ),
                         ),
                       ),

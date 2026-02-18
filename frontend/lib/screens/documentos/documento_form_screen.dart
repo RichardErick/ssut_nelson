@@ -529,7 +529,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: Form(
                   key: _formKey,
                   autovalidateMode: _autoValidateMode,
@@ -578,24 +578,43 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           margin: const EdgeInsets.only(bottom: 16),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50.withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blue.shade200),
+                            gradient: LinearGradient(
+                              colors: [Colors.blue.shade50.withOpacity(0.7), Colors.white],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.blue.shade100, width: 1),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blue.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.auto_awesome, size: 20, color: Colors.blue.shade700),
-                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade700,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.description_rounded, size: 18, color: Colors.white),
+                              ),
+                              const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Tipo de Documento',
+                                      'Tipo de documento por carpeta',
                                       style: GoogleFonts.inter(
-                                        fontSize: 12,
-                                        color: Colors.blue.shade700,
-                                        fontWeight: FontWeight.w500,
+                                        fontSize: 11,
+                                        color: Colors.blue.shade800,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.3,
                                       ),
                                     ),
                                     Text(
@@ -605,8 +624,8 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                                       )['nombre'],
                                       style: GoogleFonts.poppins(
                                         fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.blue.shade900,
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.onSurface,
                                       ),
                                     ),
                                   ],
@@ -628,7 +647,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           onChanged: (v) => setState(() => _tipoDocumentoId = v),
                           validator: (v) => v == null ? 'Seleccione el tipo' : null,
                         ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // 1. Número comprobante(s) — máximo 10 dígitos, solo números
                       TextFormField(
@@ -679,7 +698,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // 2. Responsable
                       DropdownButtonFormField<int>(
@@ -702,7 +721,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                             (v) =>
                                 v == null ? 'Seleccione un responsable' : null,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // 3. Área
                       Row(
@@ -763,7 +782,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ],
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // 4. Fecha
                       InkWell(
@@ -784,7 +803,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // 5. Nivel
                       Row(
@@ -825,7 +844,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ],
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // 6. Estante (y ubicación)
                       Row(
@@ -848,7 +867,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                         ],
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // 7. Descripción
                       TextFormField(
@@ -863,7 +882,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
                       ),
 
                       if (!ocultarSelectorCarpeta) ...[
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         DropdownButtonFormField<int>(
                           value:
                               _carpetaId == null ||
@@ -904,9 +923,8 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
 
                       const SizedBox(height: 24),
 
-                      // 8. Agregar PDF
-                      _buildSectionTitle('Agregar PDF'),
-                      const SizedBox(height: 16),
+                      _buildSectionTitle('Archivo Digital'),
+                      const SizedBox(height: 12),
                       _buildArchivoDigitalSection(),
 
                       const SizedBox(height: 32),
@@ -1135,7 +1153,7 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
         borderSide: BorderSide(color: Colors.red.shade600, width: 2),
       ),
       errorStyle: TextStyle(color: Colors.red.shade700, fontSize: 13),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
     );
   }
 
@@ -1146,12 +1164,22 @@ class _DocumentoFormScreenState extends State<DocumentoFormScreen> {
         Text(
           title,
           style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
             color: Colors.blue.shade800,
+            letterSpacing: -0.5,
           ),
         ),
-        const Divider(),
+        const SizedBox(height: 4),
+        Container(
+          height: 3,
+          width: 40,
+          decoration: BoxDecoration(
+            color: Colors.blue.shade700,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(height: 16),
       ],
     );
   }
