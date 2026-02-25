@@ -8,11 +8,13 @@ import '../models/usuario.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/usuario_service.dart';
+import '../services/movimiento_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_helper.dart';
 import '../widgets/app_alert.dart';
 import 'configurar_pregunta_secreta_screen.dart';
 import 'admin/restablecer_contrasena_usuario_screen.dart';
+import 'movimientos/mis_prestamos_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -650,8 +652,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
         ),
         child: ListTile(
-          onTap: () {
-            _markAsRead(alerta['id']);
+          onTap: () async {
+            await _markAsRead(alerta['id']);
             final titulo = alerta['titulo']?.toString() ?? '';
             if (titulo == 'Pregunta secreta pendiente') {
               Navigator.push(
@@ -681,6 +683,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
+              }
+            } else if (alerta['movimientoId'] != null) {
+              final int? movimientoId = alerta['movimientoId'] as int?;
+              if (movimientoId != null && mounted) {
+                _mostrarAccionesPrestamo(movimientoId, alerta, theme);
               }
             }
           },
@@ -796,5 +803,152 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     }
     return null;
+  }
+
+  /// Muestra opciones rápidas para una alerta de préstamo:
+  /// - Ver pantalla "Mis préstamos"
+  /// - Registrar devolución inmediata del movimiento asociado.
+  void _mostrarAccionesPrestamo(
+    int movimientoId,
+    Map<String, dynamic> alerta,
+    ThemeData theme,
+  ) {
+    final titulo = alerta['titulo']?.toString() ?? 'Préstamo';
+    final mensaje = alerta['mensaje']?.toString() ?? '';
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.assignment_turned_in_rounded,
+                      color: theme.colorScheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      titulo,
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (mensaje.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  mensaje,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MisPrestamosScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.list_alt_rounded, size: 18),
+                label: const Text('Ver mis préstamos'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await _devolverMovimientoDesdeAlerta(movimientoId);
+                },
+                icon: const Icon(Icons.undo_rounded, size: 18),
+                label: const Text('Registrar devolución ahora'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _devolverMovimientoDesdeAlerta(int movimientoId) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Registrar devolución'),
+        content: const Text(
+          '¿Confirmas que ya devolviste el documento de este préstamo?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sí, devolver'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true || !mounted) return;
+
+    try {
+      final movService = Provider.of<MovimientoService>(
+        context,
+        listen: false,
+      );
+      await movService.devolverDocumento(movimientoId);
+      if (!mounted) return;
+      await _loadData();
+      AppAlert.success(
+        context,
+        'Devolución registrada',
+        'El documento ha sido marcado como devuelto.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppAlert.error(
+        context,
+        'Error al devolver',
+        ErrorHelper.getErrorMessage(e),
+      );
+    }
   }
 }

@@ -13,6 +13,7 @@ import 'admin/roles_permissions_screen.dart';
 import 'documentos/documentos_list_screen.dart';
 import 'documentos/documento_search_screen.dart';
 import 'movimientos/movimientos_screen.dart';
+import 'movimientos/mis_prestamos_screen.dart';
 import 'notifications_screen.dart';
 import 'qr/qr_scanner_screen.dart';
 import 'reportes/reportes_screen.dart';
@@ -107,6 +108,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           icon: Icons.folder_outlined,
           selectedIcon: Icons.folder,
           screen: DocumentosListScreen(key: _documentosKey),
+        ),
+      );
+    }
+
+    // Mis préstamos: disponible para cualquier usuario autenticado que vea documentos.
+    if (authProvider.hasPermission('ver_documento')) {
+      _navItems.add(
+        const NavigationItem(
+          label: 'Mis préstamos',
+          icon: Icons.assignment_turned_in_outlined,
+          selectedIcon: Icons.assignment_turned_in,
+          screen: MisPrestamosScreen(),
         ),
       );
     }
