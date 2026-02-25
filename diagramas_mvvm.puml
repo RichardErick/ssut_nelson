@@ -1,0 +1,199 @@
+@startuml Sistema_Gestion_Documental_MVVM
+
+' CONFIGURACION VISUAL
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam backgroundcolor Transparent
+skinparam sequence {
+    ParticipantBorderColor #333333
+    ParticipantBackgroundColor #FFFFFF
+    LifeLineBorderColor #333333
+    ArrowColor #2C3E50
+    ActorBorderColor #2C3E50
+    GroupBorderColor #7F8C8D
+    GroupHeaderFontColor #2C3E50
+}
+
+header MVVM Architecture - SSUT Project
+footer Sprint 1 & Sprint 2 - Sequence Diagrams
+
+' ==========================================
+' HU-01: REGISTRO DE USUARIOS
+' ==========================================
+newpage HU-01: Registro de Usuarios
+actor "Administrador" as User
+box "Frontend (Flutter MVVM)" #F7F9F9
+    participant "UsuarioFormView\n(View)" as View
+    participant "UsuarioFormController\n(ViewModel)" as VM
+    participant "UsuarioService\n(Client API)" as Api
+end box
+box "Backend (ASP.NET Core)" #EBF5FB
+    participant "UsuariosController\n(API Endpoints)" as Ctrl
+    participant "IUsuarioService\n(Business Logic)" as Srv
+    participant "ApplicationDbContext\n(EF Core)" as DB
+end box
+database "PostgreSQL" as PG
+
+User -> View : Completa formulario (Nombre, Email, Rol)
+View -> VM : submitForm(userData)
+VM -> VM : validateLocalData()
+VM -> Api : createUsuario(dto)
+Api -> Ctrl : POST /api/usuarios\n(Authorization: Bearer Token)
+Ctrl -> Srv : AddUserAsync(data)
+Srv -> DB : Usuarios.Add(entity)
+DB -> PG : SQL INSERT INTO usuarios
+PG --> DB : Record Created (ID)
+DB --> Srv : Entity State: Added
+Srv --> Ctrl : Success Result
+Ctrl --> Api : 201 Created (JSON Response)
+Api --> VM : SuccessResponse
+VM --> View : updateUI(Status.Success)
+View --> User : "Usuario registrado con éxito"
+
+' ==========================================
+' HU-02: INICIO DE SESION
+' ==========================================
+newpage HU-02: Inicio de Sesión
+actor "Usuario" as User
+box "Frontend (Flutter MVVM)" #F7F9F9
+    participant "LoginView\n(View)" as View
+    participant "AuthController\n(ViewModel)" as VM
+    participant "AuthService\n(Client API)" as Api
+end box
+box "Backend (ASP.NET Core)" #EBF5FB
+    participant "AuthController\n(API Endpoints)" as Ctrl
+    participant "IAuthService\n(Logic + JWT)" as Srv
+end box
+database "PostgreSQL" as PG
+
+User -> View : Ingresa Email y Password
+View -> VM : login(email, password)
+VM -> Api : authenticate(loginDto)
+Api -> Ctrl : POST /api/auth/login
+Ctrl -> Srv : ValidateUser(credentials)
+Srv -> PG : SELECT * FROM usuarios WHERE email = ?
+PG --> Srv : UserData + PasswordHash
+Srv -> Srv : BCrypt.Verify(pass, hash)
+Srv -> Srv : GenerateJWTToken(user)
+Srv --> Ctrl : AuthResult (Token, UserData)
+Ctrl --> Api : 200 OK + JWT
+Api --> VM : saveToken(jwt)
+VM --> View : navigateToHome()
+View --> User : Muestra Pantalla de Inicio
+
+' ==========================================
+' HU-05: REGISTRO DE DOCUMENTOS
+' ==========================================
+newpage HU-05: Registro de Documentos
+actor "Funcionario" as User
+box "Frontend (Flutter MVVM)" #F7F9F9
+    participant "DocumentoFormView\n(View)" as View
+    participant "DocumentoFormController\n(ViewModel)" as VM
+    participant "DocumentosService\n(Client API)" as Api
+end box
+box "Backend (ASP.NET Core)" #EBF5FB
+    participant "DocumentosController\n(API Endpoints)" as Ctrl
+    participant "IDocumentoService\n(Logic)" as Srv
+    participant "IStorageService\n(Disk/Cloud)" as FileSrv
+end box
+database "PostgreSQL" as PG
+
+User -> View : Adjunta PDF + Detalle (Clasificación)
+View -> VM : saveDocument(documentRequest, fileBytes)
+VM -> Api : uploadDocument(multipartData)
+Api -> Ctrl : POST /api/documentos\n(Content-Type: multipart/form-data)
+Ctrl -> Srv : ProcessNewDocument(dto, file)
+Srv -> FileSrv : SaveFileAsync(stream)
+FileSrv --> Srv : return storagePath
+Srv -> PG : INSERT INTO documentos (..., path)
+PG --> Srv : Success (ID Documento)
+Srv --> Ctrl : CreatedDocument
+Ctrl --> Api : 201 Created
+Api --> VM : NotifySuccess()
+VM --> View : resetForm() + showSnackBar()
+View --> User : "Documento guardado y clasificado"
+
+' ==========================================
+' HU-09: BORRADO LOGICO DE USUARIOS
+' ==========================================
+newpage HU-09: Borrado Lógico de Usuarios
+actor "Administrador" as User
+box "Frontend (Flutter MVVM)" #F7F9F9
+    participant "UsuariosListView\n(View)" as View
+    participant "UsuariosController\n(ViewModel)" as VM
+    participant "UsuariosService\n(Client API)" as Api
+end box
+box "Backend (ASP.NET Core)" #EBF5FB
+    participant "UsuariosController\n(API Endpoints)" as Ctrl
+    participant "IUsuarioService\n(Logic)" as Srv
+end box
+database "PostgreSQL" as PG
+
+User -> View : Clic en "Eliminar" (Bote de basura)
+View -> VM : deleteUser(userId)
+VM -> Api : softDelete(id)
+Api -> Ctrl : DELETE /api/usuarios/{id}
+Ctrl -> Srv : DeactivateUserAsync(id)
+Srv -> PG : UPDATE usuarios SET activo = false WHERE id = ?
+PG --> Srv : Update Success
+Srv --> Ctrl : SuccessResult
+Ctrl --> Api : 200 OK
+Api --> VM : removeUserFromLocalList(id)
+VM --> View : notifyListeners() / notifyUI()
+View --> User : El usuario desaparece de la lista activa
+
+' ==========================================
+' HU-10: MOVER DOCUMENTOS EN LOTE
+' ==========================================
+newpage HU-10: Mover Documentos en Lote
+actor "AdminDoc" as User
+box "Frontend (Flutter MVVM)" #F7F9F9
+    participant "DocumentosListView\n(View)" as View
+    participant "DocumentoListController\n(ViewModel)" as VM
+    participant "DocumentosService\n(Client API)" as Api
+end box
+box "Backend (ASP.NET Core)" #EBF5FB
+    participant "DocumentosController\n(API Endpoints)" as Ctrl
+    participant "IDocumentoService\n(Batch Logic)" as Srv
+end box
+database "PostgreSQL" as PG
+
+User -> View : Selecciona múltiples documentos (checkboxes)
+User -> View : Selecciona carpeta destino
+View -> VM : moveSelectedTo(targetFolderId)
+VM -> Api : bulkMovePatch(ids, folderId)
+Api -> Ctrl : PATCH /api/documentos/batch-move
+Ctrl -> Srv : MoveInBatchAsync(request)
+Srv -> PG : BEGIN TRANSACTION\nUPDATE documentos SET carpeta_id = ? WHERE id = ANY (?)\nCOMMIT
+PG --> Srv : Batch Success
+Srv --> Ctrl : Success
+Ctrl --> Api : 200 OK
+Api --> VM : refreshCurrentList()
+VM --> View : showSuccessMessage()
+View --> User : "Documentos movidos exitosamente"
+
+' ==========================================
+' HU-11: RESOLUCION DE QR (FICHA PUBLICA)
+' ==========================================
+newpage HU-11: Resolución de Ficha vía QR
+actor "Usuario Externo" as User
+box "Dispositivo Móvil" #F7F9F9
+    participant "Cámara / QR Scanner" as Cam
+    participant "Navegador Web" as Browser
+end box
+box "Infraestructura" #EBF5FB
+    participant "API / PublicRouter" as Api
+    participant "DocumentosController" as Ctrl
+end box
+database "PostgreSQL" as PG
+
+User -> Cam : Escanea código QR del documento
+Cam -> Browser : Abre URL https://ssut.edu/ficha/{guid}
+Browser -> Api : GET /api/documentos/public-ficha/{guid}
+Api -> Ctrl : GetFichaPublica(guid)
+Ctrl -> PG : SELECT d.*, c.nombre FROM documentos d ... WHERE guid = ?
+PG --> Ctrl : Public Data Found
+Ctrl --> Browser : 200 OK (Public JSON/View)
+Browser --> User : Muestra metadatos y validez del documento
+
+@enduml

@@ -13,3 +13,4 @@ BEGIN
         ALTER TABLE carpetas ADD COLUMN tipo VARCHAR(50);
     END IF;
 END $$;
+ 

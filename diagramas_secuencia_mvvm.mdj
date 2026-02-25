@@ -1,0 +1,290 @@
+{
+	"_type": "Project",
+	"_id": "SSUT_PROJECT",
+	"name": "Sistema de Gestión Documental SSUT",
+	"ownedElements": [
+		{
+			"_type": "UMLModel",
+			"_id": "MVVM_MODEL",
+			"name": "Modelo MVVM",
+			"ownedElements": [
+				{
+					"_type": "UMLPackage",
+					"_id": "PKG_SPRINT1",
+					"name": "Sprint 1: Usuarios y Seguridad",
+					"ownedElements": [
+						{
+							"_type": "UMLInteraction",
+							"_id": "HU01_INT",
+							"name": "HU-01: Registro de Usuarios",
+							"ownedElements": [
+								{ "_type": "UMLSequenceDiagram", "_id": "HU01_DIAG", "name": "DS Registro" }
+							],
+							"participants": [
+								{ "_type": "UMLLifeline", "_id": "HU01_ACT", "name": "Administrador" },
+								{ "_type": "UMLLifeline", "_id": "HU01_VIEW", "name": "UsuarioForm (View)" },
+								{ "_type": "UMLLifeline", "_id": "HU01_VM", "name": "UsuarioViewModel" },
+								{ "_type": "UMLLifeline", "_id": "HU01_API", "name": "UsuarioApiClient" },
+								{ "_type": "UMLLifeline", "_id": "HU01_CTRL", "name": "UsuariosController" },
+								{ "_type": "UMLLifeline", "_id": "HU01_SRV", "name": "UsuarioService" },
+								{ "_type": "UMLLifeline", "_id": "HU01_REPO", "name": "UsuarioRepository" },
+								{ "_type": "UMLLifeline", "_id": "HU01_DB", "name": "PostgreSQL" }
+							],
+							"messages": [
+								{ "_type": "UMLMessage", "name": "1. Llena datos", "source": { "$ref": "HU01_ACT" }, "target": { "$ref": "HU01_VIEW" } },
+								{ "_type": "UMLMessage", "name": "2. Registrar(req)", "source": { "$ref": "HU01_VIEW" }, "target": { "$ref": "HU01_VM" } },
+								{ "_type": "UMLMessage", "name": "3. Create(dto)", "source": { "$ref": "HU01_VM" }, "target": { "$ref": "HU01_API" } },
+								{ "_type": "UMLMessage", "name": "4. POST /api/usuarios", "source": { "$ref": "HU01_API" }, "target": { "$ref": "HU01_CTRL" } },
+								{ "_type": "UMLMessage", "name": "5. Save(data)", "source": { "$ref": "HU01_CTRL" }, "target": { "$ref": "HU01_SRV" } },
+								{ "_type": "UMLMessage", "name": "6. Insert(user)", "source": { "$ref": "HU01_SRV" }, "target": { "$ref": "HU01_REPO" } },
+								{ "_type": "UMLMessage", "name": "7. SQL INSERT", "source": { "$ref": "HU01_REPO" }, "target": { "$ref": "HU01_DB" } },
+								{ "_type": "UMLMessage", "name": "8. OK (ID)", "source": { "$ref": "HU01_DB" }, "target": { "$ref": "HU01_REPO" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "9. CreatedUser", "source": { "$ref": "HU01_REPO" }, "target": { "$ref": "HU01_SRV" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "10. 201 Created", "source": { "$ref": "HU01_SRV" }, "target": { "$ref": "HU01_CTRL" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "11. Success Response", "source": { "$ref": "HU01_CTRL" }, "target": { "$ref": "HU01_API" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "12. Notificar Exito", "source": { "$ref": "HU01_API" }, "target": { "$ref": "HU01_VM" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "13. Mostrar 'Guardado'", "source": { "$ref": "HU01_VM" }, "target": { "$ref": "HU01_VIEW" }, "messageSort": "reply" }
+							]
+						},
+						{
+							"_type": "UMLInteraction",
+							"_id": "HU02_INT",
+							"name": "HU-02: Inicio de Sesion",
+							"ownedElements": [
+								{ "_type": "UMLSequenceDiagram", "_id": "HU02_DIAG", "name": "DS Login" }
+							],
+							"participants": [
+								{ "_type": "UMLLifeline", "_id": "HU02_ACT", "name": "Usuario" },
+								{ "_type": "UMLLifeline", "_id": "HU02_VIEW", "name": "LoginScreen (View)" },
+								{ "_type": "UMLLifeline", "_id": "HU02_VM", "name": "AuthViewModel" },
+								{ "_type": "UMLLifeline", "_id": "HU02_API", "name": "AuthApiClient" },
+								{ "_type": "UMLLifeline", "_id": "HU02_CTRL", "name": "AuthController" },
+								{ "_type": "UMLLifeline", "_id": "HU02_SRV", "name": "AuthService" },
+								{ "_type": "UMLLifeline", "_id": "HU02_DB", "name": "PostgreSQL" }
+							],
+							"messages": [
+								{ "_type": "UMLMessage", "name": "1. Ingresa Credenciales", "source": { "$ref": "HU02_ACT" }, "target": { "$ref": "HU02_VIEW" } },
+								{ "_type": "UMLMessage", "name": "2. Login(email, pass)", "source": { "$ref": "HU02_VIEW" }, "target": { "$ref": "HU02_VM" } },
+								{ "_type": "UMLMessage", "name": "3. Authenticate(dto)", "source": { "$ref": "HU02_VM" }, "target": { "$ref": "HU02_API" } },
+								{ "_type": "UMLMessage", "name": "4. POST /api/auth/login", "source": { "$ref": "HU02_API" }, "target": { "$ref": "HU02_CTRL" } },
+								{ "_type": "UMLMessage", "name": "5. Validate(cred)", "source": { "$ref": "HU02_CTRL" }, "target": { "$ref": "HU02_SRV" } },
+								{ "_type": "UMLMessage", "name": "6. SELECT User", "source": { "$ref": "HU02_SRV" }, "target": { "$ref": "HU02_DB" } },
+								{ "_type": "UMLMessage", "name": "7. User Data (Hash)", "source": { "$ref": "HU02_DB" }, "target": { "$ref": "HU02_SRV" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "8. VerifyPass + JWT", "source": { "$ref": "HU02_SRV" }, "target": { "$ref": "HU02_SRV" } },
+								{ "_type": "UMLMessage", "name": "9. AuthResult (Token)", "source": { "$ref": "HU02_SRV" }, "target": { "$ref": "HU02_CTRL" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "10. 200 OK + JSON", "source": { "$ref": "HU02_CTRL" }, "target": { "$ref": "HU02_API" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "11. Save Token / Success", "source": { "$ref": "HU02_API" }, "target": { "$ref": "HU02_VM" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "12. Navegar al Home", "source": { "$ref": "HU02_VM" }, "target": { "$ref": "HU02_VIEW" }, "messageSort": "reply" }
+							]
+						}
+					]
+				},
+				{
+					"_type": "UMLPackage",
+					"_id": "PKG_SPRINT2",
+					"name": "Sprint 2: Gestión Documental",
+					"ownedElements": [
+						{
+							"_type": "UMLInteraction",
+							"_id": "HU05_INT",
+							"name": "HU-05: Registro de Documentos",
+							"ownedElements": [
+								{ "_type": "UMLSequenceDiagram", "_id": "HU05_DIAG", "name": "DS Registro Doc" }
+							],
+							"participants": [
+								{ "_type": "UMLLifeline", "_id": "HU05_ACT", "name": "Funcionario" },
+								{ "_type": "UMLLifeline", "_id": "HU05_VIEW", "name": "DocumentoForm (View)" },
+								{ "_type": "UMLLifeline", "_id": "HU05_VM", "name": "DocumentoViewModel" },
+								{ "_type": "UMLLifeline", "_id": "HU05_API", "name": "DocApiClient" },
+								{ "_type": "UMLLifeline", "_id": "HU05_CTRL", "name": "DocumentosController" },
+								{ "_type": "UMLLifeline", "_id": "HU05_SRV", "name": "DocumentoService" },
+								{ "_type": "UMLLifeline", "_id": "HU05_STO", "name": "FileStorage" },
+								{ "_type": "UMLLifeline", "_id": "HU05_DB", "name": "PostgreSQL" }
+							],
+							"messages": [
+								{ "_type": "UMLMessage", "name": "1. Adjunta PDF + Metadatos", "source": { "$ref": "HU05_ACT" }, "target": { "$ref": "HU05_VIEW" } },
+								{ "_type": "UMLMessage", "name": "2. Guardar(dto, file)", "source": { "$ref": "HU05_VIEW" }, "target": { "$ref": "HU05_VM" } },
+								{ "_type": "UMLMessage", "name": "3. Upload(multipart)", "source": { "$ref": "HU05_VM" }, "target": { "$ref": "HU05_API" } },
+								{ "_type": "UMLMessage", "name": "4. POST /api/documentos", "source": { "$ref": "HU05_API" }, "target": { "$ref": "HU05_CTRL" } },
+								{ "_type": "UMLMessage", "name": "5. ProcessDoc(data, file)", "source": { "$ref": "HU05_CTRL" }, "target": { "$ref": "HU05_SRV" } },
+								{ "_type": "UMLMessage", "name": "6. SaveFile(pdf)", "source": { "$ref": "HU05_SRV" }, "target": { "$ref": "HU05_STO" } },
+								{ "_type": "UMLMessage", "name": "7. FilePath / OK", "source": { "$ref": "HU05_STO" }, "target": { "$ref": "HU05_SRV" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "8. INSERT Metadata", "source": { "$ref": "HU05_SRV" }, "target": { "$ref": "HU05_DB" } },
+								{ "_type": "UMLMessage", "name": "9. Success (ID)", "source": { "$ref": "HU05_DB" }, "target": { "$ref": "HU05_SRV" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "10. DocumentObject", "source": { "$ref": "HU05_SRV" }, "target": { "$ref": "HU05_CTRL" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "11. 201 Created", "source": { "$ref": "HU05_CTRL" }, "target": { "$ref": "HU05_API" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "12. Confirmar registro", "source": { "$ref": "HU05_API" }, "target": { "$ref": "HU05_VM" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "13. Notificar Exito", "source": { "$ref": "HU05_VM" }, "target": { "$ref": "HU05_VIEW" }, "messageSort": "reply" }
+							]
+						},
+						{
+							"_type": "UMLInteraction",
+							"_id": "HU06_INT",
+							"name": "HU-06: Generación de Código QR",
+							"ownedElements": [
+								{ "_type": "UMLSequenceDiagram", "_id": "HU06_DIAG", "name": "DS Generar QR" }
+							],
+							"participants": [
+								{ "_type": "UMLLifeline", "_id": "HU06_ACT", "name": "Funcionario" },
+								{ "_type": "UMLLifeline", "_id": "HU06_VIEW", "name": "DocDetailScreen" },
+								{ "_type": "UMLLifeline", "_id": "HU06_VM", "name": "DocViewModel" },
+								{ "_type": "UMLLifeline", "_id": "HU06_API", "name": "DocApiClient" },
+								{ "_type": "UMLLifeline", "_id": "HU06_CTRL", "name": "DocumentosController" },
+								{ "_type": "UMLLifeline", "_id": "HU06_SRV_QR", "name": "QRService" },
+								{ "_type": "UMLLifeline", "_id": "HU06_LIB", "name": "QRCoder (Lib)" }
+							],
+							"messages": [
+								{ "_type": "UMLMessage", "name": "1. Clic 'Generar QR'", "source": { "$ref": "HU06_ACT" }, "target": { "$ref": "HU06_VIEW" } },
+								{ "_type": "UMLMessage", "name": "2. GetQR(docId)", "source": { "$ref": "HU06_VIEW" }, "target": { "$ref": "HU06_VM" } },
+								{ "_type": "UMLMessage", "name": "3. FetchQR(id)", "source": { "$ref": "HU06_VM" }, "target": { "$ref": "HU06_API" } },
+								{ "_type": "UMLMessage", "name": "4. POST /api/documentos/{id}/qr", "source": { "$ref": "HU06_API" }, "target": { "$ref": "HU06_CTRL" } },
+								{ "_type": "UMLMessage", "name": "5. Generate(url)", "source": { "$ref": "HU06_CTRL" }, "target": { "$ref": "HU06_SRV_QR" } },
+								{ "_type": "UMLMessage", "name": "6. CreateImage(text)", "source": { "$ref": "HU06_SRV_QR" }, "target": { "$ref": "HU06_LIB" } },
+								{ "_type": "UMLMessage", "name": "7. Bitmap / PNG", "source": { "$ref": "HU06_LIB" }, "target": { "$ref": "HU06_SRV_QR" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "8. QR Stream", "source": { "$ref": "HU06_SRV_QR" }, "target": { "$ref": "HU06_CTRL" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "9. File(image/png)", "source": { "$ref": "HU06_CTRL" }, "target": { "$ref": "HU06_API" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "10. QR Data", "source": { "$ref": "HU06_API" }, "target": { "$ref": "HU06_VM" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "11. Mostrar Imagen QR", "source": { "$ref": "HU06_VM" }, "target": { "$ref": "HU06_VIEW" }, "messageSort": "reply" }
+							]
+						},
+						{
+							"_type": "UMLInteraction",
+							"_id": "HU07_INT",
+							"name": "HU-07: Clasificación en Carpetas",
+							"ownedElements": [
+								{ "_type": "UMLSequenceDiagram", "_id": "HU07_DIAG", "name": "DS Carpetas" }
+							],
+							"participants": [
+								{ "_type": "UMLLifeline", "_id": "HU07_ACT", "name": "Administrador" },
+								{ "_type": "UMLLifeline", "_id": "HU07_VIEW", "name": "CarpetasScreen" },
+								{ "_type": "UMLLifeline", "_id": "HU07_VM", "name": "CarpetasViewModel" },
+								{ "_type": "UMLLifeline", "_id": "HU07_API", "name": "CarpetasApiClient" },
+								{ "_type": "UMLLifeline", "_id": "HU07_CTRL", "name": "CarpetasController" },
+								{ "_type": "UMLLifeline", "_id": "HU07_DB", "name": "PostgreSQL" }
+							],
+							"messages": [
+								{ "_type": "UMLMessage", "name": "1. Crear Carpeta/Gestion", "source": { "$ref": "HU07_ACT" }, "target": { "$ref": "HU07_VIEW" } },
+								{ "_type": "UMLMessage", "name": "2. Save(req)", "source": { "$ref": "HU07_VIEW" }, "target": { "$ref": "HU07_VM" } },
+								{ "_type": "UMLMessage", "name": "3. Post(dto)", "source": { "$ref": "HU07_VM" }, "target": { "$ref": "HU07_API" } },
+								{ "_type": "UMLMessage", "name": "4. POST /api/carpetas", "source": { "$ref": "HU07_API" }, "target": { "$ref": "HU07_CTRL" } },
+								{ "_type": "UMLMessage", "name": "5. INSERT into carpetas", "source": { "$ref": "HU07_CTRL" }, "target": { "$ref": "HU07_DB" } },
+								{ "_type": "UMLMessage", "name": "6. Success ID", "source": { "$ref": "HU07_DB" }, "target": { "$ref": "HU07_CTRL" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "7. 201 Created", "source": { "$ref": "HU07_CTRL" }, "target": { "$ref": "HU07_API" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "8. Actualizar UI", "source": { "$ref": "HU07_API" }, "target": { "$ref": "HU07_VM" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "9. Mostrar nueva carpeta", "source": { "$ref": "HU07_VM" }, "target": { "$ref": "HU07_VIEW" }, "messageSort": "reply" }
+							]
+						},
+						{
+							"_type": "UMLInteraction",
+							"_id": "HU08_INT",
+							"name": "HU-08: Búsqueda Avanzada",
+							"ownedElements": [
+								{ "_type": "UMLSequenceDiagram", "_id": "HU08_DIAG", "name": "DS Búsqueda" }
+							],
+							"participants": [
+								{ "_type": "UMLLifeline", "_id": "HU08_ACT", "name": "Funcionario" },
+								{ "_type": "UMLLifeline", "_id": "HU08_VIEW", "name": "BusquedaScreen" },
+								{ "_type": "UMLLifeline", "_id": "HU08_VM", "name": "BusquedaViewModel" },
+								{ "_type": "UMLLifeline", "_id": "HU08_API", "name": "DocApiClient" },
+								{ "_type": "UMLLifeline", "_id": "HU08_CTRL", "name": "DocumentosController" },
+								{ "_type": "UMLLifeline", "_id": "HU08_DB", "name": "PostgreSQL" }
+							],
+							"messages": [
+								{ "_type": "UMLMessage", "name": "1. Ingresa filtros (Gestión, Area...)", "source": { "$ref": "HU08_ACT" }, "target": { "$ref": "HU08_VIEW" } },
+								{ "_type": "UMLMessage", "name": "2. Search(params)", "source": { "$ref": "HU08_VIEW" }, "target": { "$ref": "HU08_VM" } },
+								{ "_type": "UMLMessage", "name": "3. GetSearch(dto)", "source": { "$ref": "HU08_VM" }, "target": { "$ref": "HU08_API" } },
+								{ "_type": "UMLMessage", "name": "4. GET /api/documentos/search?...", "source": { "$ref": "HU08_API" }, "target": { "$ref": "HU08_CTRL" } },
+								{ "_type": "UMLMessage", "name": "5. Exec Filtered Query", "source": { "$ref": "HU08_CTRL" }, "target": { "$ref": "HU08_DB" } },
+								{ "_type": "UMLMessage", "name": "6. Result Set (Docs)", "source": { "$ref": "HU08_DB" }, "target": { "$ref": "HU08_CTRL" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "7. 200 OK + JSON List", "source": { "$ref": "HU08_CTRL" }, "target": { "$ref": "HU08_API" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "8. Push Results", "source": { "$ref": "HU08_API" }, "target": { "$ref": "HU08_VM" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "9. Mostrar Tabla Resultados", "source": { "$ref": "HU08_VM" }, "target": { "$ref": "HU08_VIEW" }, "messageSort": "reply" }
+							]
+						},
+						{
+							"_type": "UMLInteraction",
+							"_id": "HU09_INT",
+							"name": "HU-09: Borrado Lógico de Usuarios",
+							"ownedElements": [
+								{ "_type": "UMLSequenceDiagram", "_id": "HU09_DIAG", "name": "DS Borrado Usuario" }
+							],
+							"participants": [
+								{ "_type": "UMLLifeline", "_id": "HU09_ACT", "name": "Administrador" },
+								{ "_type": "UMLLifeline", "_id": "HU09_VIEW", "name": "UsuariosListScreen" },
+								{ "_type": "UMLLifeline", "_id": "HU09_VM", "name": "UsuarioViewModel" },
+								{ "_type": "UMLLifeline", "$ref": "HU01_API" },
+								{ "_type": "UMLLifeline", "$ref": "HU01_CTRL" },
+								{ "_type": "UMLLifeline", "$ref": "HU01_SRV" },
+								{ "_type": "UMLLifeline", "$ref": "HU01_DB" }
+							],
+							"messages": [
+								{ "_type": "UMLMessage", "name": "1. Clic 'Eliminar'", "source": { "$ref": "HU09_ACT" }, "target": { "$ref": "HU09_VIEW" } },
+								{ "_type": "UMLMessage", "name": "2. Delete(id)", "source": { "$ref": "HU09_VIEW" }, "target": { "$ref": "HU09_VM" } },
+								{ "_type": "UMLMessage", "name": "3. Remove(id)", "source": { "$ref": "HU09_VM" }, "target": { "$ref": "HU01_API" } },
+								{ "_type": "UMLMessage", "name": "4. DELETE /api/usuarios/{id}", "source": { "$ref": "HU01_API" }, "target": { "$ref": "HU01_CTRL" } },
+								{ "_type": "UMLMessage", "name": "5. Deactivate(id)", "source": { "$ref": "HU01_CTRL" }, "target": { "$ref": "HU01_SRV" } },
+								{ "_type": "UMLMessage", "name": "6. UPDATE set Activo=false", "source": { "$ref": "HU01_SRV" }, "target": { "$ref": "HU01_DB" } },
+								{ "_type": "UMLMessage", "name": "7. 200 OK (Soft Delete)", "source": { "$ref": "HU01_DB" }, "target": { "$ref": "HU01_CTRL" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "8. Actualizar Lista Local", "source": { "$ref": "HU01_CTRL" }, "target": { "$ref": "HU09_VM" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "9. Refrescar Vista", "source": { "$ref": "HU09_VM" }, "target": { "$ref": "HU09_VIEW" }, "messageSort": "reply" }
+							]
+						},
+						{
+							"_type": "UMLInteraction",
+							"_id": "HU10_INT",
+							"name": "HU-10: Mover Documentos en Lote",
+							"ownedElements": [
+								{ "_type": "UMLSequenceDiagram", "_id": "HU10_DIAG", "name": "DS Mover Lote" }
+							],
+							"participants": [
+								{ "_type": "UMLLifeline", "_id": "HU10_ACT", "name": "AdministradorDoc" },
+								{ "_type": "UMLLifeline", "_id": "HU10_VIEW", "name": "DocListScreen" },
+								{ "_type": "UMLLifeline", "_id": "HU10_VM", "name": "DocViewModel" },
+								{ "_type": "UMLLifeline", "$ref": "HU05_API" },
+								{ "_type": "UMLLifeline", "$ref": "HU05_CTRL" },
+								{ "_type": "UMLLifeline", "$ref": "HU05_DB" }
+							],
+							"messages": [
+								{ "_type": "UMLMessage", "name": "1. Selecciona varios docs", "source": { "$ref": "HU10_ACT" }, "target": { "$ref": "HU10_VIEW" } },
+								{ "_type": "UMLMessage", "name": "2. Clic 'Mover a...'", "source": { "$ref": "HU10_ACT" }, "target": { "$ref": "HU10_VIEW" } },
+								{ "_type": "UMLMessage", "name": "3. BulkMove(ids, targetId)", "source": { "$ref": "HU10_VIEW" }, "target": { "$ref": "HU10_VM" } },
+								{ "_type": "UMLMessage", "name": "4. POST /api/documentos/mover-lote", "source": { "$ref": "HU10_VM" }, "target": { "$ref": "HU05_API" } },
+								{ "_type": "UMLMessage", "name": "5. ProcessBatch(req)", "source": { "$ref": "HU05_API" }, "target": { "$ref": "HU05_CTRL" } },
+								{ "_type": "UMLMessage", "name": "6. BEGIN TRANSACTION / UPDATE", "source": { "$ref": "HU05_CTRL" }, "target": { "$ref": "HU05_DB" } },
+								{ "_type": "UMLMessage", "name": "7. COMMIT / OK", "source": { "$ref": "HU05_DB" }, "target": { "$ref": "HU05_CTRL" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "8. 200 OK", "source": { "$ref": "HU05_CTRL" }, "target": { "$ref": "HU10_VM" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "9. Mostrar 'Movidos con éxito'", "source": { "$ref": "HU10_VM" }, "target": { "$ref": "HU10_VIEW" }, "messageSort": "reply" }
+							]
+						},
+						{
+							"_type": "UMLInteraction",
+							"_id": "HU11_INT",
+							"name": "HU-11: Resolución de Ficha vía QR",
+							"ownedElements": [
+								{ "_type": "UMLSequenceDiagram", "_id": "HU11_DIAG", "name": "DS Ficha QR" }
+							],
+							"participants": [
+								{ "_type": "UMLLifeline", "_id": "HU11_ACT", "name": "Usuario Externo" },
+								{ "_type": "UMLLifeline", "_id": "HU11_BROWSER", "name": "Navegador Movil" },
+								{ "_type": "UMLLifeline", "$ref": "HU05_API" },
+								{ "_type": "UMLLifeline", "$ref": "HU05_CTRL" },
+								{ "_type": "UMLLifeline", "$ref": "HU05_DB" },
+								{ "_type": "UMLLifeline", "_id": "HU11_VIEW", "name": "FichaPublicaScreen" }
+							],
+							"messages": [
+								{ "_type": "UMLMessage", "name": "1. Escanea QR", "source": { "$ref": "HU11_ACT" }, "target": { "$ref": "HU11_BROWSER" } },
+								{ "_type": "UMLMessage", "name": "2. GET /ficha/{id}", "source": { "$ref": "HU11_BROWSER" }, "target": { "$ref": "HU05_API" } },
+								{ "_type": "UMLMessage", "name": "3. ResolveDoc(id)", "source": { "$ref": "HU05_API" }, "target": { "$ref": "HU05_CTRL" } },
+								{ "_type": "UMLMessage", "name": "4. SELECT Metadata + PublicData", "source": { "$ref": "HU05_CTRL" }, "target": { "$ref": "HU05_DB" } },
+								{ "_type": "UMLMessage", "name": "5. Doc DataFound", "source": { "$ref": "HU05_DB" }, "target": { "$ref": "HU05_CTRL" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "6. 200 OK (Public JSON)", "source": { "$ref": "HU05_CTRL" }, "target": { "$ref": "HU05_API" }, "messageSort": "reply" },
+								{ "_type": "UMLMessage", "name": "7. Render Page", "source": { "$ref": "HU05_API" }, "target": { "$ref": "HU11_VIEW" } },
+								{ "_type": "UMLMessage", "name": "8. Mostrar Datos del Doc", "source": { "$ref": "HU11_VIEW" }, "target": { "$ref": "HU11_BROWSER" }, "messageSort": "reply" }
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

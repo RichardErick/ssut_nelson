@@ -305,22 +305,28 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.of(context).push<bool>(
-            MaterialPageRoute(builder: (_) => const PrestamoFormScreen()),
-          );
-          if (result == true) _loadMovimientos();
-        },
-        icon: const Icon(Icons.add_rounded, size: 24),
-        label: Text(
-          'Registrar préstamo',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15),
-        ),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        elevation: 4,
-      ),
+      floatingActionButton:
+          _filtro == _FiltroMovimiento.prestamos
+              ? FloatingActionButton.extended(
+                  onPressed: () async {
+                    final result = await Navigator.of(context).push<bool>(
+                      MaterialPageRoute(builder: (_) => const PrestamoFormScreen()),
+                    );
+                    if (result == true) _loadMovimientos();
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 24),
+                  label: Text(
+                    'Registrar préstamo',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  elevation: 4,
+                )
+              : null,
     );
   }
 

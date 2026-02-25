@@ -39,6 +39,31 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
   bool _isLoadingCatalogos = true;
   bool _isSubmitting = false;
 
+  /// Áreas mostradas en el combo (filtradas/renombradas).
+  List<Map<String, dynamic>> get _areasVisibles {
+    return _areas
+        .where((a) {
+          final nombre = (a['nombre'] as String? ?? '').toLowerCase();
+          // Quitar áreas que no deberían aparecer en el formulario
+          if (nombre.contains('recursos humanos')) return false;
+          if (nombre.contains('archivo')) return false;
+          return true;
+        })
+        .map((a) {
+          final nombre = a['nombre'] as String? ?? '';
+          String nuevoNombre = nombre;
+          // Renombrar Administración -> Administración de Documentos
+          if (nombre.toLowerCase() == 'administración') {
+            nuevoNombre = 'Administración de Documentos';
+          }
+          return {
+            ...a,
+            'nombre': nuevoNombre,
+          };
+        })
+        .toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -168,31 +193,7 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
                       style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
                     ),
                     const SizedBox(height: 8),
-                    DropdownButtonFormField<Documento>(
-                      value: _documentoSeleccionado,
-                      decoration: InputDecoration(
-                        labelText: 'Documento',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        filled: true,
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.red.shade600, width: 2),
-                        ),
-                        errorStyle: TextStyle(color: Colors.red.shade700, fontSize: 13),
-                      ),
-                      items: _documentos
-                          .map((d) => DropdownMenuItem(
-                                value: d,
-                                child: Text('${d.codigo} - ${d.tipoDocumentoNombre ?? "Sin tipo"}', overflow: TextOverflow.ellipsis),
-                              ))
-                          .toList(),
-                      onChanged: (d) => setState(() => _documentoSeleccionado = d),
-                      validator: (v) => v == null ? FormValidators.seleccioneOpcion : null,
-                    ),
+                    _buildDocumentoAutocomplete(theme),
                     const SizedBox(height: 24),
                     Text(
                       'Responsable del préstamo',
@@ -230,33 +231,19 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
                       style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
                     ),
                     const SizedBox(height: 8),
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: _fechaInicio,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (picked != null) {
-                          setState(() {
-                            _fechaInicio = picked;
-                            if (_fechaLimiteDevolucion.isBefore(picked)) {
-                              _fechaLimiteDevolucion = picked.add(const Duration(days: 7));
-                            }
-                          });
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          labelText: 'Fecha inicio',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          suffixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
-                        ),
-                        child: Text(DateFormat('dd/MM/yyyy').format(_fechaInicio), style: GoogleFonts.inter(fontSize: 14)),
-                      ),
+                  // La fecha de inicio del préstamo siempre es la fecha actual
+                  // y no debe poder modificarse manualmente.
+                  InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Fecha inicio (hoy)',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      suffixIcon: const Icon(Icons.lock_clock_outlined, size: 20),
                     ),
+                    child: Text(
+                      DateFormat('dd/MM/yyyy').format(_fechaInicio),
+                      style: GoogleFonts.inter(fontSize: 14),
+                    ),
+                  ),
                     const SizedBox(height: 24),
                     Text(
                       'Fecha límite de préstamo',
@@ -300,11 +287,17 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
                         filled: true,
                       ),
                       items: [
-                        const DropdownMenuItem<int>(value: null, child: Text('— Sin especificar —')),
-                        ..._areas.map((a) {
+                        const DropdownMenuItem<int>(
+                          value: null,
+                          child: Text('— Sin especificar —'),
+                        ),
+                        ..._areasVisibles.map((a) {
                           final id = a['id'] as int?;
                           final nombre = a['nombre'] as String? ?? 'Área';
-                          return DropdownMenuItem<int>(value: id, child: Text(nombre));
+                          return DropdownMenuItem<int>(
+                            value: id,
+                            child: Text(nombre),
+                          );
                         }),
                       ],
                       onChanged: (v) => setState(() => _areaDestinoId = v),
@@ -335,6 +328,105 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  /// Campo de búsqueda para seleccionar documento (con filtro por texto).
+  Widget _buildDocumentoAutocomplete(ThemeData theme) {
+    String display(Documento d) =>
+        '${d.codigo} - ${d.tipoDocumentoNombre ?? "Sin tipo"}';
+
+    return Autocomplete<Documento>(
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        final query = textEditingValue.text.toLowerCase().trim();
+        if (query.isEmpty) return _documentos;
+        return _documentos.where((d) {
+          final codigo = d.codigo.toLowerCase();
+          final tipo = (d.tipoDocumentoNombre ?? '').toLowerCase();
+          final desc = (d.descripcion ?? '').toLowerCase();
+          return codigo.contains(query) ||
+              tipo.contains(query) ||
+              desc.contains(query);
+        });
+      },
+      displayStringForOption: display,
+      initialValue: TextEditingValue(
+        text: _documentoSeleccionado != null ? display(_documentoSeleccionado!) : '',
+      ),
+      fieldViewBuilder:
+          (context, textEditingController, focusNode, onFieldSubmitted) {
+        // Mantener sincronizado el texto si ya hay un documento seleccionado
+        if (_documentoSeleccionado != null &&
+            textEditingController.text.isEmpty) {
+          textEditingController.text = display(_documentoSeleccionado!);
+        }
+
+        return TextFormField(
+          controller: textEditingController,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            labelText: 'Documento',
+            hintText: 'Buscar por código o nombre…',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            prefixIcon: const Icon(Icons.search_rounded, size: 20),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade600, width: 2),
+            ),
+            errorStyle: TextStyle(color: Colors.red.shade700, fontSize: 13),
+          ),
+          style: GoogleFonts.inter(fontSize: 14),
+          onFieldSubmitted: (_) => onFieldSubmitted(),
+          validator: (_) =>
+              _documentoSeleccionado == null ? FormValidators.seleccioneOpcion : null,
+        );
+      },
+      onSelected: (Documento d) {
+        setState(() {
+          _documentoSeleccionado = d;
+        });
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        final list = options.toList();
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 300, minWidth: 300),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                itemCount: list.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final d = list[index];
+                  return ListTile(
+                    dense: true,
+                    title: Text(
+                      d.codigo,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      d.tipoDocumentoNombre ?? 'Sin tipo',
+                      style: GoogleFonts.inter(fontSize: 12),
+                    ),
+                    onTap: () => onSelected(d),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
