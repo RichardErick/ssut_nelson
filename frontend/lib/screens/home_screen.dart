@@ -109,17 +109,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           screen: DocumentosListScreen(key: _documentosKey),
         ),
       );
-      // Movimientos solo para Administrador de Documentos
-      if (role == UserRole.administradorDocumentos) {
-        _navItems.add(
-          NavigationItem(
-            label: 'Movimientos',
-            icon: Icons.swap_horiz_outlined,
-            selectedIcon: Icons.swap_horiz,
-            screen: const MovimientosScreen(),
-          ),
-        );
-      }
+    }
+
+    // Movimientos según permiso granular ver_movimientos (sin depender del rol)
+    if (authProvider.hasPermission('ver_movimientos')) {
+      _navItems.add(
+        NavigationItem(
+          label: 'Movimientos',
+          icon: Icons.swap_horiz_outlined,
+          selectedIcon: Icons.swap_horiz,
+          screen: const MovimientosScreen(),
+        ),
+      );
     }
 
     // Acceso a reportes si tiene permiso de ver documentos (todos) o es admin sistema

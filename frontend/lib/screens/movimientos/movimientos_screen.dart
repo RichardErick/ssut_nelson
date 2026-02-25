@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/movimiento.dart';
-import '../../models/user_role.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/movimiento_service.dart';
 import '../../utils/error_helper.dart';
@@ -34,7 +33,9 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
       case _FiltroMovimiento.prestamos:
         return _movimientos.where((m) => m.tipoMovimiento == 'Salida').toList();
       case _FiltroMovimiento.devoluciones:
-        return _movimientos.where((m) => m.tipoMovimiento == 'Entrada').toList();
+        return _movimientos
+            .where((m) => m.tipoMovimiento == 'Entrada')
+            .toList();
       case _FiltroMovimiento.todos:
         return _movimientos;
     }
@@ -71,32 +72,37 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          'Registrar devolución',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        content: Text(
-          '¿Registrar la devolución del documento "${mov.documentoCodigo ?? 'Sin código'}"? El estado del documento pasará a Disponible.',
-          style: GoogleFonts.inter(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(
+              'Registrar devolución',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            content: Text(
+              '¿Registrar la devolución del documento "${mov.documentoCodigo ?? 'Sin código'}"? El estado del documento pasará a Disponible.',
+              style: GoogleFonts.inter(fontSize: 14),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.green.shade600,
+                ),
+                child: const Text('Devolver'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.green.shade600),
-            child: const Text('Devolver'),
-          ),
-        ],
-      ),
     );
     if (confirm != true || !mounted) return;
     try {
-      await Provider.of<MovimientoService>(context, listen: false)
-          .devolverDocumento(mov.id);
+      await Provider.of<MovimientoService>(
+        context,
+        listen: false,
+      ).devolverDocumento(mov.id);
       await _loadMovimientos();
       if (mounted) {
         AppAlert.success(
@@ -261,6 +267,42 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                // Aviso de política de devoluciones: no se devuelven automáticamente.
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 18,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Los documentos NO se devuelven automáticamente al vencer el plazo. '
+                          'Cuando la fecha límite se cumpla el préstamo quedará marcado como vencido y '
+                          'el Contador o Gerente deben registrar la devolución manualmente.',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 // Filtros
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -269,24 +311,30 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                       _FilterChip(
                         label: 'Todos',
                         selected: _filtro == _FiltroMovimiento.todos,
-                        onSelected: () =>
-                            setState(() => _filtro = _FiltroMovimiento.todos),
+                        onSelected:
+                            () => setState(
+                              () => _filtro = _FiltroMovimiento.todos,
+                            ),
                         theme: theme,
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
                         label: 'Préstamos',
                         selected: _filtro == _FiltroMovimiento.prestamos,
-                        onSelected: () =>
-                            setState(() => _filtro = _FiltroMovimiento.prestamos),
+                        onSelected:
+                            () => setState(
+                              () => _filtro = _FiltroMovimiento.prestamos,
+                            ),
                         theme: theme,
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
                         label: 'Devoluciones',
                         selected: _filtro == _FiltroMovimiento.devoluciones,
-                        onSelected: () => setState(
-                            () => _filtro = _FiltroMovimiento.devoluciones),
+                        onSelected:
+                            () => setState(
+                              () => _filtro = _FiltroMovimiento.devoluciones,
+                            ),
                         theme: theme,
                       ),
                     ],
@@ -297,9 +345,10 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
           ),
           // Lista
           Expanded(
-            child: _isLoading
-                ? _buildLoading(theme)
-                : _movimientosFiltrados.isEmpty
+            child:
+                _isLoading
+                    ? _buildLoading(theme)
+                    : _movimientosFiltrados.isEmpty
                     ? _buildEmpty(theme)
                     : _buildList(theme, dateFormat, onSurfaceVariant),
           ),
@@ -308,24 +357,26 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
       floatingActionButton:
           _filtro == _FiltroMovimiento.prestamos
               ? FloatingActionButton.extended(
-                  onPressed: () async {
-                    final result = await Navigator.of(context).push<bool>(
-                      MaterialPageRoute(builder: (_) => const PrestamoFormScreen()),
-                    );
-                    if (result == true) _loadMovimientos();
-                  },
-                  icon: const Icon(Icons.add_rounded, size: 24),
-                  label: Text(
-                    'Registrar préstamo',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                onPressed: () async {
+                  final result = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (_) => const PrestamoFormScreen(),
                     ),
+                  );
+                  if (result == true) _loadMovimientos();
+                },
+                icon: const Icon(Icons.add_rounded, size: 24),
+                label: Text(
+                  'Registrar préstamo',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
                   ),
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  elevation: 4,
-                )
+                ),
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                elevation: 4,
+              )
               : null,
     );
   }
@@ -371,8 +422,8 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
               _filtro == _FiltroMovimiento.todos
                   ? 'No hay movimientos registrados'
                   : _filtro == _FiltroMovimiento.prestamos
-                      ? 'No hay préstamos con este filtro'
-                      : 'No hay devoluciones con este filtro',
+                  ? 'No hay préstamos con este filtro'
+                  : 'No hay devoluciones con este filtro',
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -458,18 +509,19 @@ class _FilterChip extends StatelessWidget {
       ),
       selected: selected,
       onSelected: (_) => onSelected(),
-      backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(
+        0.5,
+      ),
       selectedColor: theme.colorScheme.primaryContainer,
       checkmarkColor: theme.colorScheme.onPrimaryContainer,
       side: BorderSide(
-        color: selected
-            ? theme.colorScheme.primary
-            : theme.colorScheme.outline.withOpacity(0.3),
+        color:
+            selected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withOpacity(0.3),
         width: selected ? 1.5 : 1,
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       showCheckmark: true,
     );
@@ -503,12 +555,14 @@ class _MovementCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaceColor = theme.colorScheme.surface;
     final onSurface = theme.colorScheme.onSurface;
-    final sameArea = movimiento.areaOrigenNombre != null &&
+    final sameArea =
+        movimiento.areaOrigenNombre != null &&
         movimiento.areaDestinoNombre != null &&
         movimiento.areaOrigenNombre == movimiento.areaDestinoNombre;
-    final originDestiny = sameArea
-        ? (movimiento.areaOrigenNombre ?? '—')
-        : '${movimiento.areaOrigenNombre ?? '—'} → ${movimiento.areaDestinoNombre ?? '—'}';
+    final originDestiny =
+        sameArea
+            ? (movimiento.areaOrigenNombre ?? '—')
+            : '${movimiento.areaOrigenNombre ?? '—'} → ${movimiento.areaDestinoNombre ?? '—'}';
 
     return Container(
       decoration: BoxDecoration(
@@ -520,7 +574,9 @@ class _MovementCard extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(theme.brightness == Brightness.dark ? 0.2 : 0.04),
+            color: Colors.black.withOpacity(
+              theme.brightness == Brightness.dark ? 0.2 : 0.04,
+            ),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -638,9 +694,14 @@ class _MovementCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (esPrestamo && movimiento.estado == 'Activo' && movimiento.fechaLimiteDevolucion != null) ...[
+                      if (esPrestamo &&
+                          movimiento.estado == 'Activo' &&
+                          movimiento.fechaLimiteDevolucion != null) ...[
                         const SizedBox(height: 10),
-                        _buildTiempoRestante(movimiento.fechaLimiteDevolucion!, theme),
+                        _buildTiempoRestante(
+                          movimiento.fechaLimiteDevolucion!,
+                          theme,
+                        ),
                       ],
                       if (movimiento.observaciones != null &&
                           movimiento.observaciones!.trim().isNotEmpty) ...[
@@ -692,7 +753,11 @@ class _MovementCard extends StatelessWidget {
 
   Widget _buildTiempoRestante(DateTime fechaLimite, ThemeData theme) {
     final ahora = DateTime.now();
-    final fechaL = DateTime(fechaLimite.year, fechaLimite.month, fechaLimite.day);
+    final fechaL = DateTime(
+      fechaLimite.year,
+      fechaLimite.month,
+      fechaLimite.day,
+    );
     final fechaA = DateTime(ahora.year, ahora.month, ahora.day);
     final diferencia = fechaL.difference(fechaA).inDays;
 
