@@ -40,10 +40,23 @@ public class AlertasController : ControllerBase
         // 2. Verificar vencimientos de préstamos (pobre man's background job)
         await VerificarVencimientosAsync(userId);
 
+        // Proyectar a un DTO liviano para evitar ciclos de navegación y errores 500 al serializar.
         var alertas = await _context.Alertas
             .Where(a => a.UsuarioId == userId)
             .OrderByDescending(a => a.FechaCreacion)
             .Take(50)
+            .Select(a => new
+            {
+                a.Id,
+                a.Titulo,
+                a.Mensaje,
+                a.TipoAlerta,
+                a.Leida,
+                a.FechaCreacion,
+                a.FechaLectura,
+                a.DocumentoId,
+                a.MovimientoId
+            })
             .ToListAsync();
 
         return Ok(alertas);
