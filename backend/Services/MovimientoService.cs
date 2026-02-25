@@ -132,6 +132,26 @@ public class MovimientoService : IMovimientoService
             }
         }
 
+        // Crear alerta para el usuario responsable del préstamo (si corresponde).
+        if (dto.TipoMovimiento == "Salida" && dto.UsuarioId.HasValue)
+        {
+            var fechaLimiteTexto = dto.FechaLimiteDevolucion?.ToLocalTime().ToString("dd/MM/yyyy")
+                ?? "sin fecha límite registrada";
+
+            _context.Alertas.Add(new Alerta
+            {
+                UsuarioId = dto.UsuarioId.Value,
+                DocumentoId = documento.Id,
+                MovimientoId = movimiento.Id,
+                Titulo = "Nuevo préstamo de documento",
+                Mensaje = $"Se te ha prestado el documento {documento.Codigo}. Fecha límite de devolución: {fechaLimiteTexto}.",
+                TipoAlerta = "info",
+                FechaCreacion = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+        }
+
         return await GetByIdAsync(movimiento.Id) ?? throw new Exception("Error al crear movimiento");
     }
 

@@ -154,10 +154,25 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                   ),
                   items: [
                     const DropdownMenuItem<int?>(value: null, child: Text('Sin área')),
-                    ...widget.areas.map((a) => DropdownMenuItem<int?>(
-                      value: a.id,
-                      child: Text(a.nombre),
-                    )),
+                    ...widget.areas
+                        .where((a) {
+                          final nombre = a.nombre.toLowerCase();
+                          // Ocultar Recursos Humanos y Archivo
+                          if (nombre.contains('recursos humanos')) return false;
+                          if (nombre.contains('archivo')) return false;
+                          return true;
+                        })
+                        .map((a) {
+                          var nombre = a.nombre;
+                          // Renombrar Administración -> Gerencia de Administración de Documentos
+                          if (nombre.toLowerCase() == 'administración') {
+                            nombre = 'Gerencia de Administración de Documentos';
+                          }
+                          return DropdownMenuItem<int?>(
+                            value: a.id,
+                            child: Text(nombre),
+                          );
+                        }),
                   ],
                   onChanged: (v) => setState(() => _selectedAreaId = v),
                 ),
@@ -336,10 +351,23 @@ class _EditUserDialogState extends State<EditUserDialog> {
                   ),
                   items: [
                     const DropdownMenuItem<int?>(value: null, child: Text('Sin área')),
-                    ...widget.areas.map((a) => DropdownMenuItem<int?>(
-                      value: a.id,
-                      child: Text(a.nombre),
-                    )),
+                    ...widget.areas
+                        .where((a) {
+                          final nombre = a.nombre.toLowerCase();
+                          if (nombre.contains('recursos humanos')) return false;
+                          if (nombre.contains('archivo')) return false;
+                          return true;
+                        })
+                        .map((a) {
+                          var nombre = a.nombre;
+                          if (nombre.toLowerCase() == 'administración') {
+                            nombre = 'Gerencia de Administración de Documentos';
+                          }
+                          return DropdownMenuItem<int?>(
+                            value: a.id,
+                            child: Text(nombre),
+                          );
+                        }),
                   ],
                   onChanged: (v) => setState(() => _selectedAreaId = v),
                 ),
