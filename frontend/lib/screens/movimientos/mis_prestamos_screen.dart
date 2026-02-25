@@ -69,11 +69,25 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
   }
 
   Future<void> _devolver(Movimiento mov) async {
-    final confirmar = await AppAlert.confirm(
-      context,
-      'Registrar devolución',
-      '¿Confirmas que estás devolviendo el documento "${mov.documentoCodigo ?? 'Sin código'}"?',
-      okText: 'Sí, devolver',
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Registrar devolución'),
+        content: Text(
+          '¿Confirmas que estás devolviendo el documento '
+          '"${mov.documentoCodigo ?? 'Sin código'}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sí, devolver'),
+          ),
+        ],
+      ),
     );
     if (confirmar != true || !mounted) return;
 

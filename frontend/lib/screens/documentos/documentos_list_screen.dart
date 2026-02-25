@@ -1024,16 +1024,16 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                     Text(
                                       carpeta.nombre,
                                       style: GoogleFonts.poppins(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w700,
                                         color: theme.colorScheme.onSurface,
-                                        height: 1.0,
-                                        letterSpacing: -0.5,
+                                        height: 1.2,
+                                        letterSpacing: -0.2,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 12),
                                     Row(
                                       children: [
                                         Container(
