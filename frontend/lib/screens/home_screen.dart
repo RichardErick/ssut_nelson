@@ -115,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Mis préstamos: disponible para cualquier usuario autenticado que vea documentos.
     if (authProvider.hasPermission('ver_documento')) {
       _navItems.add(
-        const NavigationItem(
+        NavigationItem(
           label: 'Mis préstamos',
           icon: Icons.assignment_turned_in_outlined,
           selectedIcon: Icons.assignment_turned_in,
