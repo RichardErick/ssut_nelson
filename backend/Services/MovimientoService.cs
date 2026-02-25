@@ -193,6 +193,16 @@ public class MovimientoService : IMovimientoService
         _context.Movimientos.Add(movimientoEntrada);
         await _context.SaveChangesAsync();
 
+        // Limpiar alertas asociadas a este préstamo (ya fue devuelto).
+        var alertas = await _context.Alertas
+            .Where(a => a.MovimientoId == movimiento.Id)
+            .ToListAsync();
+        if (alertas.Any())
+        {
+            _context.Alertas.RemoveRange(alertas);
+            await _context.SaveChangesAsync();
+        }
+
         return await GetByIdAsync(movimiento.Id);
     }
 
