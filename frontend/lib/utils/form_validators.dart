@@ -12,7 +12,7 @@ class FormValidators {
   static const String usuarioCaracteres = 'Use solo letras, números y punto';
   static const String emailInvalido = 'Ingrese un correo electrónico válido';
   static const String passwordMinimo =
-      'La contraseña debe tener al menos 6 caracteres';
+      'La contraseña debe tener al menos 8 caracteres';
   static const String seleccioneOpcion = 'Seleccione una opción';
   static const String anioInvalido = 'Ingrese un año válido (ej. 2025)';
   static const String anioRango = 'El año debe estar entre 2020 y 2030';
@@ -50,10 +50,10 @@ class FormValidators {
     return null;
   }
 
-  /// Valida contraseña (mínimo 6 caracteres).
+  /// Valida contraseña (mínimo 8 caracteres).
   static String? password(String? value) {
     if (value == null || value.isEmpty) return requerido;
-    if (value.length < 6) return passwordMinimo;
+    if (value.length < 8) return passwordMinimo;
     return null;
   }
 

@@ -112,8 +112,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    // Mis préstamos: disponible para cualquier usuario autenticado que vea documentos.
-    if (authProvider.hasPermission('ver_documento')) {
+    // Mis préstamos: disponible solo para contador y gerente
+    if (authProvider.hasPermission('ver_documento') &&
+        (role == UserRole.contador || role == UserRole.gerente)) {
       _navItems.add(
         NavigationItem(
           label: 'Mis préstamos',

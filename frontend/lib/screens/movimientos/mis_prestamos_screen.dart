@@ -5,10 +5,12 @@ import 'package:provider/provider.dart';
 
 import '../../models/movimiento.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/documento_service.dart';
 import '../../services/movimiento_service.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/animated_card.dart';
 import '../../widgets/app_alert.dart';
+import '../documentos/documento_detail_screen.dart';
 
 /// Pantalla donde el usuario ve SOLO sus préstamos activos
 /// y puede registrar la devolución de cada uno.
@@ -43,16 +45,21 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
       }
       final service = Provider.of<MovimientoService>(context, listen: false);
       final todos = await service.getAll();
-      // Solo préstamos (Salida) activos del usuario logueado
+      // Solo préstamos (Salida) del usuario logueado
       final propios =
           todos
               .where(
                 (m) =>
                     m.tipoMovimiento == 'Salida' &&
-                    m.estado == 'Activo' &&
                     m.usuarioId == userId,
               )
-              .toList();
+              .toList()
+            ..sort((a, b) {
+              // Priority: Activo before Devuelto, then by Recency
+              if (a.estado == 'Activo' && b.estado != 'Activo') return -1;
+              if (a.estado != 'Activo' && b.estado == 'Activo') return 1;
+              return b.fechaMovimiento.compareTo(a.fechaMovimiento);
+            });
       setState(() {
         _misPrestamos = propios;
         _isLoading = false;
@@ -81,7 +88,7 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
+              onPressed: () => Navigator.pop(ctx, false),
                 child: const Text('Cancelar'),
               ),
               FilledButton(
@@ -112,6 +119,32 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
         );
       }
     }
+  }
+
+  Future<void> _verDocumento(BuildContext context, int documentoId) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+      final service = Provider.of<DocumentoService>(context, listen: false);
+      final doc = await service.getById(documentoId);
+      if (!mounted) return;
+      Navigator.pop(context); // close dialog
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => DocumentoDetailScreen(documento: doc)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // close dialog
+      AppAlert.error(context, 'Error', 'No se pudo cargar el documento.');
+    }
+  }
+
+  Future<void> _refreshData() async {
+    await _loadMisPrestamos();
   }
 
   @override
@@ -152,7 +185,7 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
                 Row(
                   children: [
                     Text(
-                      'Mis préstamos activos',
+                      'Mis préstamos',
                       style: GoogleFonts.poppins(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
@@ -200,7 +233,7 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No tienes préstamos activos',
+                              'No tienes préstamos',
                               style: GoogleFonts.poppins(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
@@ -222,7 +255,7 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
                       ),
                     )
                     : RefreshIndicator(
-                      onRefresh: _loadMisPrestamos,
+                      onRefresh: _refreshData,
                       child: ListView.builder(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                         itemCount: _misPrestamos.length,
@@ -243,7 +276,10 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
 
                           Color badgeColor = theme.colorScheme.primary;
                           String badgeText = 'Activo';
-                          if (diasRestantes != null) {
+                          if (mov.estado == 'Devuelto') {
+                            badgeColor = Colors.green.shade600;
+                            badgeText = 'Devuelto';
+                          } else if (diasRestantes != null) {
                             if (diasRestantes < 0) {
                               badgeColor = Colors.red.shade700;
                               badgeText =
@@ -279,14 +315,18 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
                                   Row(
                                     children: [
                                       Expanded(
-                                        child: Text(
-                                          mov.documentoCodigo ?? 'Sin código',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                            color: theme.colorScheme.onSurface,
+                                        child: InkWell(
+                                          onTap: () => _verDocumento(context, mov.documentoId),
+                                          child: Text(
+                                            mov.documentoCodigo ?? 'Sin código',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                              color: theme.colorScheme.primary,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -372,26 +412,39 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
                                       ],
                                     ),
                                   ],
-                                  const SizedBox(height: 10),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: FilledButton.icon(
-                                      onPressed: () => _devolver(mov),
-                                      icon: const Icon(
-                                        Icons.undo_rounded,
-                                        size: 18,
-                                      ),
-                                      label: const Text('Registrar devolución'),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: Colors.green.shade600,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 10,
+                                  if (mov.estado == 'Activo') ...[
+                                    const SizedBox(height: 10),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: FilledButton.icon(
+                                        onPressed: () => _devolver(mov),
+                                        icon: const Icon(
+                                          Icons.undo_rounded,
+                                          size: 18,
+                                        ),
+                                        label: const Text('Registrar devolución'),
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: Colors.green.shade600,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 10,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
+                                  ],
+                                  if (mov.estado != 'Activo') ...[
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'Devolución registrada el ${mov.fechaDevolucion != null ? dateFormat.format(mov.fechaDevolucion!) : '-'}',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontStyle: FontStyle.italic,
+                                        color: Colors.green.shade700,
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),

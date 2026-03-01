@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/documento.dart';
 import '../../models/movimiento.dart';
 import '../../models/usuario.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/catalogo_service.dart';
 import '../../services/documento_service.dart';
 import '../../services/movimiento_service.dart';
@@ -82,11 +83,18 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
       final docService = Provider.of<DocumentoService>(context, listen: false);
       final userService = Provider.of<UsuarioService>(context, listen: false);
       final catService = Provider.of<CatalogoService>(context, listen: false);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
       final busqueda = BusquedaDocumentoDTO(estado: 'Activo', pageSize: 200);
       final resDoc = await docService.buscar(busqueda);
-      final users = await userService.getAll(incluirInactivos: false);
+      var users = await userService.getAll(incluirInactivos: false);
       final areas = await catService.getAreas();
+
+      // Si es Administrador de Documentos, filtrar para que no se pueda seleccionar a sí mismo
+      if (authProvider.currentUser?.rol == 'AdministradorDocumentos') {
+        final currentUserId = authProvider.currentUser?.id;
+        users = users.where((u) => u.id != currentUserId).toList();
+      }
 
       if (mounted) {
         setState(() {
@@ -200,6 +208,30 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
                       style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
                     ),
                     const SizedBox(height: 8),
+                    // Mensaje informativo para Administrador de Documentos
+                    if (Provider.of<AuthProvider>(context, listen: false).currentUser?.rol == 'AdministradorDocumentos') ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, size: 18, color: theme.colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Como Administrador de Documentos, debes asignar el préstamo a un Contador o Gerente.',
+                                style: GoogleFonts.inter(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     DropdownButtonFormField<Usuario>(
                       value: _usuarioResponsable,
                       decoration: InputDecoration(

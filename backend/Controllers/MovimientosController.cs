@@ -18,7 +18,25 @@ public class MovimientosController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<MovimientoDTO>>> GetAll()
     {
+        // Obtener el usuario actual del token JWT
+        var userIdClaim = User.FindFirst("userId")?.Value;
+        var rolClaim = User.FindFirst("rol")?.Value;
+        
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+        {
+            return Unauthorized(new { message = "Usuario no autenticado" });
+        }
+
         var movimientos = await _movimientoService.GetAllAsync();
+        
+        // Filtrar según el rol:
+        // - Contador y Gerente: solo ven sus propios préstamos
+        // - Administradores: ven todos
+        if (rolClaim == "Contador" || rolClaim == "Gerente")
+        {
+            movimientos = movimientos.Where(m => m.UsuarioId == userId).ToList();
+        }
+        
         return Ok(movimientos);
     }
 
@@ -55,6 +73,21 @@ public class MovimientosController : ControllerBase
     {
         try
         {
+            // Obtener el usuario actual del token JWT
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            var rolClaim = User.FindFirst("rol")?.Value;
+            
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int currentUserId))
+            {
+                return Unauthorized(new { message = "Usuario no autenticado" });
+            }
+
+            // Validación: Administrador de Documentos no puede prestarse a sí mismo
+            if (rolClaim == "AdministradorDocumentos" && dto.UsuarioId == currentUserId)
+            {
+                return BadRequest(new { message = "El Administrador de Documentos no puede registrar préstamos para sí mismo. Debe asignar el préstamo a un Contador o Gerente." });
+            }
+
             var movimiento = await _movimientoService.CreateAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = movimiento.Id }, movimiento);
         }
