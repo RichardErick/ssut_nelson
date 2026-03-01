@@ -91,8 +91,8 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
       final areas = await catService.getAreas();
 
       // Si es Administrador de Documentos, filtrar para que no se pueda seleccionar a sí mismo
-      if (authProvider.currentUser?.rol == 'AdministradorDocumentos') {
-        final currentUserId = authProvider.currentUser?.id;
+      if (authProvider.user?['rol'] == 'AdministradorDocumentos') {
+        final currentUserId = authProvider.userId;
         users = users.where((u) => u.id != currentUserId).toList();
       }
 
@@ -209,7 +209,7 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
                     ),
                     const SizedBox(height: 8),
                     // Mensaje informativo para Administrador de Documentos
-                    if (Provider.of<AuthProvider>(context, listen: false).currentUser?.rol == 'AdministradorDocumentos') ...[
+                    if (Provider.of<AuthProvider>(context, listen: false).user?['rol'] == 'AdministradorDocumentos') ...[
                       Container(
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(bottom: 12),

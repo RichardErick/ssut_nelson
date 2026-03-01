@@ -137,11 +137,12 @@ if (authProvider.currentUser?.rol == 'AdministradorDocumentos') {
 
 ### Frontend
 1. `frontend/lib/utils/form_validators.dart` - Validación de contraseña a 8 caracteres
-2. `frontend/lib/screens/movimientos/movimientos_screen.dart` - Ordenamiento, filtros de fecha y mensaje informativo
+2. `frontend/lib/screens/movimientos/movimientos_screen.dart` - Ordenamiento, filtros de fecha, mensaje informativo y validación de documento null
 3. `frontend/lib/screens/movimientos/prestamo_form_screen.dart` - Filtrado de usuarios y mensaje informativo
+4. `frontend/lib/screens/movimientos/mis_prestamos_screen.dart` - Validación de documento null
 
 ### Backend
-4. `backend/Controllers/MovimientosController.cs` - Filtrado por rol y validaciones de préstamo
+5. `backend/Controllers/MovimientosController.cs` - Filtrado por rol y validaciones de préstamo
 
 ---
 

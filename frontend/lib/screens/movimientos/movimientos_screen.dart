@@ -186,6 +186,10 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
       final doc = await service.getById(documentoId);
       if (!mounted) return;
       Navigator.pop(context); // close dialog
+      if (doc == null) {
+        AppAlert.error(context, 'Error', 'No se pudo cargar el documento.');
+        return;
+      }
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => DocumentoDetailScreen(documento: doc)),
@@ -341,7 +345,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   ],
                 ),
                 // Mensaje informativo para Contador/Gerente
-                if (authProvider.currentUser?.rol == 'Contador' || authProvider.currentUser?.rol == 'Gerente') ...[
+                if (authProvider.user?['rol'] == 'Contador' || authProvider.user?['rol'] == 'Gerente') ...[
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(12),

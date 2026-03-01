@@ -132,6 +132,10 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
       final doc = await service.getById(documentoId);
       if (!mounted) return;
       Navigator.pop(context); // close dialog
+      if (doc == null) {
+        AppAlert.error(context, 'Error', 'No se pudo cargar el documento.');
+        return;
+      }
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => DocumentoDetailScreen(documento: doc)),
