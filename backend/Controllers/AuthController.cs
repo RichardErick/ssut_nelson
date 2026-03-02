@@ -802,6 +802,45 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Pregunta secreta configurada correctamente.", tienePreguntaSecreta = true });
     }
 
+    /// <summary>Permite al usuario autenticado cambiar su contraseña.</summary>
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordRequest dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.CurrentPassword) || string.IsNullOrWhiteSpace(dto.NewPassword))
+            return BadRequest(new { message = "Contraseña actual y nueva son obligatorias" });
+
+        if (dto.NewPassword.Length < 8)
+            return BadRequest(new { message = "La nueva contraseña debe tener al menos 8 caracteres" });
+
+        var idClaim = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idClaim, out var userId))
+            return Unauthorized(new { message = "Sesión inválida" });
+
+        var usuario = await _context.Usuarios.FindAsync(userId);
+        if (usuario == null)
+            return Unauthorized(new { message = "Usuario no encontrado" });
+
+        // Verificar contraseña actual
+        if (!VerifyPassword(dto.CurrentPassword, usuario.PasswordHash))
+            return BadRequest(new { message = "La contraseña actual es incorrecta" });
+
+        // Actualizar contraseña
+        usuario.PasswordHash = HashPassword(dto.NewPassword);
+        usuario.FechaActualizacion = DateTime.UtcNow;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            return StatusCode(500, new { message = "Error al cambiar contraseña.", error = ex.Message });
+        }
+
+        return Ok(new { message = "Contraseña actualizada correctamente" });
+    }
+
     private string GenerateJwt(SistemaGestionDocumental.Models.Usuario usuario)
     {
         var issuer = _configuration["Jwt:Issuer"];
@@ -923,6 +962,12 @@ public class MiPreguntaSecretaRequest
 {
     public int PreguntaSecretaId { get; set; }
     public string? RespuestaSecreta { get; set; }
+}
+
+public class ChangePasswordRequest
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }
 
 public class LoginRequest
