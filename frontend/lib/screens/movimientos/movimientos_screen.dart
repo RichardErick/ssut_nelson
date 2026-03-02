@@ -34,6 +34,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
   _FiltroMovimiento _filtro = _FiltroMovimiento.todos;
   _FiltroPeriodo _filtroPeriodo = _FiltroPeriodo.hoy;
   int _mesSeleccionado = DateTime.now().month; // 1-12
+  int _anioSeleccionado = DateTime.now().year; // Año actual por defecto
 
   List<Movimiento> get _movimientosFiltrados {
     List<Movimiento> lista;
@@ -71,7 +72,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
       case _FiltroPeriodo.anio:
         lista = lista.where((m) {
           final fecha = m.fechaMovimiento;
-          return fecha.year == ahora.year;
+          return fecha.year == _anioSeleccionado;
         }).toList();
         break;
     }
@@ -507,11 +508,53 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'Este año',
-                      selected: _filtroPeriodo == _FiltroPeriodo.anio,
-                      onSelected: () => setState(() => _filtroPeriodo = _FiltroPeriodo.anio),
-                      theme: theme,
+                    // Dropdown de años
+                    Container(
+                      height: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: _filtroPeriodo == _FiltroPeriodo.anio
+                            ? theme.colorScheme.primaryContainer
+                            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _filtroPeriodo == _FiltroPeriodo.anio
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outline.withOpacity(0.3),
+                          width: _filtroPeriodo == _FiltroPeriodo.anio ? 1.5 : 1,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: _anioSeleccionado,
+                          isDense: true,
+                          style: GoogleFonts.inter(
+                            fontWeight: _filtroPeriodo == _FiltroPeriodo.anio ? FontWeight.w600 : FontWeight.w500,
+                            fontSize: 13,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          icon: Icon(
+                            Icons.arrow_drop_down,
+                            size: 20,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          items: List.generate(10, (index) {
+                            final year = DateTime.now().year - index;
+                            return DropdownMenuItem(
+                              value: year,
+                              child: Text(year.toString()),
+                            );
+                          }),
+                          onChanged: (anio) {
+                            if (anio != null) {
+                              setState(() {
+                                _anioSeleccionado = anio;
+                                _filtroPeriodo = _FiltroPeriodo.anio;
+                              });
+                            }
+                          },
+                        ),
+                      ),
                     ),
                   ],
                 ),

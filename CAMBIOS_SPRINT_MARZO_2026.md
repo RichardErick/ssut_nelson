@@ -58,30 +58,33 @@ lista.sort((a, b) {
 
 ---
 
-### 4. Paginador de Fecha - Hoy, Mes (Dropdown), Año ✅
+### 4. Paginador de Fecha - Hoy, Mes (Dropdown), Año (Dropdown) ✅
 
 **Archivo modificado:** `frontend/lib/screens/movimientos/movimientos_screen.dart`
 
 **Cambios:**
 - Agregado nuevo enum `_FiltroPeriodo` con opciones: hoy, mes, anio
 - Agregada variable `_mesSeleccionado` (1-12) para el dropdown de meses
+- Agregada variable `_anioSeleccionado` para el dropdown de años
 - Implementado filtrado por rango de fecha en `_movimientosFiltrados`
-- Agregada segunda fila de filtros en la UI con dropdown de meses
+- Agregada segunda fila de filtros en la UI con dropdowns de meses y años
 
 **Opciones de filtro:**
 1. **Hoy**: Solo movimientos del día actual (chip)
 2. **Mes**: Dropdown para seleccionar mes específico (Enero-Diciembre)
-3. **Este año**: Solo movimientos del año actual (chip)
+3. **Año**: Dropdown para seleccionar año (últimos 10 años)
 
 **UI:**
 - Primera fila: Filtros de tipo (Todos, Préstamos, Devoluciones)
-- Segunda fila: Chip "Hoy" + DropdownButton de meses + Chip "Este año"
-- El dropdown se resalta cuando está seleccionado el filtro de mes
+- Segunda fila: Chip "Hoy" + DropdownButton de meses + DropdownButton de años
+- Los dropdowns se resaltan cuando están seleccionados
 - Al seleccionar un mes en el dropdown, automáticamente cambia el filtro a "mes"
-- Los filtros se pueden combinar (ej: "Préstamos" + "Mes: Marzo")
+- Al seleccionar un año en el dropdown, automáticamente cambia el filtro a "año"
+- Los filtros se pueden combinar (ej: "Préstamos" + "Mes: Marzo" o "Préstamos" + "Año: 2025")
 
-**Implementación del Dropdown:**
+**Implementación de los Dropdowns:**
 ```dart
+// Dropdown de meses
 Container(
   height: 36,
   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -113,6 +116,29 @@ Container(
         }
       },
     ),
+  ),
+)
+
+// Dropdown de años (últimos 10 años)
+Container(
+  // Similar al de meses pero con años
+  child: DropdownButton<int>(
+    value: _anioSeleccionado,
+    items: List.generate(10, (index) {
+      final year = DateTime.now().year - index;
+      return DropdownMenuItem(
+        value: year,
+        child: Text(year.toString()),
+      );
+    }),
+    onChanged: (anio) {
+      if (anio != null) {
+        setState(() {
+          _anioSeleccionado = anio;
+          _filtroPeriodo = _FiltroPeriodo.anio;
+        });
+      }
+    },
   ),
 )
 ```
@@ -267,9 +293,10 @@ new("rol", role),
 ### 4. Filtros de fecha
 - Probar filtro "Hoy" - debe mostrar solo movimientos de hoy
 - Probar dropdown de meses - seleccionar diferentes meses (Enero, Febrero, etc.)
-- Verificar que el dropdown se resalta cuando está activo el filtro de mes
-- Probar filtro "Este año" - debe mostrar movimientos del año actual
-- Combinar filtros (ej: "Préstamos" + "Mes: Marzo")
+- Verificar que el dropdown de meses se resalta cuando está activo
+- Probar dropdown de años - seleccionar diferentes años (2026, 2025, 2024, etc.)
+- Verificar que el dropdown de años se resalta cuando está activo
+- Combinar filtros (ej: "Préstamos" + "Mes: Marzo" o "Devoluciones" + "Año: 2025")
 
 ### 5. Reglas de negocio de préstamos
 
