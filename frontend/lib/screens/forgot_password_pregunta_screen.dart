@@ -339,7 +339,7 @@ class _ForgotPasswordPreguntaScreenState extends State<ForgotPasswordPreguntaScr
                                 _buildField(
                                   controller: _passwordController,
                                   label: 'Nueva contraseña',
-                                  hint: 'Mínimo 6 caracteres',
+                                  hint: 'Mínimo 8 caracteres',
                                   icon: Icons.lock_outline_rounded,
                                   obscureText: _obscurePassword,
                                   suffixIcon: IconButton(
@@ -351,7 +351,7 @@ class _ForgotPasswordPreguntaScreenState extends State<ForgotPasswordPreguntaScr
                                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                                   ),
                                   validator: (v) =>
-                                      (v ?? '').trim().length < 6 ? 'Mínimo 6 caracteres' : null,
+                                      (v ?? '').trim().length < 8 ? 'Mínimo 8 caracteres' : null,
                                 ),
                                 const SizedBox(height: 14),
                                 _buildField(

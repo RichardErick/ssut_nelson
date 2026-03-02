@@ -35,6 +35,9 @@ class AuthProvider extends ChangeNotifier {
 
   /// True si el usuario ya configuró su pregunta secreta (registro o después).
   bool get tienePreguntaSecreta => _user?['tienePreguntaSecreta'] == true;
+  
+  /// True si el usuario tiene una contraseña débil (menos de 8 caracteres).
+  bool get tieneContrasenaDebil => _user?['tieneContrasenaDebil'] == true;
 
   /// Actualiza el estado local tras configurar la pregunta secreta (sin volver a hacer login).
   Future<void> setTienePreguntaSecreta() async {
@@ -392,6 +395,31 @@ class AuthProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+  }
+
+  /// Refresca los datos del usuario desde el backend (útil después de cambiar contraseña)
+  Future<void> refreshUser() async {
+    if (!_isAuthenticated || _token == null) return;
+
+    try {
+      final apiService = Provider.of<ApiService>(
+        navigatorKey.currentContext!,
+        listen: false,
+      );
+
+      final response = await apiService.get('/auth/me');
+      final data = response.data as Map<String, dynamic>;
+      final user = data['user'] as Map<String, dynamic>?;
+
+      if (user != null) {
+        _user = user;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_data', jsonEncode(_user));
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error refreshing user: $e');
+    }
   }
 
   UserRole _parseRoleWithContext(String roleName, String username, String fullName) {

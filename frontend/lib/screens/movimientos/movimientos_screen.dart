@@ -826,24 +826,33 @@ class _MovementCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Fila: código + chip tipo
+                      // Fila: código + botón ver + chip tipo
                       Row(
                         children: [
                           Expanded(
-                            child: InkWell(
-                              onTap: onDocumentTap,
-                              child: Text(
-                                movimiento.documentoCodigo ?? 'Sin código',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: theme.colorScheme.primary,
-                                  decoration: TextDecoration.underline,
-                                ),
-                                overflow: TextOverflow.ellipsis,
+                            child: Text(
+                              movimiento.documentoCodigo ?? 'Sin código',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: theme.colorScheme.onSurface,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          // Botón para ver documento
+                          IconButton(
+                            onPressed: onDocumentTap,
+                            icon: const Icon(Icons.visibility_rounded, size: 20),
+                            tooltip: 'Ver documento',
+                            style: IconButton.styleFrom(
+                              backgroundColor: theme.colorScheme.primaryContainer,
+                              foregroundColor: theme.colorScheme.onPrimaryContainer,
+                              padding: const EdgeInsets.all(8),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,

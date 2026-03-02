@@ -4,16 +4,108 @@
 
 ### 1. Validación de Contraseña - 8 Caracteres Mínimo ✅
 
-**Archivo modificado:** `frontend/lib/utils/form_validators.dart`
+**Archivos modificados:** 
+- `frontend/lib/utils/form_validators.dart`
+- `frontend/lib/screens/reset_password_screen.dart`
+- `frontend/lib/screens/forgot_password_pregunta_screen.dart`
+- `frontend/lib/screens/admin/restablecer_contrasena_usuario_screen.dart`
 
 **Cambios:**
-- Actualizada la validación de contraseña de 6 a 8 caracteres mínimo
+- Actualizada la validación de contraseña de 6 a 8 caracteres mínimo en todas las pantallas
 - Mensaje de error actualizado: "La contraseña debe tener al menos 8 caracteres"
-- Aplica tanto para registro como para cambio de contraseña
+- Aplica para:
+  - Registro de nuevos usuarios
+  - Cambio de contraseña
+  - Recuperación de contraseña (por enlace o código)
+  - Recuperación por pregunta secreta
+  - Restablecimiento de contraseña por administrador
 
 **Impacto:**
 - Los usuarios nuevos deben crear contraseñas de al menos 8 caracteres
+- Al cambiar o recuperar contraseña, también se requieren mínimo 8 caracteres
 - Mayor seguridad en las cuentas de usuario
+- Validación también en el backend para evitar bypass
+
+---
+
+### 6. Detección y Advertencia de Contraseñas Débiles ✅
+
+**Archivos modificados:**
+- `backend/Controllers/AuthController.cs`
+- `frontend/lib/providers/auth_provider.dart`
+- `frontend/lib/screens/weak_password_warning_screen.dart` (nuevo)
+- `frontend/lib/screens/splash_screen.dart`
+- `frontend/lib/main.dart`
+
+**Problema:**
+- Usuarios antiguos pueden tener contraseñas de menos de 8 caracteres
+- No queremos modificar la base de datos directamente
+
+**Solución implementada:**
+
+1. **Detección en el backend:**
+   - Al hacer login, el backend detecta si la contraseña ingresada tiene menos de 8 caracteres
+   - Si tiene **menos de 8 caracteres**: Agrega `tieneContrasenaDebil: true` en la respuesta
+   - Si tiene **8 o más caracteres**: Agrega `tieneContrasenaDebil: false` y el usuario continúa normalmente
+   - No modifica la base de datos
+
+2. **Pantalla de advertencia obligatoria (solo para contraseñas débiles):**
+   - Si el usuario tiene contraseña débil, se le redirige automáticamente a una pantalla de advertencia
+   - No puede acceder al sistema hasta cambiar su contraseña
+   - La pantalla muestra:
+     - Ícono de advertencia
+     - Mensaje claro: "¡Contraseña no segura!"
+     - Explicación del problema
+     - Formulario para cambiar contraseña (actual + nueva + confirmar)
+     - Opción de cerrar sesión
+
+3. **Flujo de redirección:**
+   - **Contraseña débil (< 8 caracteres):**
+     - Al iniciar sesión → Detecta contraseña débil → Redirige a `/weak-password-warning`
+     - Al abrir la app (si ya estaba logueado) → Detecta contraseña débil → Redirige a `/weak-password-warning`
+     - Después de cambiar contraseña → Muestra "¡Contraseña actualizada! Bienvenido al sistema" → Redirige a `/home`
+   - **Contraseña segura (≥ 8 caracteres):**
+     - Continúa al sistema normalmente sin advertencias
+
+4. **Validación en backend al registrar:**
+   - El endpoint de registro ahora valida que la contraseña tenga mínimo 8 caracteres
+   - Retorna error si no cumple: "La contraseña debe tener al menos 8 caracteres"
+
+**Beneficios:**
+- No requiere modificar la base de datos
+- Fuerza a usuarios con contraseñas débiles a actualizarlas
+- Usuarios con contraseñas seguras (≥ 8 caracteres) no son afectados
+- Mejora la seguridad sin afectar a usuarios con contraseñas seguras
+- Experiencia de usuario clara y directa
+- Mensaje de bienvenida al actualizar contraseña
+
+**Código backend (AuthController.cs):**
+```csharp
+// En Register
+if (dto.Password.Length < 8)
+    return BadRequest(new { message = "La contraseña debe tener al menos 8 caracteres" });
+
+// En Login
+var tieneContrasenaDebil = dto.Password.Length < 8;
+return Ok(new {
+    token,
+    user = new {
+        // ... otros campos
+        tieneContrasenaDebil
+    },
+    permisos = effectivePermissions
+});
+```
+
+**Código frontend (AuthProvider):**
+```dart
+bool get tieneContrasenaDebil => _user?['tieneContrasenaDebil'] == true;
+
+Future<void> refreshUser() async {
+  // Refresca datos del usuario desde /auth/me
+  // Útil después de cambiar contraseña
+}
+```
 
 ---
 
@@ -202,9 +294,14 @@ if (authProvider.currentUser?.rol == 'AdministradorDocumentos') {
 
 ### Frontend
 1. `frontend/lib/utils/form_validators.dart` - Validación de contraseña a 8 caracteres
-2. `frontend/lib/screens/movimientos/movimientos_screen.dart` - Ordenamiento, filtros de fecha con dropdown de meses, mensaje informativo y validación de documento null
-3. `frontend/lib/screens/movimientos/prestamo_form_screen.dart` - Filtrado de usuarios, mensaje informativo y corrección de `currentUser` a `user?['rol']` y `userId`
-4. `frontend/lib/screens/movimientos/mis_prestamos_screen.dart` - Validación de documento null
+2. `frontend/lib/screens/reset_password_screen.dart` - Validación de contraseña a 8 caracteres
+3. `frontend/lib/screens/forgot_password_pregunta_screen.dart` - Validación de contraseña a 8 caracteres
+4. `frontend/lib/screens/admin/restablecer_contrasena_usuario_screen.dart` - Validación de contraseña a 8 caracteres
+5. `frontend/lib/screens/movimientos/movimientos_screen.dart` - Ordenamiento, filtros de fecha con dropdowns de meses y años, mensaje informativo, validación de documento null y botón visible para ver documento
+6. `frontend/lib/screens/movimientos/prestamo_form_screen.dart` - Filtrado de usuarios, mensaje informativo y corrección de `currentUser` a `user?['rol']` y `userId`
+7. `frontend/lib/screens/movimientos/mis_prestamos_screen.dart` - Validación de documento null, botón visible para ver documento y mejoras de layout
+8. `frontend/lib/views/documentos/widgets/documento_card.dart` - Corrección de layout, eliminación de elementos duplicados y mejoras visuales
+9. `frontend/lib/services/movimiento_service.dart` - Eliminación de datos mock
 
 ### Backend
 5. `backend/Controllers/MovimientosController.cs` - Filtrado por rol y validaciones de préstamo, agregado `[AllowAnonymous]`
@@ -271,6 +368,70 @@ new("rol", role),
 - Agregadas validaciones de null antes de navegar a detalles de documento
 
 **Archivo modificado:** `frontend/lib/services/movimiento_service.dart`
+
+---
+
+## Mejoras de Interfaz de Usuario ✅
+
+### 1. Botones Visibles para Ver Documentos
+
+**Archivos modificados:**
+- `frontend/lib/screens/movimientos/movimientos_screen.dart`
+- `frontend/lib/screens/movimientos/mis_prestamos_screen.dart`
+
+**Cambios:**
+- Agregado botón con ícono de ojo (👁️) para ver documentos
+- El código del documento ya no está subrayado, ahora es texto normal
+- Botón ubicado entre el código y el badge de estado
+- Estilo consistente con el tema de la aplicación
+
+**Implementación:**
+```dart
+IconButton(
+  onPressed: onDocumentTap,
+  icon: const Icon(Icons.visibility_rounded, size: 20),
+  tooltip: 'Ver documento',
+  style: IconButton.styleFrom(
+    backgroundColor: theme.colorScheme.primaryContainer,
+    foregroundColor: theme.colorScheme.onPrimaryContainer,
+    padding: const EdgeInsets.all(8),
+  ),
+)
+```
+
+### 2. Corrección de Layout en Tarjetas de Documentos
+
+**Archivo modificado:** `frontend/lib/views/documentos/widgets/documento_card.dart`
+
+**Problemas corregidos:**
+- Eliminados botones de eliminar duplicados
+- Eliminados elementos superpuestos
+- Mejor organización del espacio
+- Iconos y badges correctamente alineados
+
+**Mejoras implementadas:**
+- Layout limpio con un solo botón de eliminar
+- Ícono del tipo de documento visible
+- Badge de estado claramente visible
+- Información organizada: código, descripción, fecha y gestión
+- Sombras sutiles para profundidad
+- Vista de lista también mejorada
+
+**Estructura de la tarjeta:**
+- Header: Ícono del documento + Badge de estado + Botón eliminar
+- Cuerpo: Código del documento + Descripción
+- Footer: Fecha de registro + Badge de gestión
+
+### 3. Mejoras en "Mis Préstamos"
+
+**Archivo modificado:** `frontend/lib/screens/movimientos/mis_prestamos_screen.dart`
+
+**Mejoras:**
+- Botón visible para ver documento (ícono de ojo)
+- Mejor espaciado entre elementos
+- Iconos más grandes y visibles (16px)
+- Sombras en las tarjetas para mejor profundidad
+- Mejor alineación de información
 
 ---
 

@@ -59,9 +59,20 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      final route = auth.isAuthenticated ? '/home' : '/login';
-      debugPrint('[SPLASH] auth.isAuthenticated=${auth.isAuthenticated} -> navegando a $route');
-      Navigator.of(context).pushReplacementNamed(route);
+      
+      // Si está autenticado, verificar si tiene contraseña débil
+      if (auth.isAuthenticated) {
+        if (auth.tieneContrasenaDebil) {
+          debugPrint('[SPLASH] Usuario con contraseña débil -> navegando a /weak-password-warning');
+          Navigator.of(context).pushReplacementNamed('/weak-password-warning');
+          return;
+        }
+        debugPrint('[SPLASH] Usuario autenticado -> navegando a /home');
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        debugPrint('[SPLASH] Usuario no autenticado -> navegando a /login');
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
     } catch (e, st) {
       debugPrint('[SPLASH] ERROR en _redirect: $e');
       debugPrint('[SPLASH] stack: $st');
@@ -175,7 +186,14 @@ class _SessionSplashScreenState extends State<SessionSplashScreen>
 
     Future.delayed(const Duration(milliseconds: 1100), () {
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed('/home');
+      
+      // Verificar si el usuario tiene contraseña débil
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (auth.tieneContrasenaDebil) {
+        Navigator.of(context).pushReplacementNamed('/weak-password-warning');
+      } else {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
     });
   }
 

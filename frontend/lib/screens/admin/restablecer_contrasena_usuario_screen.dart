@@ -323,7 +323,7 @@ class _RestablecerContrasenaUsuarioScreenState
                 autofillHints: const [AutofillHints.newPassword],
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
-                  hintText: 'Mínimo 6 caracteres',
+                  hintText: 'Mínimo 8 caracteres',
                   prefixIcon: const Icon(Icons.lock_outline_rounded),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -340,7 +340,7 @@ class _RestablecerContrasenaUsuarioScreenState
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Ingrese la nueva contraseña';
-                  if (v.length < 6) return 'Mínimo 6 caracteres';
+                  if (v.length < 8) return 'Mínimo 8 caracteres';
                   return null;
                 },
               ),

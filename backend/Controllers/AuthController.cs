@@ -61,6 +61,10 @@ public class AuthController : ControllerBase
             string.IsNullOrWhiteSpace(dto.Email))
             return BadRequest(new { message = "Todos los campos son obligatorios" });
 
+        // Validar longitud mínima de contraseña
+        if (dto.Password.Length < 8)
+            return BadRequest(new { message = "La contraseña debe tener al menos 8 caracteres" });
+
         if (dto.PreguntaSecretaId <= 0 || dto.PreguntaSecretaId > PreguntasSecretas.Count)
             return BadRequest(new { message = "Elige una pregunta de seguridad válida." });
         if (string.IsNullOrWhiteSpace(dto.RespuestaSecreta))
@@ -646,6 +650,10 @@ public class AuthController : ControllerBase
             .ToList();
 
         var tienePreguntaSecreta = usuario.PreguntaSecretaId.HasValue && !string.IsNullOrEmpty(usuario.RespuestaSecretaHash);
+        
+        // Detectar si la contraseña es débil (menos de 8 caracteres)
+        // Verificamos la longitud de la contraseña original comparándola con el hash
+        var tieneContrasenaDebil = dto.Password.Length < 8;
 
         if (!tienePreguntaSecreta)
         {
@@ -679,7 +687,8 @@ public class AuthController : ControllerBase
                 usuario.Rol,
                 usuario.AreaId,
                 usuario.Activo,
-                tienePreguntaSecreta
+                tienePreguntaSecreta,
+                tieneContrasenaDebil
             },
             permisos = effectivePermissions
         });

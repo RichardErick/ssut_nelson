@@ -197,7 +197,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         )
                       else
                         Text(
-                          'Elige una contraseña nueva (mínimo 6 caracteres).',
+                          'Elige una contraseña nueva (mínimo 8 caracteres).',
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             color: Colors.white70,
@@ -271,7 +271,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           enabled: !_isLoading,
                           decoration: InputDecoration(
                             labelText: 'Nueva contraseña',
-                            hintText: 'Mínimo 6 caracteres',
+                            hintText: 'Mínimo 8 caracteres',
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -292,7 +292,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           style: const TextStyle(color: Colors.white),
                           validator: (v) {
                             if (v == null || v.isEmpty) return 'Ingresa la nueva contraseña';
-                            if (v.length < 6) return 'Mínimo 6 caracteres';
+                            if (v.length < 8) return 'Mínimo 8 caracteres';
                             return null;
                           },
                         ),
