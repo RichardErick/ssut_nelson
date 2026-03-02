@@ -948,9 +948,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                     ),
                   ),
                   Positioned(
-                    bottom: 15,
-                    left: 24,
-                    right: 24,
+                    bottom: 8,
+                    left: 20,
+                    right: 20,
                     child: _fadeInUp(
                       duration: const Duration(milliseconds: 600),
                       child: Column(
@@ -973,7 +973,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                     Hero(
                                       tag: 'folder_icon_${carpeta.id}',
                                       child: Container(
-                                        padding: const EdgeInsets.all(10),
+                                        padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           gradient: LinearGradient(
                                             begin: Alignment.topLeft,
@@ -982,18 +982,18 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                                 ? [Colors.teal.shade300, Colors.teal.shade500]
                                                 : [Colors.amber.shade400, Colors.orange.shade500],
                                           ),
-                                          borderRadius: BorderRadius.circular(15),
+                                          borderRadius: BorderRadius.circular(12),
                                           boxShadow: [
                                             BoxShadow(
                                               color: (carpeta.tipo?.contains('Ingreso') ?? false ? Colors.teal : Colors.orange).withOpacity(0.3),
-                                              blurRadius: 12,
-                                              offset: const Offset(0, 6),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
                                             ),
-                                          ],
+                                          ),
                                         ),
                                         child: Icon(
                                           (carpeta.tipo?.contains('Ingreso') ?? false) ? Icons.folder_zip_rounded : Icons.folder_rounded,
-                                          size: 24,
+                                          size: 22,
                                           color: Colors.white,
                                         ),
                                       ),
@@ -1016,7 +1016,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 20),
+                              const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1024,7 +1024,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                     Text(
                                       carpeta.nombre,
                                       style: GoogleFonts.poppins(
-                                        fontSize: 20,
+                                        fontSize: 18,
                                         fontWeight: FontWeight.w700,
                                         color: theme.colorScheme.onSurface,
                                         height: 1.2,
@@ -1033,24 +1033,24 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 8),
                                     Row(
                                       children: [
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                           decoration: BoxDecoration(
                                             color: theme.colorScheme.primary.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(16),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(Icons.folder_shared_rounded, size: 14, color: theme.colorScheme.primary),
-                                              const SizedBox(width: 6),
+                                              Icon(Icons.folder_shared_rounded, size: 12, color: theme.colorScheme.primary),
+                                              const SizedBox(width: 4),
                                               Text(
                                                 'Espacio de Trabajo / ${(carpeta.tipo?.contains('Ingreso') ?? false) ? 'Ingresos' : 'Egresos'}',
                                                 style: GoogleFonts.inter(
-                                                  fontSize: 11,
+                                                  fontSize: 10,
                                                   fontWeight: FontWeight.bold,
                                                   color: theme.colorScheme.primary,
                                                 ),
@@ -1058,11 +1058,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                             ],
                                           ),
                                         ),
-                                        const SizedBox(width: 12),
+                                        const SizedBox(width: 10),
                                         Text(
                                           'Fecha: ${DateFormat('dd/MM/yyyy').format(carpeta.fechaCreacion)}',
                                           style: GoogleFonts.inter(
-                                            fontSize: 12,
+                                            fontSize: 11,
                                             color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
                                             fontWeight: FontWeight.w500,
                                           ),
@@ -1074,7 +1074,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           _buildHeaderStats(carpeta, docs, theme),
                         ],
                       ),
