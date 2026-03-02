@@ -51,6 +51,7 @@ class CarpetaCard extends StatelessWidget {
             padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   width: 48,
@@ -63,17 +64,20 @@ class CarpetaCard extends StatelessWidget {
                   ),
                   child: const Icon(Icons.folder_rounded, color: Colors.white),
                 ),
-                const Spacer(),
-                Text(
-                  carpeta.nombre,
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                const SizedBox(height: 12),
+                Flexible(
+                  child: Text(
+                    carpeta.nombre,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 if (gestionLine != null)
                   Text(
                     gestionLine,
@@ -81,6 +85,8 @@ class CarpetaCard extends StatelessWidget {
                       fontSize: 12,
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 if (nroLine != null)
                   Text(
@@ -89,6 +95,8 @@ class CarpetaCard extends StatelessWidget {
                       fontSize: 12,
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 if (romanoLine != null)
                   Text(
@@ -97,6 +105,8 @@ class CarpetaCard extends StatelessWidget {
                       fontSize: 12,
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 if (rangoLine != null)
                   Text(
@@ -105,12 +115,16 @@ class CarpetaCard extends StatelessWidget {
                       fontSize: 12,
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                const SizedBox(height: 4),
                 Text(
                   'Doc: ${carpeta.numeroDocumentos}',
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ],
