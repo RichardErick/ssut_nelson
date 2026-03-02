@@ -58,11 +58,11 @@ class DocumentoCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             hoverColor: theme.colorScheme.primary.withOpacity(0.02),
             child: Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Logo Tipo y Badge Estado
+                  // Logo Tipo y Código (sin competir con badge)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -94,6 +94,7 @@ class DocumentoCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
+                            const SizedBox(height: 2),
                             Text(
                               doc.tipoDocumentoNombre ?? 'Documento',
                               style: GoogleFonts.inter(
@@ -102,10 +103,11 @@ class DocumentoCard extends StatelessWidget {
                                 color: Colors.grey.shade600,
                               ),
                             ),
+                            const SizedBox(height: 6),
+                            _buildEstadoBadge(doc.estado),
                           ],
                         ),
                       ),
-                      _buildEstadoBadge(doc.estado),
                     ],
                   ),
 

@@ -926,7 +926,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       physics: const BouncingScrollPhysics(),
       slivers: [
         SliverAppBar(
-          expandedHeight: 140.0,
+          expandedHeight: 115.0,
           floating: false,
           pinned: true,
           elevation: 0,
@@ -934,7 +934,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           backgroundColor: theme.scaffoldBackgroundColor,
           surfaceTintColor: theme.scaffoldBackgroundColor,
           centerTitle: false,
-          toolbarHeight: 50,
+          toolbarHeight: 48,
           title: BreadcrumbHeader(
             currentName: carpeta.nombre,
             parentName: carpeta.carpetaPadreNombre,
@@ -1169,7 +1169,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 6),
                           _buildHeaderStats(carpeta, docs, theme),
                         ],
                       ),
@@ -1183,8 +1183,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         SliverPersistentHeader(
           pinned: true,
           delegate: _SliverAppBarDelegate(
-            minHeight: 60,
-            maxHeight: 60,
+            minHeight: 48,
+            maxHeight: 48,
             child: Container(
               decoration: BoxDecoration(
                 color: theme.scaffoldBackgroundColor.withOpacity(0.95),
@@ -1900,11 +1900,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final spacing = compact ? 12.0 : 16.0;
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(paddingH, 16, paddingH, 80),
+      padding: EdgeInsets.fromLTRB(paddingH, 12, paddingH, 80),
       sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: compact ? 380 : 300,
-          childAspectRatio: 0.8,
+          childAspectRatio: 0.75,
           crossAxisSpacing: spacing,
           mainAxisSpacing: spacing,
         ),
