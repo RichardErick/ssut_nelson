@@ -307,10 +307,15 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
                                 color: theme.colorScheme.surface,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: theme.colorScheme.outline.withOpacity(
-                                    0.1,
-                                  ),
+                                  color: theme.colorScheme.outline.withOpacity(0.1),
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               padding: const EdgeInsets.all(16),
                               child: Column(
@@ -319,18 +324,26 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
                                   Row(
                                     children: [
                                       Expanded(
-                                        child: InkWell(
-                                          onTap: () => _verDocumento(context, mov.documentoId),
-                                          child: Text(
-                                            mov.documentoCodigo ?? 'Sin código',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w700,
-                                              color: theme.colorScheme.primary,
-                                              decoration: TextDecoration.underline,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
+                                        child: Text(
+                                          mov.documentoCodigo ?? 'Sin código',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: theme.colorScheme.onSurface,
                                           ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      // Botón para ver documento
+                                      IconButton(
+                                        onPressed: () => _verDocumento(context, mov.documentoId),
+                                        icon: const Icon(Icons.visibility_rounded, size: 20),
+                                        tooltip: 'Ver documento',
+                                        style: IconButton.styleFrom(
+                                          backgroundColor: theme.colorScheme.primaryContainer,
+                                          foregroundColor: theme.colorScheme.onPrimaryContainer,
+                                          padding: const EdgeInsets.all(8),
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -356,61 +369,63 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 12),
                                   if (mov.areaOrigenNombre != null ||
                                       mov.areaDestinoNombre != null) ...[
-                                    Text(
-                                      '${mov.areaOrigenNombre ?? '-'} → ${mov.areaDestinoNombre ?? '-'}',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 13,
-                                        color:
-                                            theme.colorScheme.onSurfaceVariant,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.location_on_outlined,
+                                          size: 16,
+                                          color: theme.colorScheme.onSurfaceVariant,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            '${mov.areaOrigenNombre ?? '-'} → ${mov.areaDestinoNombre ?? '-'}',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 13,
+                                              color: theme.colorScheme.onSurfaceVariant,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 8),
                                   ],
                                   Row(
                                     children: [
                                       Icon(
                                         Icons.event_outlined,
-                                        size: 14,
-                                        color:
-                                            theme.colorScheme.onSurfaceVariant,
+                                        size: 16,
+                                        color: theme.colorScheme.onSurfaceVariant,
                                       ),
-                                      const SizedBox(width: 4),
+                                      const SizedBox(width: 6),
                                       Text(
                                         'Préstamo: ${dateFormat.format(mov.fechaMovimiento)}',
                                         style: GoogleFonts.inter(
-                                          fontSize: 12,
-                                          color:
-                                              theme
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
+                                          fontSize: 13,
+                                          color: theme.colorScheme.onSurfaceVariant,
                                         ),
                                       ),
                                     ],
                                   ),
                                   if (vence != null) ...[
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: 6),
                                     Row(
                                       children: [
                                         Icon(
                                           Icons.event_available_outlined,
-                                          size: 14,
-                                          color:
-                                              theme
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
+                                          size: 16,
+                                          color: theme.colorScheme.onSurfaceVariant,
                                         ),
-                                        const SizedBox(width: 4),
+                                        const SizedBox(width: 6),
                                         Text(
                                           'Límite: ${dateFormat.format(vence)}',
                                           style: GoogleFonts.inter(
-                                            fontSize: 12,
-                                            color:
-                                                theme
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
+                                            fontSize: 13,
+                                            color: theme.colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                       ],
