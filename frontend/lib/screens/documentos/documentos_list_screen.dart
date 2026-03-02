@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/providers/data_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,27 +8,23 @@ import 'package:provider/provider.dart';
 
 import '../../models/carpeta.dart';
 import '../../models/documento.dart';
-import '../../models/usuario.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/carpeta_service.dart';
 import '../../services/documento_service.dart';
-import '../../services/usuario_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/app_alert.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_shimmer.dart';
+import 'components/breadcrumb_header.dart';
+import 'components/carpeta_card.dart';
+import 'components/dialog_filtro_carpetas.dart';
+import 'components/documento_card.dart';
+import 'components/filtros_avanzados_sheet.dart';
+import 'components/subcarpeta_card.dart';
 import 'documento_detail_screen.dart';
 import 'documento_form_screen.dart';
 import 'subcarpeta_form_screen.dart';
-
-import 'components/carpeta_card.dart';
-import 'components/subcarpeta_card.dart';
-import 'components/documento_card.dart';
-import 'components/documentos_filter_chips.dart';
-import 'components/dialog_filtro_carpetas.dart';
-import 'components/filtros_avanzados_sheet.dart';
-import 'components/breadcrumb_header.dart';
 
 class DocumentosListScreen extends StatefulWidget {
   final int? initialCarpetaId;
@@ -70,7 +67,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   /// Filtro por gestión en la vista Carpetas (solo aplica cuando _carpetaSeleccionada == null).
   String? _gestionFilterCarpetas;
-  String _tipoCarpetaFiltro = 'Todos'; // Todos, Comprobante de Ingreso, Comprobante de Egreso
+  String _tipoCarpetaFiltro =
+      'Todos'; // Todos, Comprobante de Ingreso, Comprobante de Egreso
 
   /// Gestiones existentes en las carpetas cargadas, ordenadas descendente (2026, 2025, 2022...).
   List<String> get _gestionesCarpetasDisponibles {
@@ -187,21 +185,25 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       _cargarCarpetas(todasLasGestiones: true);
       return;
     }
-    _debounceBusquedaVistaCarpetas = Timer(const Duration(milliseconds: 300), () {
-      if (mounted && _carpetaSeleccionada == null) {
-        _buscarDocumentosDesdeVistaCarpetas();
-      }
-    });
+    _debounceBusquedaVistaCarpetas = Timer(
+      const Duration(milliseconds: 300),
+      () {
+        if (mounted && _carpetaSeleccionada == null) {
+          _buscarDocumentosDesdeVistaCarpetas();
+        }
+      },
+    );
   }
 
   /// Busca documentos por texto (código, número) desde la vista Carpetas. Solo si hay 3+ caracteres.
   Future<void> _buscarDocumentosDesdeVistaCarpetas() async {
     final query = _consultaBusqueda.trim();
     if (query.isEmpty || query.length < 3) {
-      if (mounted) setState(() {
-        _documentosBusquedaCarpetas = [];
-        _estaCargandoBusquedaDocumentos = false;
-      });
+      if (mounted)
+        setState(() {
+          _documentosBusquedaCarpetas = [];
+          _estaCargandoBusquedaDocumentos = false;
+        });
       return;
     }
     setState(() => _estaCargandoBusquedaDocumentos = true);
@@ -278,14 +280,16 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     try {
       final service = Provider.of<DocumentoService>(context, listen: false);
       final n = _numeroComprobanteFilter.trim();
-      final textoBusqueda = _consultaBusqueda.trim().isEmpty ? null : _consultaBusqueda.trim();
+      final textoBusqueda =
+          _consultaBusqueda.trim().isEmpty ? null : _consultaBusqueda.trim();
       final dto = BusquedaDocumentoDTO(
         carpetaId: carpetaId,
         numeroCorrelativo: n.isEmpty ? null : n,
         fechaDesde: _fechaDesdeFilter,
         fechaHasta: _fechaHastaFilter,
         responsableId: _responsableIdFilter,
-        codigoQR: _codigoQrFilter.trim().isEmpty ? null : _codigoQrFilter.trim(),
+        codigoQR:
+            _codigoQrFilter.trim().isEmpty ? null : _codigoQrFilter.trim(),
         textoBusqueda: textoBusqueda,
         page: 1,
         pageSize: 100,
@@ -403,14 +407,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     // Filtro texto
     if (_consultaBusqueda.trim().isNotEmpty) {
       final query = _consultaBusqueda.toLowerCase().trim();
-      filtrados = filtrados.where((doc) {
-        return doc.codigo.toLowerCase().contains(query) ||
-            doc.numeroCorrelativo.toLowerCase().contains(query) ||
-            (doc.tipoDocumentoNombre ?? '').toLowerCase().contains(query) ||
-            (doc.descripcion ?? '').toLowerCase().contains(query);
-      }).toList();
+      filtrados =
+          filtrados.where((doc) {
+            return doc.codigo.toLowerCase().contains(query) ||
+                doc.numeroCorrelativo.toLowerCase().contains(query) ||
+                (doc.tipoDocumentoNombre ?? '').toLowerCase().contains(query) ||
+                (doc.descripcion ?? '').toLowerCase().contains(query);
+          }).toList();
     }
-    
+
     // Filtro estado
     if (_filtroSeleccionado != 'todos') {
       filtrados =
@@ -424,9 +429,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       filtrados =
           filtrados
               .where(
-                (doc) => (doc.tipoDocumentoNombre ?? '')
-                    .toLowerCase()
-                    .contains(_filtroTipoDocumento),
+                (doc) => (doc.tipoDocumentoNombre ?? '').toLowerCase().contains(
+                  _filtroTipoDocumento,
+                ),
               )
               .toList();
     }
@@ -535,19 +540,31 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   color: Colors.orange.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.lock_rounded, size: 80, color: Colors.orange.shade700),
+                child: Icon(
+                  Icons.lock_rounded,
+                  size: 80,
+                  color: Colors.orange.shade700,
+                ),
               ),
               const SizedBox(height: 32),
               Text(
                 'No tienes permisos para acceder a esta pantalla',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700, color: theme.colorScheme.onSurface),
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
                 'El permiso "Ver documento" está desactivado para tu usuario. Contacta al administrador si necesitas acceso.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(fontSize: 15, color: theme.colorScheme.onSurfaceVariant, height: 1.5),
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
               ),
             ],
           ),
@@ -597,7 +614,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _agregarDocumento(Carpeta carpeta) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('subir_documento')) {
-      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para agregar documentos.', buttonText: 'Entendido');
+      AppAlert.warning(
+        context,
+        'Sin permisos',
+        'No tienes permisos para agregar documentos.',
+        buttonText: 'Entendido',
+      );
       return;
     }
     print(
@@ -738,9 +760,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               child: EmptyState(
                 icon: Icons.folder_open_outlined,
                 title: 'No hay carpetas',
-                subtitle: puedeAgregarCarpeta
-                    ? 'Cree la primera con el botón flotante de abajo (rango y fecha).'
-                    : 'No tiene permiso para crear carpetas.',
+                subtitle:
+                    puedeAgregarCarpeta
+                        ? 'Cree la primera con el botón flotante de abajo (rango y fecha).'
+                        : 'No tiene permiso para crear carpetas.',
                 action: null,
               ),
             )
@@ -749,7 +772,8 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               child: EmptyState(
                 icon: Icons.filter_list_off_rounded,
                 title: 'Sin coincidencias',
-                subtitle: 'No se encontraron carpetas con los filtros aplicados.',
+                subtitle:
+                    'No se encontraron carpetas con los filtros aplicados.',
                 action: null,
               ),
             )
@@ -763,22 +787,19 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                   crossAxisSpacing: 20,
                   mainAxisSpacing: 20,
                 ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final c = carpetas[index];
-                    return CarpetaCard(
-                      carpeta: c,
-                      theme: theme,
-                      onOpen: _abrirCarpeta,
-                      onEdit: _abrirEditarCarpeta,
-                      onDelete: _confirmarEliminarCarpeta,
-                    );
-                  },
-                  childCount: carpetas.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final c = carpetas[index];
+                  return CarpetaCard(
+                    carpeta: c,
+                    theme: theme,
+                    onOpen: _abrirCarpeta,
+                    onEdit: _abrirEditarCarpeta,
+                    onDelete: _confirmarEliminarCarpeta,
+                  );
+                }, childCount: carpetas.length),
               ),
             ),
-          
+
           // Documentos encontrados con búsqueda (si aplica)
           if (_consultaBusqueda.isNotEmpty && _consultaBusqueda.length >= 3)
             _construirSliverBusquedaDocumentos(theme),
@@ -811,45 +832,52 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
             child: Row(
               children: [
-                Icon(Icons.manage_search_rounded, color: Colors.green.shade700, size: 24),
+                Icon(
+                  Icons.manage_search_rounded,
+                  color: Colors.green.shade700,
+                  size: 24,
+                ),
                 const SizedBox(width: 12),
                 Text(
                   'Documentos que coinciden',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
           ),
         ),
         if (_estaCargandoBusquedaDocumentos)
-          const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+          const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          )
         else if (_documentosBusquedaCarpetas.isEmpty)
           const SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 48),
-              child: Center(child: Text('Ningún documento coincide con la búsqueda')),
+              child: Center(
+                child: Text('Ningún documento coincide con la búsqueda'),
+              ),
             ),
           )
         else
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: DocumentoCard(
-                      doc: _documentosBusquedaCarpetas[index],
-                      theme: theme,
-                      index: index,
-                      onDetail: _navegarAlDetalle,
-                      onEdit: _abrirEditarDocumento,
-                      onDelete: _confirmarEliminarDocumento,
-                    ),
-                  );
-                },
-                childCount: _documentosBusquedaCarpetas.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: DocumentoCard(
+                    doc: _documentosBusquedaCarpetas[index],
+                    theme: theme,
+                    index: index,
+                    onDetail: _navegarAlDetalle,
+                    onEdit: _abrirEditarDocumento,
+                    onDelete: _confirmarEliminarDocumento,
+                  ),
+                );
+              }, childCount: _documentosBusquedaCarpetas.length),
             ),
           ),
       ],
@@ -860,16 +888,22 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _abrirAgregarCarpeta() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('subir_documento')) {
-      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para agregar carpetas.', buttonText: 'Entendido');
+      AppAlert.warning(
+        context,
+        'Sin permisos',
+        'No tienes permisos para agregar carpetas.',
+        buttonText: 'Entendido',
+      );
       return;
     }
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const SubcarpetaFormScreen(
-          carpetaPadreId: null,
-          carpetaPadreNombre: 'Carpeta principal',
-        ),
+        builder:
+            (context) => const SubcarpetaFormScreen(
+              carpetaPadreId: null,
+              carpetaPadreNombre: 'Carpeta principal',
+            ),
       ),
     );
     if (result == true && mounted) {
@@ -881,8 +915,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       _mostrarSnackBarExito('Carpeta creada correctamente.');
     }
   }
-
-
 
   Widget _construirVistaDocumentosCarpeta(ThemeData theme) {
     final carpeta = _carpetaSeleccionada!;
@@ -916,13 +948,19 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           actions: [
             if (!mostrarPanelLateral)
               IconButton(
-                icon: Icon(Icons.menu_open_rounded, color: theme.colorScheme.onSurface),
+                icon: Icon(
+                  Icons.menu_open_rounded,
+                  color: theme.colorScheme.onSurface,
+                ),
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
             const SizedBox(width: 8),
           ],
           flexibleSpace: FlexibleSpaceBar(
-            stretchModes: const [StretchMode.blurBackground, StretchMode.zoomBackground],
+            stretchModes: const [
+              StretchMode.blurBackground,
+              StretchMode.zoomBackground,
+            ],
             background: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -937,14 +975,17 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                   // Decoración sutil de fondo
+                  // Decoración sutil de fondo
                   Positioned(
                     top: -20,
                     right: -20,
                     child: Icon(
                       Icons.folder_copy_rounded,
                       size: 200,
-                      color: (carpeta.carpetaPadreId == null ? Colors.amber : Colors.blue).withOpacity(0.03),
+                      color: (carpeta.carpetaPadreId == null
+                              ? Colors.amber
+                              : Colors.blue)
+                          .withOpacity(0.03),
                     ),
                   ),
                   Positioned(
@@ -962,8 +1003,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                             children: [
                               GestureDetector(
                                 onTap: () {
-                                  if (_carpetaSeleccionada?.carpetaPadreId != null) {
-                                    _navegarACarpetaPadre(_carpetaSeleccionada!.carpetaPadreId!);
+                                  if (_carpetaSeleccionada?.carpetaPadreId !=
+                                      null) {
+                                    _navegarACarpetaPadre(
+                                      _carpetaSeleccionada!.carpetaPadreId!,
+                                    );
                                   } else {
                                     setState(() => _carpetaSeleccionada = null);
                                   }
@@ -978,21 +1022,42 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                           gradient: LinearGradient(
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
-                                            colors: (carpeta.tipo?.contains('Ingreso') ?? false)
-                                                ? [Colors.teal.shade300, Colors.teal.shade500]
-                                                : [Colors.amber.shade400, Colors.orange.shade500],
+                                            colors:
+                                                (carpeta.tipo?.contains(
+                                                          'Ingreso',
+                                                        ) ??
+                                                        false)
+                                                    ? [
+                                                      Colors.teal.shade300,
+                                                      Colors.teal.shade500,
+                                                    ]
+                                                    : [
+                                                      Colors.amber.shade400,
+                                                      Colors.orange.shade500,
+                                                    ],
                                           ),
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: (carpeta.tipo?.contains('Ingreso') ?? false ? Colors.teal : Colors.orange).withOpacity(0.3),
+                                              color: (carpeta.tipo?.contains(
+                                                            'Ingreso',
+                                                          ) ??
+                                                          false
+                                                      ? Colors.teal
+                                                      : Colors.orange)
+                                                  .withOpacity(0.3),
                                               blurRadius: 10,
                                               offset: const Offset(0, 4),
                                             ),
-                                          ),
+                                          ],
                                         ),
                                         child: Icon(
-                                          (carpeta.tipo?.contains('Ingreso') ?? false) ? Icons.folder_zip_rounded : Icons.folder_rounded,
+                                          (carpeta.tipo?.contains('Ingreso') ??
+                                                  false)
+                                              ? Icons.folder_zip_rounded
+                                              : Icons.folder_rounded,
                                           size: 22,
                                           color: Colors.white,
                                         ),
@@ -1007,10 +1072,25 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                           color: Colors.white,
                                           shape: BoxShape.circle,
                                           boxShadow: [
-                                            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.1,
+                                              ),
+                                              blurRadius: 4,
+                                            ),
                                           ],
                                         ),
-                                        child: Icon(Icons.arrow_back_rounded, size: 10, color: (carpeta.tipo?.contains('Ingreso') ?? false) ? Colors.teal : Colors.orange),
+                                        child: Icon(
+                                          Icons.arrow_back_rounded,
+                                          size: 10,
+                                          color:
+                                              (carpeta.tipo?.contains(
+                                                        'Ingreso',
+                                                      ) ??
+                                                      false)
+                                                  ? Colors.teal
+                                                  : Colors.orange,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -1037,22 +1117,34 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                     Row(
                                       children: [
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: theme.colorScheme.primary.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(16),
+                                            color: theme.colorScheme.primary
+                                                .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(Icons.folder_shared_rounded, size: 12, color: theme.colorScheme.primary),
+                                              Icon(
+                                                Icons.folder_shared_rounded,
+                                                size: 12,
+                                                color:
+                                                    theme.colorScheme.primary,
+                                              ),
                                               const SizedBox(width: 4),
                                               Text(
                                                 'Espacio de Trabajo / ${(carpeta.tipo?.contains('Ingreso') ?? false) ? 'Ingresos' : 'Egresos'}',
                                                 style: GoogleFonts.inter(
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.bold,
-                                                  color: theme.colorScheme.primary,
+                                                  color:
+                                                      theme.colorScheme.primary,
                                                 ),
                                               ),
                                             ],
@@ -1063,7 +1155,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                           'Fecha: ${DateFormat('dd/MM/yyyy').format(carpeta.fechaCreacion)}',
                                           style: GoogleFonts.inter(
                                             fontSize: 11,
-                                            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant
+                                                .withOpacity(0.6),
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
@@ -1094,7 +1189,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               decoration: BoxDecoration(
                 color: theme.scaffoldBackgroundColor.withOpacity(0.95),
                 border: Border(
-                  bottom: BorderSide(color: theme.dividerColor.withOpacity(0.05)),
+                  bottom: BorderSide(
+                    color: theme.dividerColor.withOpacity(0.05),
+                  ),
                 ),
               ),
               child: _buildViewControls(theme),
@@ -1102,17 +1199,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           ),
         ),
         if (_estaCargandoDocumentosCarpeta)
-          SliverFillRemaining(
-            child: _buildDocumentosLoading(),
-          )
+          SliverFillRemaining(child: _buildDocumentosLoading())
         else if (docs.isEmpty)
-           SliverPadding(
-             padding: const EdgeInsets.only(top: 40),
-             sliver: SliverFillRemaining(
-               hasScrollBody: false,
-               child: _buildDocumentosEmpty(),
-             ),
-           )
+          SliverPadding(
+            padding: const EdgeInsets.only(top: 40),
+            sliver: SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildDocumentosEmpty(),
+            ),
+          )
         else
           _vistaGrid
               ? _construirSliverGrid(docs, theme)
@@ -1139,11 +1234,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           ),
         ),
       ),
-      drawer: !mostrarPanelLateral
-          ? Drawer(
-              child: panelCarpetas,
-            )
-          : null,
+      drawer: !mostrarPanelLateral ? Drawer(child: panelCarpetas) : null,
     );
   }
 
@@ -1162,11 +1253,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
-
-
-
-  Widget _buildHeaderStats(Carpeta carpeta, List<Documento> docs, ThemeData theme) {
-    final rango = _estaCargandoDocumentosCarpeta ? '...' : _calcularRangoCorrelativos(docs);
+  Widget _buildHeaderStats(
+    Carpeta carpeta,
+    List<Documento> docs,
+    ThemeData theme,
+  ) {
+    final rango =
+        _estaCargandoDocumentosCarpeta
+            ? '...'
+            : _calcularRangoCorrelativos(docs);
     return Row(
       children: [
         _buildStatChip(
@@ -1235,21 +1330,27 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
 
   /// Panel lateral de carpetas (lista). Agregar carpeta solo con el FAB de abajo.
   Widget _buildPanelCarpetasLateral(ThemeData theme) {
-    var carpetas = _carpetas
-        .where((c) => c.carpetaPadreId == null)
-        .where((c) =>
-            _gestionFilterCarpetas == null ||
-            _gestionFilterCarpetas!.isEmpty ||
-            c.gestion == _gestionFilterCarpetas)
-        .toList();
+    var carpetas =
+        _carpetas
+            .where((c) => c.carpetaPadreId == null)
+            .where(
+              (c) =>
+                  _gestionFilterCarpetas == null ||
+                  _gestionFilterCarpetas!.isEmpty ||
+                  c.gestion == _gestionFilterCarpetas,
+            )
+            .toList();
     if (_consultaBusqueda.trim().isNotEmpty) {
       final q = _consultaBusqueda.toLowerCase().trim();
-      carpetas = carpetas
-          .where((c) =>
-              c.nombre.toLowerCase().contains(q) ||
-              (c.codigo?.toLowerCase().contains(q) ?? false) ||
-              c.gestion.toLowerCase().contains(q))
-          .toList();
+      carpetas =
+          carpetas
+              .where(
+                (c) =>
+                    c.nombre.toLowerCase().contains(q) ||
+                    (c.codigo?.toLowerCase().contains(q) ?? false) ||
+                    c.gestion.toLowerCase().contains(q),
+              )
+              .toList();
     }
     final width = MediaQuery.of(context).size.width;
     final esDrawer = width < 900;
@@ -1288,19 +1389,23 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               const SizedBox(height: 16),
               Text(
                 'Cargando carpetas...',
-                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
               ),
             ],
           ),
         ),
       );
     } else if (carpetas.isEmpty) {
-      final numDocsEncontrados = _carpetaSeleccionada == null
-          ? (_consultaBusqueda.trim().isNotEmpty
-              ? _documentosBusquedaCarpetas.length
-              : _documentosFiltrados.length)
-          : _documentosCarpetaFiltrados.length;
-      final hayDocumentosConBusqueda = _consultaBusqueda.trim().isNotEmpty && numDocsEncontrados > 0;
+      final numDocsEncontrados =
+          _carpetaSeleccionada == null
+              ? (_consultaBusqueda.trim().isNotEmpty
+                  ? _documentosBusquedaCarpetas.length
+                  : _documentosFiltrados.length)
+              : _documentosCarpetaFiltrados.length;
+      final hayDocumentosConBusqueda =
+          _consultaBusqueda.trim().isNotEmpty && numDocsEncontrados > 0;
       listContent = Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -1310,17 +1415,22 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               Icon(
                 noHayNinguna
                     ? Icons.folder_open_outlined
-                    : hayDocumentosConBusqueda ? Icons.description_outlined : Icons.search_off_rounded,
+                    : hayDocumentosConBusqueda
+                    ? Icons.description_outlined
+                    : Icons.search_off_rounded,
                 size: 56,
-                color: hayDocumentosConBusqueda ? Colors.green.shade600 : Colors.grey.shade400,
+                color:
+                    hayDocumentosConBusqueda
+                        ? Colors.green.shade600
+                        : Colors.grey.shade400,
               ),
               const SizedBox(height: 16),
               Text(
                 noHayNinguna
                     ? 'No hay carpetas'
                     : hayDocumentosConBusqueda
-                        ? 'La búsqueda encontró $numDocsEncontrados documento(s)'
-                        : 'Sin resultados',
+                    ? 'La búsqueda encontró $numDocsEncontrados documento(s)'
+                    : 'Sin resultados',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
@@ -1332,10 +1442,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 noHayNinguna
                     ? 'Cree la primera con el botón de abajo.'
                     : hayDocumentosConBusqueda
-                        ? 'Véalos en el contenido principal (derecha).'
-                        : 'Pruebe otro filtro o búsqueda, o agregue una carpeta.',
+                    ? 'Véalos en el contenido principal (derecha).'
+                    : 'Pruebe otro filtro o búsqueda, o agregue una carpeta.',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
               ),
               const SizedBox(height: 20),
             ],
@@ -1362,17 +1474,26 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 borderRadius: BorderRadius.circular(12),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
-                    color: seleccionada ? Colors.blue.withOpacity(0.08) : Colors.transparent,
+                    color:
+                        seleccionada
+                            ? Colors.blue.withOpacity(0.08)
+                            : Colors.transparent,
                     borderRadius: BorderRadius.circular(10),
-                    boxShadow: seleccionada ? [
-                      BoxShadow(
-                        color: Colors.blue.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ] : null,
+                    boxShadow:
+                        seleccionada
+                            ? [
+                              BoxShadow(
+                                color: Colors.blue.withOpacity(0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                            : null,
                   ),
                   child: Row(
                     children: [
@@ -1380,9 +1501,14 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         duration: const Duration(milliseconds: 300),
                         turns: seleccionada ? 0 : -0.05,
                         child: Icon(
-                          seleccionada ? Icons.folder_open_rounded : Icons.folder_rounded,
+                          seleccionada
+                              ? Icons.folder_open_rounded
+                              : Icons.folder_rounded,
                           size: 20,
-                          color: seleccionada ? Colors.blue.shade700 : Colors.amber.shade700,
+                          color:
+                              seleccionada
+                                  ? Colors.blue.shade700
+                                  : Colors.amber.shade700,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -1392,8 +1518,16 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: seleccionada ? FontWeight.bold : FontWeight.w500,
-                            color: seleccionada ? Colors.blue.shade800 : theme.colorScheme.onSurface.withOpacity(0.7),
+                            fontWeight:
+                                seleccionada
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                            color:
+                                seleccionada
+                                    ? Colors.blue.shade800
+                                    : theme.colorScheme.onSurface.withOpacity(
+                                      0.7,
+                                    ),
                           ),
                         ),
                       ),
@@ -1467,7 +1601,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
-
   Widget _buildCarpetaStat(
     String label,
     String value,
@@ -1480,10 +1613,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final valueSize = compact ? 14.0 : 18.0;
     final labelSize = compact ? 10.0 : 12.0;
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: pad,
-        vertical: pad * 0.8,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: pad, vertical: pad * 0.8),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(compact ? 12 : 16),
@@ -1600,12 +1730,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
-
-
-
-
-
-
   Widget _buildViewControls(ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -1650,7 +1774,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
             icon: const Icon(Icons.tune_rounded, size: 20),
             tooltip: 'Filtros avanzados',
             style: IconButton.styleFrom(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],
@@ -1673,20 +1799,24 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
         decoration: BoxDecoration(
           color: selected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : null,
+          boxShadow:
+              selected
+                  ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                  : null,
         ),
         child: Icon(
           icon,
           size: 18,
-          color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.4),
+          color:
+              selected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface.withOpacity(0.4),
         ),
       ),
     );
@@ -1720,7 +1850,9 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
-                conFiltros ? Icons.search_off_rounded : Icons.description_outlined,
+                conFiltros
+                    ? Icons.search_off_rounded
+                    : Icons.description_outlined,
                 size: 64,
                 color: Colors.grey.shade400,
               ),
@@ -1762,14 +1894,11 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     return 'Comprobantes ${nums.first} - ${nums.last}';
   }
 
-  Widget _construirSliverGrid(
-    List<Documento> docs,
-    ThemeData theme,
-  ) {
+  Widget _construirSliverGrid(List<Documento> docs, ThemeData theme) {
     final compact = _carpetaSeleccionada?.carpetaPadreId != null;
     final paddingH = compact ? 12.0 : 16.0;
     final spacing = compact ? 12.0 : 16.0;
-    
+
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(paddingH, 16, paddingH, 80),
       sliver: SliverGrid(
@@ -1798,135 +1927,133 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final d = docs[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: TweenAnimationBuilder<double>(
-                duration: Duration(milliseconds: 300 + (index * 50)),
-                tween: Tween(begin: 0.0, end: 1.0),
-                curve: Curves.easeOutCubic,
-                builder: (context, value, child) {
-                  final clampedValue = value.clamp(0.0, 1.0); // Ensure valid range
-                  return Transform.translate(
-                    offset: Offset(0, 20 * (1 - clampedValue)),
-                    child: Opacity(opacity: clampedValue, child: child),
-                  );
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final d = docs[index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: TweenAnimationBuilder<double>(
+              duration: Duration(milliseconds: 300 + (index * 50)),
+              tween: Tween(begin: 0.0, end: 1.0),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                final clampedValue = value.clamp(
+                  0.0,
+                  1.0,
+                ); // Ensure valid range
+                return Transform.translate(
+                  offset: Offset(0, 20 * (1 - clampedValue)),
+                  child: Opacity(opacity: clampedValue, child: child),
+                );
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade100),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _navegarAlDetalle(d),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade100),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _navegarAlDetalle(d),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.blue.shade400,
-                                    Colors.blue.shade600,
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                _obtenerIconoTipoDocumento(
-                                  d.tipoDocumentoNombre ?? '',
-                                ),
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          d.codigo,
-                                          style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 15,
-                                            color: Colors.grey.shade800,
-                                          ),
-                                        ),
-                                      ),
-                                      _buildEstadoBadge(d.estado),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    d.descripcion ?? 'Sin descripción',
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      color: Colors.grey.shade600,
-                                      height: 1.3,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.calendar_today_rounded,
-                                        size: 12,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        _formatearFecha(d.fechaRegistro),
-                                        style: GoogleFonts.inter(
-                                          fontSize: 11,
-                                          color: Colors.grey.shade500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.blue.shade400,
+                                  Colors.blue.shade600,
                                 ],
                               ),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const Icon(
-                              Icons.chevron_right_rounded,
-                              color: Colors.grey,
+                            child: Icon(
+                              _obtenerIconoTipoDocumento(
+                                d.tipoDocumentoNombre ?? '',
+                              ),
+                              color: Colors.white,
+                              size: 20,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        d.codigo,
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                          color: Colors.grey.shade800,
+                                        ),
+                                      ),
+                                    ),
+                                    _buildEstadoBadge(d.estado),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  d.descripcion ?? 'Sin descripción',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade600,
+                                    height: 1.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_rounded,
+                                      size: 12,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _formatearFecha(d.fechaRegistro),
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Colors.grey,
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ),
-            );
-          },
-          childCount: docs.length,
-        ),
+            ),
+          );
+        }, childCount: docs.length),
       ),
     );
   }
-
-
 
   Widget _construirFiltrosSuperior(ThemeData theme) {
     return Container(
@@ -2036,7 +2163,13 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                 fechaHasta: _fechaHastaFilter,
                 responsableId: _responsableIdFilter,
                 codigoQrController: _codigoQrFilterController,
-                onAplicar: (numeroComprobante, fechaDesde, fechaHasta, responsableId, codigoQr) async {
+                onAplicar: (
+                  numeroComprobante,
+                  fechaDesde,
+                  fechaHasta,
+                  responsableId,
+                  codigoQr,
+                ) async {
                   setState(() {
                     _numeroComprobanteFilter = numeroComprobante;
                     _fechaDesdeFilter = fechaDesde;
@@ -2104,8 +2237,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       ),
     );
   }
-
-
 
   Widget _construirShimmerCarga(int columns) {
     return GridView.builder(
@@ -2195,12 +2326,15 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
-
-
   Future<void> _abrirEditarDocumento(Documento doc) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('editar_metadatos')) {
-      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para editar documentos.', buttonText: 'Entendido');
+      AppAlert.warning(
+        context,
+        'Sin permisos',
+        'No tienes permisos para editar documentos.',
+        buttonText: 'Entendido',
+      );
       return;
     }
     final updated = await Navigator.push<bool>(
@@ -2429,7 +2563,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _eliminarDocumento(Documento doc) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('borrar_documento')) {
-      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para eliminar documentos.', buttonText: 'Entendido');
+      AppAlert.warning(
+        context,
+        'Sin permisos',
+        'No tienes permisos para eliminar documentos.',
+        buttonText: 'Entendido',
+      );
       return;
     }
     try {
@@ -2563,52 +2702,60 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _abrirEditarCarpeta(Carpeta carpeta) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('editar_metadatos')) {
-      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para editar carpetas.', buttonText: 'Entendido');
+      AppAlert.warning(
+        context,
+        'Sin permisos',
+        'No tienes permisos para editar carpetas.',
+        buttonText: 'Entendido',
+      );
       return;
     }
     final nombreController = TextEditingController(text: carpeta.nombre);
-    final descripcionController = TextEditingController(text: carpeta.descripcion ?? '');
+    final descripcionController = TextEditingController(
+      text: carpeta.descripcion ?? '',
+    );
 
     final guardado = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Editar carpeta'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: nombreController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre',
-                  border: OutlineInputBorder(),
-                ),
-                autofocus: true,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Editar carpeta'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: nombreController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre',
+                      border: OutlineInputBorder(),
+                    ),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descripcionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Descripción (opcional)',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 2,
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descripcionController,
-                decoration: const InputDecoration(
-                  labelText: 'Descripción (opcional)',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Guardar'),
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
     );
 
     if (guardado != true || !mounted) return;
@@ -2620,12 +2767,18 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }
 
     try {
-      final carpetaService = Provider.of<CarpetaService>(context, listen: false);
+      final carpetaService = Provider.of<CarpetaService>(
+        context,
+        listen: false,
+      );
       await carpetaService.update(
         carpeta.id,
         UpdateCarpetaDTO(
           nombre: nombre,
-          descripcion: descripcionController.text.trim().isEmpty ? null : descripcionController.text.trim(),
+          descripcion:
+              descripcionController.text.trim().isEmpty
+                  ? null
+                  : descripcionController.text.trim(),
         ),
       );
       if (mounted) {
@@ -2644,7 +2797,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   Future<void> _confirmarEliminarCarpeta(Carpeta carpeta) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.hasPermission('borrar_documento')) {
-      AppAlert.warning(context, 'Sin permisos', 'No tienes permisos para eliminar carpetas.', buttonText: 'Entendido');
+      AppAlert.warning(
+        context,
+        'Sin permisos',
+        'No tienes permisos para eliminar carpetas.',
+        buttonText: 'Entendido',
+      );
       return;
     }
     final confirm = await showDialog<bool>(
@@ -2714,8 +2872,6 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     }
   }
 
-
-
   bool _canCreateDocument() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     return authProvider.hasPermission('subir_documento');
@@ -2771,10 +2927,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
   }
 }
 
-
-
 /// Bottom sheet para búsqueda avanzada: número comprobante, fecha, responsable, código QR.
-
 
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   _SliverAppBarDelegate({
