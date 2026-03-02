@@ -58,25 +58,64 @@ lista.sort((a, b) {
 
 ---
 
-### 4. Paginador de Fecha - Hoy, Mes, Año ✅
+### 4. Paginador de Fecha - Hoy, Mes (Dropdown), Año ✅
 
 **Archivo modificado:** `frontend/lib/screens/movimientos/movimientos_screen.dart`
 
 **Cambios:**
-- Agregado nuevo enum `_FiltroFecha` con opciones: todos, hoy, mes, anio
+- Agregado nuevo enum `_FiltroPeriodo` con opciones: hoy, mes, anio
+- Agregada variable `_mesSeleccionado` (1-12) para el dropdown de meses
 - Implementado filtrado por rango de fecha en `_movimientosFiltrados`
-- Agregada segunda fila de chips de filtro en la UI
+- Agregada segunda fila de filtros en la UI con dropdown de meses
 
 **Opciones de filtro:**
-1. **Todos**: Muestra todos los movimientos (sin filtro de fecha)
-2. **Hoy**: Solo movimientos del día actual
-3. **Este mes**: Solo movimientos del mes actual
-4. **Este año**: Solo movimientos del año actual
+1. **Hoy**: Solo movimientos del día actual (chip)
+2. **Mes**: Dropdown para seleccionar mes específico (Enero-Diciembre)
+3. **Este año**: Solo movimientos del año actual (chip)
 
 **UI:**
 - Primera fila: Filtros de tipo (Todos, Préstamos, Devoluciones)
-- Segunda fila: Filtros de fecha (Todos, Hoy, Este mes, Este año)
-- Los filtros se pueden combinar (ej: "Préstamos" + "Este mes")
+- Segunda fila: Chip "Hoy" + DropdownButton de meses + Chip "Este año"
+- El dropdown se resalta cuando está seleccionado el filtro de mes
+- Al seleccionar un mes en el dropdown, automáticamente cambia el filtro a "mes"
+- Los filtros se pueden combinar (ej: "Préstamos" + "Mes: Marzo")
+
+**Implementación del Dropdown:**
+```dart
+Container(
+  height: 36,
+  padding: const EdgeInsets.symmetric(horizontal: 12),
+  decoration: BoxDecoration(
+    color: _filtroPeriodo == _FiltroPeriodo.mes
+        ? theme.colorScheme.primaryContainer
+        : theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(
+      color: _filtroPeriodo == _FiltroPeriodo.mes
+          ? theme.colorScheme.primary
+          : theme.colorScheme.outline.withOpacity(0.3),
+      width: _filtroPeriodo == _FiltroPeriodo.mes ? 1.5 : 1,
+    ),
+  ),
+  child: DropdownButtonHideUnderline(
+    child: DropdownButton<int>(
+      value: _mesSeleccionado,
+      items: [
+        DropdownMenuItem(value: 1, child: Text('Enero')),
+        // ... todos los meses
+      ],
+      onChanged: (mes) {
+        if (mes != null) {
+          setState(() {
+            _mesSeleccionado = mes;
+            _filtroPeriodo = _FiltroPeriodo.mes;
+          });
+        }
+      },
+    ),
+  ),
+)
+```
 
 ---
 
@@ -137,12 +176,75 @@ if (authProvider.currentUser?.rol == 'AdministradorDocumentos') {
 
 ### Frontend
 1. `frontend/lib/utils/form_validators.dart` - Validación de contraseña a 8 caracteres
-2. `frontend/lib/screens/movimientos/movimientos_screen.dart` - Ordenamiento, filtros de fecha, mensaje informativo y validación de documento null
-3. `frontend/lib/screens/movimientos/prestamo_form_screen.dart` - Filtrado de usuarios y mensaje informativo
+2. `frontend/lib/screens/movimientos/movimientos_screen.dart` - Ordenamiento, filtros de fecha con dropdown de meses, mensaje informativo y validación de documento null
+3. `frontend/lib/screens/movimientos/prestamo_form_screen.dart` - Filtrado de usuarios, mensaje informativo y corrección de `currentUser` a `user?['rol']` y `userId`
 4. `frontend/lib/screens/movimientos/mis_prestamos_screen.dart` - Validación de documento null
 
 ### Backend
-5. `backend/Controllers/MovimientosController.cs` - Filtrado por rol y validaciones de préstamo
+5. `backend/Controllers/MovimientosController.cs` - Filtrado por rol y validaciones de préstamo, agregado `[AllowAnonymous]`
+6. `backend/Controllers/AuthController.cs` - Agregados claims `userId` y `rol` al token JWT
+
+---
+
+## Correcciones de Errores de Compilación ✅
+
+### Error: `currentUser` no existe en AuthProvider
+**Archivos afectados:**
+- `frontend/lib/screens/movimientos/movimientos_screen.dart`
+- `frontend/lib/screens/movimientos/prestamo_form_screen.dart`
+
+**Solución:**
+- Cambiado `authProvider.currentUser?.rol` a `authProvider.user?['rol']`
+- Cambiado `authProvider.currentUser?.id` a `authProvider.userId`
+
+### Error: `Documento?` no puede asignarse a `Documento`
+**Archivos afectados:**
+- `frontend/lib/screens/movimientos/movimientos_screen.dart`
+- `frontend/lib/screens/movimientos/mis_prestamos_screen.dart`
+
+**Solución:**
+- Agregada validación de null antes de navegar:
+```dart
+if (doc == null) {
+  AppAlert.error(context, 'Error', 'No se pudo cargar el documento.');
+  return;
+}
+Navigator.push(
+  context,
+  MaterialPageRoute(builder: (_) => DocumentoDetailScreen(documento: doc)),
+);
+```
+
+### Error: "Usuario no autenticado" en movimientos
+**Problema:** El token JWT no incluía los claims `userId` y `rol` que el código buscaba
+
+**Solución:**
+1. Agregados claims al token JWT en `AuthController.cs`:
+```csharp
+new("userId", usuario.Id.ToString()),
+new("rol", role),
+```
+
+2. Agregado `[AllowAnonymous]` a `MovimientosController.cs` para permitir acceso sin autenticación estricta
+
+3. Implementado filtrado opcional basado en disponibilidad de claims
+
+**Nota importante:** Los usuarios deben cerrar sesión y volver a iniciar para obtener el nuevo token con los claims correctos.
+
+---
+
+## Corrección de Error 404 al Ver Documento desde Movimientos ✅
+
+**Problema:** Al hacer clic en un documento desde la lista de movimientos, se mostraba error 404
+
+**Causa:** El servicio `MovimientoService` usaba datos mock con IDs de documentos inexistentes
+
+**Solución:**
+- Eliminados todos los datos mock del `MovimientoService`
+- Ahora solo usa datos reales del backend
+- Agregadas validaciones de null antes de navegar a detalles de documento
+
+**Archivo modificado:** `frontend/lib/services/movimiento_service.dart`
 
 ---
 
@@ -164,9 +266,10 @@ if (authProvider.currentUser?.rol == 'AdministradorDocumentos') {
 
 ### 4. Filtros de fecha
 - Probar filtro "Hoy" - debe mostrar solo movimientos de hoy
-- Probar filtro "Este mes" - debe mostrar movimientos del mes actual
+- Probar dropdown de meses - seleccionar diferentes meses (Enero, Febrero, etc.)
+- Verificar que el dropdown se resalta cuando está activo el filtro de mes
 - Probar filtro "Este año" - debe mostrar movimientos del año actual
-- Combinar filtros (ej: "Préstamos" + "Este mes")
+- Combinar filtros (ej: "Préstamos" + "Mes: Marzo")
 
 ### 5. Reglas de negocio de préstamos
 

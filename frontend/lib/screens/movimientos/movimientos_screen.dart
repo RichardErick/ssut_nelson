@@ -17,8 +17,8 @@ import 'prestamo_form_screen.dart';
 /// Filtro de tipo de movimiento para la lista.
 enum _FiltroMovimiento { todos, prestamos, devoluciones }
 
-/// Filtro de rango de fecha para la lista.
-enum _FiltroFecha { todos, hoy, mes, anio }
+/// Filtro de periodo para la lista.
+enum _FiltroPeriodo { hoy, mes, anio }
 
 class MovimientosScreen extends StatefulWidget {
   const MovimientosScreen({super.key});
@@ -32,7 +32,8 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
   bool _isLoading = true;
   bool _sinPermisoAlertaMostrada = false;
   _FiltroMovimiento _filtro = _FiltroMovimiento.todos;
-  _FiltroFecha _filtroFecha = _FiltroFecha.todos;
+  _FiltroPeriodo _filtroPeriodo = _FiltroPeriodo.hoy;
+  int _mesSeleccionado = DateTime.now().month; // 1-12
 
   List<Movimiento> get _movimientosFiltrados {
     List<Movimiento> lista;
@@ -50,10 +51,10 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
         break;
     }
     
-    // Aplicar filtro de fecha
+    // Aplicar filtro de periodo
     final ahora = DateTime.now();
-    switch (_filtroFecha) {
-      case _FiltroFecha.hoy:
+    switch (_filtroPeriodo) {
+      case _FiltroPeriodo.hoy:
         lista = lista.where((m) {
           final fecha = m.fechaMovimiento;
           return fecha.year == ahora.year &&
@@ -61,20 +62,17 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
               fecha.day == ahora.day;
         }).toList();
         break;
-      case _FiltroFecha.mes:
+      case _FiltroPeriodo.mes:
         lista = lista.where((m) {
           final fecha = m.fechaMovimiento;
-          return fecha.year == ahora.year && fecha.month == ahora.month;
+          return fecha.month == _mesSeleccionado;
         }).toList();
         break;
-      case _FiltroFecha.anio:
+      case _FiltroPeriodo.anio:
         lista = lista.where((m) {
           final fecha = m.fechaMovimiento;
           return fecha.year == ahora.year;
         }).toList();
-        break;
-      case _FiltroFecha.todos:
-        // No filtrar por fecha
         break;
     }
     
@@ -443,52 +441,79 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Filtros de fecha
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _FilterChip(
-                        label: 'Todos',
-                        selected: _filtroFecha == _FiltroFecha.todos,
-                        onSelected:
-                            () => setState(
-                              () => _filtroFecha = _FiltroFecha.todos,
-                            ),
-                        theme: theme,
+                // Filtros de periodo
+                Row(
+                  children: [
+                    _FilterChip(
+                      label: 'Hoy',
+                      selected: _filtroPeriodo == _FiltroPeriodo.hoy,
+                      onSelected: () => setState(() => _filtroPeriodo = _FiltroPeriodo.hoy),
+                      theme: theme,
+                    ),
+                    const SizedBox(width: 8),
+                    // Dropdown de meses
+                    Container(
+                      height: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: _filtroPeriodo == _FiltroPeriodo.mes
+                            ? theme.colorScheme.primaryContainer
+                            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _filtroPeriodo == _FiltroPeriodo.mes
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outline.withOpacity(0.3),
+                          width: _filtroPeriodo == _FiltroPeriodo.mes ? 1.5 : 1,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      _FilterChip(
-                        label: 'Hoy',
-                        selected: _filtroFecha == _FiltroFecha.hoy,
-                        onSelected:
-                            () => setState(
-                              () => _filtroFecha = _FiltroFecha.hoy,
-                            ),
-                        theme: theme,
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: _mesSeleccionado,
+                          isDense: true,
+                          style: GoogleFonts.inter(
+                            fontWeight: _filtroPeriodo == _FiltroPeriodo.mes ? FontWeight.w600 : FontWeight.w500,
+                            fontSize: 13,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          icon: Icon(
+                            Icons.arrow_drop_down,
+                            size: 20,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 1, child: Text('Enero')),
+                            DropdownMenuItem(value: 2, child: Text('Febrero')),
+                            DropdownMenuItem(value: 3, child: Text('Marzo')),
+                            DropdownMenuItem(value: 4, child: Text('Abril')),
+                            DropdownMenuItem(value: 5, child: Text('Mayo')),
+                            DropdownMenuItem(value: 6, child: Text('Junio')),
+                            DropdownMenuItem(value: 7, child: Text('Julio')),
+                            DropdownMenuItem(value: 8, child: Text('Agosto')),
+                            DropdownMenuItem(value: 9, child: Text('Septiembre')),
+                            DropdownMenuItem(value: 10, child: Text('Octubre')),
+                            DropdownMenuItem(value: 11, child: Text('Noviembre')),
+                            DropdownMenuItem(value: 12, child: Text('Diciembre')),
+                          ],
+                          onChanged: (mes) {
+                            if (mes != null) {
+                              setState(() {
+                                _mesSeleccionado = mes;
+                                _filtroPeriodo = _FiltroPeriodo.mes;
+                              });
+                            }
+                          },
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      _FilterChip(
-                        label: 'Este mes',
-                        selected: _filtroFecha == _FiltroFecha.mes,
-                        onSelected:
-                            () => setState(
-                              () => _filtroFecha = _FiltroFecha.mes,
-                            ),
-                        theme: theme,
-                      ),
-                      const SizedBox(width: 8),
-                      _FilterChip(
-                        label: 'Este año',
-                        selected: _filtroFecha == _FiltroFecha.anio,
-                        onSelected:
-                            () => setState(
-                              () => _filtroFecha = _FiltroFecha.anio,
-                            ),
-                        theme: theme,
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: 'Este año',
+                      selected: _filtroPeriodo == _FiltroPeriodo.anio,
+                      onSelected: () => setState(() => _filtroPeriodo = _FiltroPeriodo.anio),
+                      theme: theme,
+                    ),
+                  ],
                 ),
               ],
             ),
