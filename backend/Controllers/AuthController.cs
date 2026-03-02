@@ -813,6 +813,8 @@ public class AuthController : ControllerBase
             new(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
             new(JwtRegisteredClaimNames.UniqueName, usuario.NombreUsuario),
             new(ClaimTypes.Role, role),
+            new("userId", usuario.Id.ToString()), // Agregar userId para compatibilidad
+            new("rol", role), // Agregar rol para compatibilidad
         };
 
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));

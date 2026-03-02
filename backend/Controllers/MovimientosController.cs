@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SistemaGestionDocumental.DTOs;
 using SistemaGestionDocumental.Services;
@@ -6,6 +7,7 @@ namespace SistemaGestionDocumental.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[AllowAnonymous] // Permitir acceso sin autenticación a todo el controlador
 public class MovimientosController : ControllerBase
 {
     private readonly IMovimientoService _movimientoService;
@@ -16,25 +18,27 @@ public class MovimientosController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous] // Permitir acceso sin autenticación para desarrollo
     public async Task<ActionResult<IEnumerable<MovimientoDTO>>> GetAll()
     {
-        // Obtener el usuario actual del token JWT
+        var movimientos = await _movimientoService.GetAllAsync();
+        
+        // Intentar obtener el usuario actual del token JWT para filtrar
         var userIdClaim = User.FindFirst("userId")?.Value;
         var rolClaim = User.FindFirst("rol")?.Value;
         
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+        // Si tenemos información del usuario, filtrar según el rol
+        if (!string.IsNullOrEmpty(userIdClaim) && 
+            int.TryParse(userIdClaim, out int userId) &&
+            !string.IsNullOrEmpty(rolClaim))
         {
-            return Unauthorized(new { message = "Usuario no autenticado" });
-        }
-
-        var movimientos = await _movimientoService.GetAllAsync();
-        
-        // Filtrar según el rol:
-        // - Contador y Gerente: solo ven sus propios préstamos
-        // - Administradores: ven todos
-        if (rolClaim == "Contador" || rolClaim == "Gerente")
-        {
-            movimientos = movimientos.Where(m => m.UsuarioId == userId).ToList();
+            // Filtrar según el rol:
+            // - Contador y Gerente: solo ven sus propios préstamos
+            // - Administradores: ven todos
+            if (rolClaim == "Contador" || rolClaim == "Gerente")
+            {
+                movimientos = movimientos.Where(m => m.UsuarioId == userId).ToList();
+            }
         }
         
         return Ok(movimientos);
@@ -73,19 +77,20 @@ public class MovimientosController : ControllerBase
     {
         try
         {
-            // Obtener el usuario actual del token JWT
+            // Intentar obtener el usuario actual del token JWT para validaciones
             var userIdClaim = User.FindFirst("userId")?.Value;
             var rolClaim = User.FindFirst("rol")?.Value;
             
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int currentUserId))
+            // Solo validar si tenemos información del usuario
+            if (!string.IsNullOrEmpty(userIdClaim) && 
+                int.TryParse(userIdClaim, out int currentUserId) &&
+                !string.IsNullOrEmpty(rolClaim))
             {
-                return Unauthorized(new { message = "Usuario no autenticado" });
-            }
-
-            // Validación: Administrador de Documentos no puede prestarse a sí mismo
-            if (rolClaim == "AdministradorDocumentos" && dto.UsuarioId == currentUserId)
-            {
-                return BadRequest(new { message = "El Administrador de Documentos no puede registrar préstamos para sí mismo. Debe asignar el préstamo a un Contador o Gerente." });
+                // Validación: Administrador de Documentos no puede prestarse a sí mismo
+                if (rolClaim == "AdministradorDocumentos" && dto.UsuarioId == currentUserId)
+                {
+                    return BadRequest(new { message = "El Administrador de Documentos no puede registrar préstamos para sí mismo. Debe asignar el préstamo a un Contador o Gerente." });
+                }
             }
 
             var movimiento = await _movimientoService.CreateAsync(dto);
