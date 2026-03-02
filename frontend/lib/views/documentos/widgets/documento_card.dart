@@ -30,13 +30,16 @@ class DocumentoCard extends StatelessWidget {
 
   Widget _buildGridCard() {
     return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 300),
       tween: Tween(begin: 0.0, end: 1.0),
-      curve: Curves.easeOutBack,
+      curve: Curves.easeOut,
       builder: (context, value, child) {
-        return Transform.scale(
-          scale: 0.9 + (0.1 * value),
-          child: Opacity(opacity: value, child: child),
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 10 * (1 - value)),
+            child: child,
+          ),
         );
       },
       child: Container(
