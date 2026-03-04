@@ -307,9 +307,11 @@ public class CarpetasController : ControllerBase
             }
         }
 
-        // Calcular número de carpeta automáticamente
+        // Calcular número de carpeta automáticamente (independiente por tipo)
         var numeroCarpeta = await _context.Carpetas
-            .Where(c => c.Gestion == dto.Gestion && c.CarpetaPadreId == dto.CarpetaPadreId)
+            .Where(c => c.Gestion == dto.Gestion 
+                && c.CarpetaPadreId == dto.CarpetaPadreId
+                && c.Tipo == dto.Tipo)
             .CountAsync() + 1;
 
         // Usar el código romano proporcionado o generar uno automáticamente
@@ -551,23 +553,31 @@ public class CarpetasController : ControllerBase
         if (carpetaIds.Count == 0)
             return result;
 
+        // Obtener todas las carpetas raíz agrupadas por tipo
         var roots = await _context.Carpetas
             .Where(c => c.CarpetaPadreId == null && c.Activo)
             .Where(c => string.IsNullOrWhiteSpace(gestion) || c.Gestion == gestion)
-            .OrderBy(c => c.Id)
-            .Select(c => c.Id)
+            .OrderBy(c => c.Tipo)
+            .ThenBy(c => c.Id)
+            .Select(c => new { c.Id, c.Tipo })
             .ToListAsync();
 
-        for (var i = 0; i < roots.Count; i++)
+        // Numerar carpetas raíz por tipo independientemente
+        var rootsByTipo = roots.GroupBy(r => r.Tipo ?? "");
+        foreach (var tipoGroup in rootsByTipo)
         {
-            result[roots[i]] = i + 1;
+            var rootsInTipo = tipoGroup.ToList();
+            for (var i = 0; i < rootsInTipo.Count; i++)
+            {
+                result[rootsInTipo[i].Id] = i + 1;
+            }
         }
 
-        // Tambien numerar subcarpetas (por ejemplo, rangos dentro de la carpeta general)
-        foreach (var rootId in roots)
+        // También numerar subcarpetas (por ejemplo, rangos dentro de la carpeta general)
+        foreach (var root in roots)
         {
             var subIds = await _context.Carpetas
-                .Where(c => c.CarpetaPadreId == rootId && c.Activo)
+                .Where(c => c.CarpetaPadreId == root.Id && c.Activo)
                 .Where(c => string.IsNullOrWhiteSpace(gestion) || c.Gestion == gestion)
                 .OrderBy(c => c.Id)
                 .Select(c => c.Id)
