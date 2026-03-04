@@ -283,72 +283,89 @@ public class DocumentosController : ControllerBase
             forzarCorrelativoAuto = resolucion.ForzarCorrelativoAuto;
         }
 
-        // Validar capacidad de la carpeta según su rango configurado (si aplica)
+        // Obtener información de la carpeta si existe
+        Carpeta? carpetaInfo = null;
         if (carpetaId.HasValue)
         {
-            var carpetaCapacidad = await _context.Carpetas
+            carpetaInfo = await _context.Carpetas
                 .FirstOrDefaultAsync(c => c.Id == carpetaId.Value);
+        }
 
-            if (carpetaCapacidad != null &&
-                carpetaCapacidad.RangoInicio.HasValue &&
-                carpetaCapacidad.RangoFin.HasValue)
+        // Determinar el número correlativo a usar
+        string correlativoFormateado;
+        
+        // Si el usuario no ingresó número, generar automáticamente
+        if (forzarCorrelativoAuto || string.IsNullOrWhiteSpace(correlativoDigits))
+        {
+            try
             {
-                var capacidad = carpetaCapacidad.RangoFin.Value - carpetaCapacidad.RangoInicio.Value + 1;
-                if (capacidad <= 0)
-                    return BadRequest(new { message = $"El rango configurado para la carpeta ({carpetaCapacidad.RangoInicio}-{carpetaCapacidad.RangoFin}) no es válido." });
-
-                var countEnCarpeta = await ContarDocumentosEnCarpetaAsync(carpetaId.Value, gestion);
-                if (countEnCarpeta >= capacidad)
-                    return BadRequest(new
-                    {
-                        message = $"La carpeta ya alcanzó el máximo de {capacidad} documentos para su rango {carpetaCapacidad.RangoInicio}-{carpetaCapacidad.RangoFin}."
-                    });
+                var siguienteNumero = await ObtenerSiguienteCorrelativoAsync(carpetaId, gestion);
+                correlativoFormateado = siguienteNumero.PadLeft(4, '0');
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
         }
-
-        string correlativoFormateado;
-        try
+        else
         {
-            correlativoFormateado = (forzarCorrelativoAuto || string.IsNullOrWhiteSpace(correlativoDigits))
-                ? (await ObtenerSiguienteCorrelativoAsync(carpetaId, gestion)).PadLeft(4, '0')
-                : (correlativoDigits.Length >= 4 ? correlativoDigits : correlativoDigits.PadLeft(4, '0'));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-
-        // Validar que el número correlativo esté dentro del rango de la carpeta (si tiene rango configurado)
-        if (carpetaId.HasValue && !string.IsNullOrWhiteSpace(correlativoDigits))
-        {
-            var carpetaRango = await _context.Carpetas
-                .FirstOrDefaultAsync(c => c.Id == carpetaId.Value);
-
-            if (carpetaRango != null &&
-                carpetaRango.RangoInicio.HasValue &&
-                carpetaRango.RangoFin.HasValue)
+            // Usuario ingresó un número manualmente
+            // Validar que esté dentro del rango de la carpeta (si tiene rango configurado)
+            if (carpetaInfo != null &&
+                carpetaInfo.RangoInicio.HasValue &&
+                carpetaInfo.RangoFin.HasValue)
             {
-                if (int.TryParse(correlativoFormateado, out var numeroIngresado))
+                if (int.TryParse(correlativoDigits, out var numeroIngresado))
                 {
-                    if (numeroIngresado < carpetaRango.RangoInicio.Value || numeroIngresado > carpetaRango.RangoFin.Value)
+                    if (numeroIngresado < carpetaInfo.RangoInicio.Value || numeroIngresado > carpetaInfo.RangoFin.Value)
                     {
                         return BadRequest(new
                         {
-                            message = $"El número de comprobante debe estar dentro del rango de la carpeta: {carpetaRango.RangoInicio} - {carpetaRango.RangoFin}. Por favor ingrese un número entre {carpetaRango.RangoInicio} y {carpetaRango.RangoFin}."
+                            message = $"Tu carpeta tiene rango del {carpetaInfo.RangoInicio} al {carpetaInfo.RangoFin}, por lo que debes ingresar números desde el {carpetaInfo.RangoInicio} al {carpetaInfo.RangoFin}."
                         });
                     }
                 }
             }
+            
+            // Formatear el número ingresado
+            correlativoFormateado = correlativoDigits.Length >= 4 ? correlativoDigits : correlativoDigits.PadLeft(4, '0');
         }
-        // Validar que el número de comprobante (correlativo) no se repita en la misma gestión
-        var correlativoDuplicado = await _context.Documentos
-            .AnyAsync(d => d.Gestion == gestion && d.NumeroCorrelativo == correlativoFormateado);
+
+        // Validar que el número de comprobante (correlativo) no se repita en la misma carpeta y gestión
+        // Si no hay carpeta, validar globalmente en la gestión
+        var correlativoDuplicado = carpetaId.HasValue
+            ? await _context.Documentos.AnyAsync(d => 
+                d.CarpetaId == carpetaId.Value && 
+                d.Gestion == gestion && 
+                d.NumeroCorrelativo == correlativoFormateado)
+            : await _context.Documentos.AnyAsync(d => 
+                d.Gestion == gestion && 
+                d.NumeroCorrelativo == correlativoFormateado);
+                
         if (correlativoDuplicado)
         {
-            return BadRequest(new
-            {
-                message = $"Ya existe un documento con el número de comprobante {correlativoFormateado} en la gestión {gestion}."
-            });
+            var mensajeDuplicado = carpetaId.HasValue
+                ? $"Ya existe un documento con el número de comprobante {correlativoFormateado} en esta carpeta para la gestión {gestion}."
+                : $"Ya existe un documento con el número de comprobante {correlativoFormateado} en la gestión {gestion}.";
+                
+            return BadRequest(new { message = mensajeDuplicado });
+        }
+
+        // Validar capacidad de la carpeta según su rango configurado (si aplica)
+        if (carpetaInfo != null &&
+            carpetaInfo.RangoInicio.HasValue &&
+            carpetaInfo.RangoFin.HasValue)
+        {
+            var capacidad = carpetaInfo.RangoFin.Value - carpetaInfo.RangoInicio.Value + 1;
+            if (capacidad <= 0)
+                return BadRequest(new { message = $"El rango configurado para la carpeta ({carpetaInfo.RangoInicio}-{carpetaInfo.RangoFin}) no es válido." });
+
+            var countEnCarpeta = await ContarDocumentosEnCarpetaAsync(carpetaId!.Value, gestion);
+            if (countEnCarpeta >= capacidad)
+                return BadRequest(new
+                {
+                    message = $"La carpeta ya alcanzó el máximo de {capacidad} documentos para su rango {carpetaInfo.RangoInicio}-{carpetaInfo.RangoFin}."
+                });
         }
 
         var tipoCodigo = (tipoDocumento.Codigo ?? "DOC").ToUpperInvariant();
@@ -522,18 +539,26 @@ public class DocumentosController : ControllerBase
                 ? dto.Gestion!.Trim()
                 : documento.Gestion;
 
-            // Validar que el número de comprobante no se repita en la misma gestión (excluyendo el propio documento)
-            var correlativoDuplicado = await _context.Documentos
-                .AnyAsync(d =>
+            // Validar que el número de comprobante no se repita en la misma carpeta y gestión (excluyendo el propio documento)
+            // Si no hay carpeta, validar globalmente en la gestión
+            var correlativoDuplicado = documento.CarpetaId.HasValue
+                ? await _context.Documentos.AnyAsync(d =>
+                    d.Id != id &&
+                    d.CarpetaId == documento.CarpetaId.Value &&
+                    d.Gestion == nuevaGestion &&
+                    d.NumeroCorrelativo == nuevoCorrelativo)
+                : await _context.Documentos.AnyAsync(d =>
                     d.Id != id &&
                     d.Gestion == nuevaGestion &&
                     d.NumeroCorrelativo == nuevoCorrelativo);
+                    
             if (correlativoDuplicado)
             {
-                return BadRequest(new
-                {
-                    message = $"Ya existe un documento con el número de comprobante {nuevoCorrelativo} en la gestión {nuevaGestion}."
-                });
+                var mensajeDuplicado = documento.CarpetaId.HasValue
+                    ? $"Ya existe un documento con el número de comprobante {nuevoCorrelativo} en esta carpeta para la gestión {nuevaGestion}."
+                    : $"Ya existe un documento con el número de comprobante {nuevoCorrelativo} en la gestión {nuevaGestion}.";
+                    
+                return BadRequest(new { message = mensajeDuplicado });
             }
 
             documento.NumeroCorrelativo = nuevoCorrelativo;

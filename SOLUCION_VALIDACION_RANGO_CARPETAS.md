@@ -71,7 +71,7 @@ if (carpetaId.HasValue && !string.IsNullOrWhiteSpace(correlativoDigits))
 1. **Usuario ingresa número manual (ej: 10)**:
    - ✅ Se valida que esté entre 10 y 30
    - ✅ Si está en el rango, se crea el documento
-   - ❌ Si está fuera del rango (ej: 5 o 35), muestra error: "El número de comprobante debe estar dentro del rango de la carpeta: 10 - 30"
+   - ❌ Si está fuera del rango (ej: 5 o 35), muestra error: "Tu carpeta tiene rango del 10 al 30, por lo que debes ingresar números desde el 10 al 30"
 
 2. **Usuario deja el campo vacío**:
    - ✅ El sistema genera automáticamente el siguiente número disponible dentro del rango
@@ -83,8 +83,7 @@ if (carpetaId.HasValue && !string.IsNullOrWhiteSpace(correlativoDigits))
 
 ### Error: Número Fuera de Rango
 ```
-El número de comprobante debe estar dentro del rango de la carpeta: 10 - 30. 
-Por favor ingrese un número entre 10 y 30.
+Tu carpeta tiene rango del 10 al 30, por lo que debes ingresar números desde el 10 al 30.
 ```
 
 ### Error: Carpeta Llena
@@ -101,10 +100,11 @@ Ya existe un documento con el número de comprobante 0010 en la gestión 2026.
 
 ### Carpeta: Comprobante de Egreso (Rango 10-30)
 
-1. **Primer documento**: Usuario ingresa "10" → ✅ Creado
-2. **Segundo documento**: Usuario ingresa "15" → ✅ Creado
-3. **Tercer documento**: Usuario ingresa "5" → ❌ Error: "debe estar entre 10 y 30"
-4. **Cuarto documento**: Usuario deja vacío → ✅ Sistema asigna "11" (siguiente disponible)
+1. **Primer documento**: Usuario ingresa "10" → ✅ Creado con número 0010
+2. **Segundo documento**: Usuario ingresa "15" → ✅ Creado con número 0015
+3. **Tercer documento**: Usuario ingresa "5" → ❌ Error: "Tu carpeta tiene rango del 10 al 30..."
+4. **Cuarto documento**: Usuario deja vacío → ✅ Sistema asigna siguiente disponible (ej: 0011)
+5. **Quinto documento**: Usuario ingresa "10" → ❌ Error: "Ya existe un documento con el número de comprobante 0010..."
 
 ## Ventajas
 
@@ -113,6 +113,7 @@ Ya existe un documento con el número de comprobante 0010 en la gestión 2026.
 3. ✅ **Automático opcional**: Si deja vacío, el sistema asigna el siguiente
 4. ✅ **Prevención de errores**: No permite números fuera del rango
 5. ✅ **Sin duplicados**: Valida que no exista el mismo número en la gestión
+6. ✅ **Mensaje amigable**: Explica claramente el rango de la carpeta
 
 ## Aplicar Cambios
 
