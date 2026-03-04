@@ -147,47 +147,9 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
       ));
 
       if (mounted) {
-        // Primero cerrar la pantalla y retornar true
+        // Simplemente cerrar y retornar true
+        // El mensaje se mostrará en la pantalla de movimientos
         Navigator.of(context).pop(true);
-        
-        // Luego mostrar el mensaje de éxito
-        final vencStr = DateFormat('dd/MM/yyyy').format(_fechaLimiteDevolucion);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Préstamo registrado',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'Documento: ${_documentoSeleccionado!.codigo}\nFecha límite: $vencStr',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.green.shade600,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
       }
     } catch (e) {
       if (mounted) {

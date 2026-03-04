@@ -611,7 +611,34 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
                       builder: (_) => const PrestamoFormScreen(),
                     ),
                   );
-                  if (result == true) _loadMovimientos();
+                  if (result == true) {
+                    await _loadMovimientos();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.check_circle, color: Colors.white),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Préstamo registrado exitosamente',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: Colors.green.shade600,
+                          duration: const Duration(seconds: 3),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      );
+                    }
+                  }
                 },
                 icon: const Icon(Icons.add_rounded, size: 24),
                 label: Text(
