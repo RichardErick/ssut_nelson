@@ -50,8 +50,13 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
   String _filtroTexto = '';
   String? _filtroEstado;
   String? _filtroTipo;
+  String? _filtroArea;
   DateTime? _filtroFechaDesde;
   DateTime? _filtroFechaHasta;
+
+  // Ordenamiento
+  String? _sortColumn;
+  bool _sortAscending = true;
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -96,7 +101,8 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
         return doc.codigo.toLowerCase().contains(query) ||
             doc.numeroCorrelativo.toLowerCase().contains(query) ||
             (doc.descripcion ?? '').toLowerCase().contains(query) ||
-            (doc.tipoDocumentoNombre ?? '').toLowerCase().contains(query);
+            (doc.tipoDocumentoNombre ?? '').toLowerCase().contains(query) ||
+            (doc.areaOrigenNombre ?? '').toLowerCase().contains(query);
       }).toList();
     }
 
@@ -108,6 +114,11 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
     // Filtro de tipo
     if (_filtroTipo != null && _filtroTipo!.isNotEmpty) {
       filtrados = filtrados.where((doc) => doc.tipoDocumentoNombre == _filtroTipo).toList();
+    }
+
+    // Filtro de área
+    if (_filtroArea != null && _filtroArea!.isNotEmpty) {
+      filtrados = filtrados.where((doc) => doc.areaOrigenNombre == _filtroArea).toList();
     }
 
     // Filtro de fecha desde
@@ -125,6 +136,16 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
       }).toList();
     }
 
+    // Aplicar ordenamiento
+    if (_sortColumn != null) {
+      filtrados.sort((a, b) {
+        final aValue = _getColumnValue(a, _sortColumn!);
+        final bValue = _getColumnValue(b, _sortColumn!);
+        final comparison = aValue.compareTo(bValue);
+        return _sortAscending ? comparison : -comparison;
+      });
+    }
+
     setState(() => _documentosFiltrados = filtrados);
   }
 
@@ -133,11 +154,42 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
       _filtroTexto = '';
       _filtroEstado = null;
       _filtroTipo = null;
+      _filtroArea = null;
       _filtroFechaDesde = null;
       _filtroFechaHasta = null;
       _searchController.clear();
       _aplicarFiltros();
     });
+  }
+
+  void _sortBy(String column) {
+    setState(() {
+      if (_sortColumn == column) {
+        _sortAscending = !_sortAscending;
+      } else {
+        _sortColumn = column;
+        _sortAscending = true;
+      }
+      _aplicarFiltros();
+    });
+  }
+
+  List<String> get _tiposDocumentoDisponibles {
+    return _documentos
+        .map((doc) => doc.tipoDocumentoNombre ?? '')
+        .where((tipo) => tipo.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+  }
+
+  List<String> get _areasDisponibles {
+    return _documentos
+        .map((doc) => doc.areaOrigenNombre ?? '')
+        .where((area) => area.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
   }
 
   List<String> get _columnasSeleccionadas {
@@ -466,6 +518,68 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              ExpansionTile(
+                title: Text(
+                  'Configuraciones rápidas',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                dense: true,
+                childrenPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                children: [
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.summarize_outlined, size: 18),
+                    title: const Text('Vista Básica', style: TextStyle(fontSize: 12)),
+                    onTap: () {
+                      setState(() {
+                        _columnasDisponibles.forEach((key, value) {
+                          value.selected = ['codigo', 'numeroCorrelativo', 'tipoDocumento', 'gestion', 'estado'].contains(key);
+                        });
+                      });
+                    },
+                  ),
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.article_outlined, size: 18),
+                    title: const Text('Vista Completa', style: TextStyle(fontSize: 12)),
+                    onTap: () {
+                      setState(() {
+                        for (var col in _columnasDisponibles.values) {
+                          col.selected = true;
+                        }
+                      });
+                    },
+                  ),
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.location_on_outlined, size: 18),
+                    title: const Text('Vista Ubicación', style: TextStyle(fontSize: 12)),
+                    onTap: () {
+                      setState(() {
+                        _columnasDisponibles.forEach((key, value) {
+                          value.selected = ['codigo', 'numeroCorrelativo', 'ubicacionFisica', 'carpeta', 'estado'].contains(key);
+                        });
+                      });
+                    },
+                  ),
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.calendar_today_outlined, size: 18),
+                    title: const Text('Vista Temporal', style: TextStyle(fontSize: 12)),
+                    onTap: () {
+                      setState(() {
+                        _columnasDisponibles.forEach((key, value) {
+                          value.selected = ['codigo', 'numeroCorrelativo', 'fechaDocumento', 'fechaRegistro', 'gestion', 'estado'].contains(key);
+                        });
+                      });
+                    },
+                  ),
+                ],
+              ),
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: _documentos.isEmpty ? _cargarDocumentos : null,
@@ -745,6 +859,13 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
   }
 
   Widget _buildFilterBar(ThemeData theme) {
+    final hasActiveFilters = _filtroTexto.isNotEmpty ||
+        _filtroEstado != null ||
+        _filtroTipo != null ||
+        _filtroArea != null ||
+        _filtroFechaDesde != null ||
+        _filtroFechaHasta != null;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -762,12 +883,24 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Buscar en resultados...',
+                    hintText: 'Buscar por código, correlativo, descripción, tipo o área...',
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    suffixIcon: _filtroTexto.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _filtroTexto = '';
+                                _aplicarFiltros();
+                              });
+                            },
+                          )
+                        : null,
                   ),
                   onChanged: (value) {
                     setState(() {
@@ -784,18 +917,121 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
                 },
                 icon: Icon(_mostrarFiltros ? Icons.filter_list_off : Icons.filter_list),
                 tooltip: 'Filtros avanzados',
+                style: IconButton.styleFrom(
+                  backgroundColor: hasActiveFilters
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.primaryContainer,
+                  foregroundColor: hasActiveFilters
+                      ? Colors.white
+                      : theme.colorScheme.onPrimaryContainer,
+                ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                '${_documentosFiltrados.length} registros',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.primary,
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withOpacity(0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.description_outlined,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_documentosFiltrados.length}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'registros',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
+          if (hasActiveFilters && !_mostrarFiltros) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (_filtroEstado != null)
+                  Chip(
+                    label: Text('Estado: $_filtroEstado'),
+                    onDeleted: () {
+                      setState(() {
+                        _filtroEstado = null;
+                        _aplicarFiltros();
+                      });
+                    },
+                    deleteIcon: const Icon(Icons.close, size: 16),
+                  ),
+                if (_filtroTipo != null)
+                  Chip(
+                    label: Text('Tipo: $_filtroTipo'),
+                    onDeleted: () {
+                      setState(() {
+                        _filtroTipo = null;
+                        _aplicarFiltros();
+                      });
+                    },
+                    deleteIcon: const Icon(Icons.close, size: 16),
+                  ),
+                if (_filtroArea != null)
+                  Chip(
+                    label: Text('Área: $_filtroArea'),
+                    onDeleted: () {
+                      setState(() {
+                        _filtroArea = null;
+                        _aplicarFiltros();
+                      });
+                    },
+                    deleteIcon: const Icon(Icons.close, size: 16),
+                  ),
+                if (_filtroFechaDesde != null)
+                  Chip(
+                    label: Text('Desde: ${DateFormat('dd/MM/yyyy').format(_filtroFechaDesde!)}'),
+                    onDeleted: () {
+                      setState(() {
+                        _filtroFechaDesde = null;
+                        _aplicarFiltros();
+                      });
+                    },
+                    deleteIcon: const Icon(Icons.close, size: 16),
+                  ),
+                if (_filtroFechaHasta != null)
+                  Chip(
+                    label: Text('Hasta: ${DateFormat('dd/MM/yyyy').format(_filtroFechaHasta!)}'),
+                    onDeleted: () {
+                      setState(() {
+                        _filtroFechaHasta = null;
+                        _aplicarFiltros();
+                      });
+                    },
+                    deleteIcon: const Icon(Icons.close, size: 16),
+                  ),
+              ],
+            ),
+          ],
           if (_mostrarFiltros) ...[
             const SizedBox(height: 16),
             Wrap(
@@ -808,6 +1044,7 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
                     value: _filtroEstado,
                     decoration: InputDecoration(
                       labelText: 'Estado',
+                      prefixIcon: const Icon(Icons.info_outline, size: 18),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
@@ -825,10 +1062,147 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
                     },
                   ),
                 ),
+                if (_tiposDocumentoDisponibles.isNotEmpty)
+                  SizedBox(
+                    width: 200,
+                    child: DropdownButtonFormField<String>(
+                      value: _filtroTipo,
+                      decoration: InputDecoration(
+                        labelText: 'Tipo Documento',
+                        prefixIcon: const Icon(Icons.description_outlined, size: 18),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('Todos')),
+                        ..._tiposDocumentoDisponibles.map((tipo) {
+                          return DropdownMenuItem(value: tipo, child: Text(tipo));
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _filtroTipo = value;
+                          _aplicarFiltros();
+                        });
+                      },
+                    ),
+                  ),
+                if (_areasDisponibles.isNotEmpty)
+                  SizedBox(
+                    width: 200,
+                    child: DropdownButtonFormField<String>(
+                      value: _filtroArea,
+                      decoration: InputDecoration(
+                        labelText: 'Área',
+                        prefixIcon: const Icon(Icons.business_outlined, size: 18),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('Todas')),
+                        ..._areasDisponibles.map((area) {
+                          return DropdownMenuItem(value: area, child: Text(area));
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _filtroArea = value;
+                          _aplicarFiltros();
+                        });
+                      },
+                    ),
+                  ),
+                SizedBox(
+                  width: 200,
+                  child: TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'Fecha Desde',
+                      prefixIcon: const Icon(Icons.calendar_today, size: 18),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      suffixIcon: _filtroFechaDesde != null
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                setState(() {
+                                  _filtroFechaDesde = null;
+                                  _aplicarFiltros();
+                                });
+                              },
+                            )
+                          : null,
+                    ),
+                    readOnly: true,
+                    controller: TextEditingController(
+                      text: _filtroFechaDesde != null
+                          ? DateFormat('dd/MM/yyyy').format(_filtroFechaDesde!)
+                          : '',
+                    ),
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _filtroFechaDesde ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) {
+                        setState(() {
+                          _filtroFechaDesde = date;
+                          _aplicarFiltros();
+                        });
+                      }
+                    },
+                  ),
+                ),
+                SizedBox(
+                  width: 200,
+                  child: TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'Fecha Hasta',
+                      prefixIcon: const Icon(Icons.calendar_today, size: 18),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      suffixIcon: _filtroFechaHasta != null
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                setState(() {
+                                  _filtroFechaHasta = null;
+                                  _aplicarFiltros();
+                                });
+                              },
+                            )
+                          : null,
+                    ),
+                    readOnly: true,
+                    controller: TextEditingController(
+                      text: _filtroFechaHasta != null
+                          ? DateFormat('dd/MM/yyyy').format(_filtroFechaHasta!)
+                          : '',
+                    ),
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _filtroFechaHasta ?? DateTime.now(),
+                        firstDate: _filtroFechaDesde ?? DateTime(2000),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) {
+                        setState(() {
+                          _filtroFechaHasta = date;
+                          _aplicarFiltros();
+                        });
+                      }
+                    },
+                  ),
+                ),
                 OutlinedButton.icon(
                   onPressed: _limpiarFiltros,
                   icon: const Icon(Icons.clear_all, size: 18),
                   label: const Text('Limpiar filtros'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  ),
                 ),
               ],
             ),
@@ -843,9 +1217,61 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
     
     if (columnas.isEmpty) {
       return Center(
-        child: Text(
-          'Selecciona al menos una columna para mostrar',
-          style: GoogleFonts.inter(color: Colors.grey),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.view_column_outlined,
+              size: 64,
+              color: theme.colorScheme.primary.withOpacity(0.3),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Selecciona al menos una columna para mostrar',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_documentosFiltrados.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 64,
+              color: theme.colorScheme.primary.withOpacity(0.3),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No se encontraron resultados',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Intenta ajustar los filtros de búsqueda',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: _limpiarFiltros,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Limpiar filtros'),
+            ),
+          ],
         ),
       );
     }
@@ -857,15 +1283,30 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
           headingRowColor: WidgetStateProperty.all(
             theme.colorScheme.primaryContainer.withOpacity(0.3),
           ),
+          sortColumnIndex: _sortColumn != null ? columnas.indexOf(_sortColumn!) : null,
+          sortAscending: _sortAscending,
           columns: columnas.map((col) {
             return DataColumn(
-              label: Text(
-                _columnasDisponibles[col]!.label,
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
+              label: Row(
+                children: [
+                  Text(
+                    _columnasDisponibles[col]!.label,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  if (_sortColumn == col) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ],
+                ],
               ),
+              onSort: (columnIndex, ascending) => _sortBy(col),
             );
           }).toList(),
           rows: _documentosFiltrados.map((doc) {
