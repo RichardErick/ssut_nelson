@@ -776,7 +776,31 @@ public class DocumentosController : ControllerBase
 
         if (filtros.CarpetaId.HasValue)
         {
-            query = query.Where(d => d.CarpetaId == filtros.CarpetaId.Value);
+            // Verificar si la carpeta es una carpeta "general" (Comprobante de Egreso)
+            var carpeta = await _context.Carpetas
+                .FirstOrDefaultAsync(c => c.Id == filtros.CarpetaId.Value);
+            
+            if (carpeta != null && 
+                carpeta.CarpetaPadreId == null && 
+                string.Equals(carpeta.Nombre, NombreCarpetaGeneral, StringComparison.OrdinalIgnoreCase))
+            {
+                // Es una carpeta general, incluir documentos de sus subcarpetas también
+                var subcarpetasIds = await _context.Carpetas
+                    .Where(c => c.CarpetaPadreId == filtros.CarpetaId.Value && c.Activo)
+                    .Select(c => c.Id)
+                    .ToListAsync();
+                
+                // Incluir la carpeta principal y todas sus subcarpetas
+                var carpetasIds = new List<int> { filtros.CarpetaId.Value };
+                carpetasIds.AddRange(subcarpetasIds);
+                
+                query = query.Where(d => d.CarpetaId.HasValue && carpetasIds.Contains(d.CarpetaId.Value));
+            }
+            else
+            {
+                // Carpeta normal, buscar solo en esa carpeta
+                query = query.Where(d => d.CarpetaId == filtros.CarpetaId.Value);
+            }
         }
 
         if (filtros.PalabrasClave != null && filtros.PalabrasClave.Any())
