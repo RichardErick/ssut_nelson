@@ -318,6 +318,28 @@ public class DocumentosController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
 
+        // Validar que el número correlativo esté dentro del rango de la carpeta (si tiene rango configurado)
+        if (carpetaId.HasValue && !string.IsNullOrWhiteSpace(correlativoDigits))
+        {
+            var carpetaRango = await _context.Carpetas
+                .FirstOrDefaultAsync(c => c.Id == carpetaId.Value);
+
+            if (carpetaRango != null &&
+                carpetaRango.RangoInicio.HasValue &&
+                carpetaRango.RangoFin.HasValue)
+            {
+                if (int.TryParse(correlativoFormateado, out var numeroIngresado))
+                {
+                    if (numeroIngresado < carpetaRango.RangoInicio.Value || numeroIngresado > carpetaRango.RangoFin.Value)
+                    {
+                        return BadRequest(new
+                        {
+                            message = $"El número de comprobante debe estar dentro del rango de la carpeta: {carpetaRango.RangoInicio} - {carpetaRango.RangoFin}. Por favor ingrese un número entre {carpetaRango.RangoInicio} y {carpetaRango.RangoFin}."
+                        });
+                    }
+                }
+            }
+        }
         // Validar que el número de comprobante (correlativo) no se repita en la misma gestión
         var correlativoDuplicado = await _context.Documentos
             .AnyAsync(d => d.Gestion == gestion && d.NumeroCorrelativo == correlativoFormateado);
@@ -1103,9 +1125,10 @@ public class DocumentosController : ControllerBase
         {
             var count = await ContarDocumentosEnCarpetaAsync(carpeta.Id, gestion, excludeDocumentoId);
             if (count >= TamanoRango)
-                return new CarpetaResolucion(null, true, $"La carpeta ya alcanzo el maximo de {TamanoRango} documentos para su rango");
+                return new CarpetaResolucion(null, false, $"La carpeta ya alcanzo el maximo de {TamanoRango} documentos para su rango");
 
-            return new CarpetaResolucion(carpeta.Id, true, null);
+            // Permitir que el usuario ingrese el número correlativo manualmente
+            return new CarpetaResolucion(carpeta.Id, false, null);
         }
 
         return new CarpetaResolucion(carpeta.Id, false, null);
