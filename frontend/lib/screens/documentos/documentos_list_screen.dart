@@ -956,12 +956,14 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               ),
             const SizedBox(width: 8),
           ],
+          // FlexibleSpace: Área expandible del SliverAppBar con información de la carpeta
           flexibleSpace: FlexibleSpaceBar(
             stretchModes: const [
               StretchMode.blurBackground,
               StretchMode.zoomBackground,
             ],
             background: Container(
+              // Gradiente de fondo sutil
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -975,7 +977,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Decoración sutil de fondo
+                  // Ícono decorativo de fondo (muy transparente)
                   Positioned(
                     top: -20,
                     right: -20,
@@ -988,6 +990,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                           .withOpacity(0.03),
                     ),
                   ),
+                  // Contenido principal del header (compacto para evitar superposición con tarjetas)
                   Positioned(
                     bottom: 4,
                     left: 20,
@@ -998,11 +1001,14 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // Fila principal: Ícono de carpeta + Información
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
+                              // Ícono de carpeta con botón de retroceso
                               GestureDetector(
                                 onTap: () {
+                                  // Navegar a carpeta padre o volver a vista principal
                                   if (_carpetaSeleccionada?.carpetaPadreId !=
                                       null) {
                                     _navegarACarpetaPadre(
@@ -1014,6 +1020,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                 },
                                 child: Stack(
                                   children: [
+                                    // Ícono principal de carpeta con Hero animation
                                     Hero(
                                       tag: 'folder_icon_${carpeta.id}',
                                       child: Container(
@@ -1022,6 +1029,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                           gradient: LinearGradient(
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
+                                            // Color según tipo: Teal para Ingreso, Amber para Egreso
                                             colors:
                                                 (carpeta.tipo?.contains(
                                                           'Ingreso',
@@ -1063,6 +1071,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                         ),
                                       ),
                                     ),
+                                    // Indicador de navegación (flecha de retroceso)
                                     Positioned(
                                       right: -2,
                                       bottom: -2,
@@ -1097,10 +1106,12 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                 ),
                               ),
                               const SizedBox(width: 16),
+                              // Información de la carpeta (nombre, tipo, fecha)
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // Nombre de la carpeta
                                     Text(
                                       carpeta.nombre,
                                       style: GoogleFonts.poppins(
@@ -1114,8 +1125,10 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
+                                    // Badges: Tipo de carpeta y fecha de creación
                                     Row(
                                       children: [
+                                        // Badge de tipo de carpeta
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 6,
@@ -1170,6 +1183,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
                             ],
                           ),
                           const SizedBox(height: 4),
+                          // Estadísticas de la carpeta (gestión, rango, cantidad de documentos)
                           _buildHeaderStats(carpeta, docs, theme),
                         ],
                       ),
@@ -1238,7 +1252,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     );
   }
 
-  // Widget helper para animación de entrada
+  // Widget helper para animación de entrada suave (fade in + desplazamiento hacia arriba)
   Widget _fadeInUp({required Widget child, required Duration duration}) {
     return TweenAnimationBuilder<double>(
       duration: duration,

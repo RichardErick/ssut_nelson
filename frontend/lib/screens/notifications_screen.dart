@@ -339,14 +339,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
+        // Flecha de atrás automática al principio
         title: Text(
           'Centro de Notificaciones',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
+        centerTitle: true, // Centrar el título
         backgroundColor: theme.colorScheme.surface,
         elevation: 0,
         foregroundColor: theme.colorScheme.onSurface,
         actions: [
+          // Botones de acción al final
           if (_alertas.isNotEmpty)
             Tooltip(
               message: 'Limpiar todo',
@@ -356,7 +359,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 color: Colors.red.shade400,
               ),
             ),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
+          // Logo/ícono de la app al final
+          Padding(
+            padding: const EdgeInsets.only(right: 8, left: 4),
+            child: Icon(
+              Icons.notifications_active_rounded,
+              color: theme.colorScheme.primary,
+              size: 24,
+            ),
+          ),
         ],
       ),
       body:

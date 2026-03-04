@@ -45,36 +45,44 @@ public class CarpetasController : ControllerBase
             .OrderBy(c => c.Gestion)
             .ThenBy(c => c.CarpetaPadreId)
             .ThenBy(c => c.Nombre)
-            .Select(c => new
-            {
-                c.Id,
-                c.Nombre,
-                c.Codigo,
-                c.Gestion,
-                c.Descripcion,
-                c.CarpetaPadreId,
-                CarpetaPadreNombre = c.CarpetaPadre != null ? c.CarpetaPadre.Nombre : null,
-                c.Activo,
-                c.FechaCreacion,
-                UsuarioCreacionNombre = c.UsuarioCreacion != null ? c.UsuarioCreacion.NombreCompleto : null,
-                NumeroSubcarpetas = c.Subcarpetas.Count,
-                NumeroDocumentos = c.Documentos.Count,
-                // Rango configurado explícitamente en la carpeta (tope lógico)
-                c.RangoInicio,
-                c.RangoFin,
-                c.Tipo
-            })
             .ToListAsync();
 
+        // Obtener conteo de documentos por carpeta de forma explícita
         var carpetaIds = carpetas.Select(c => c.Id).ToList();
+        var documentosPorCarpeta = await _context.Documentos
+            .Where(d => d.CarpetaId.HasValue && carpetaIds.Contains(d.CarpetaId.Value))
+            .GroupBy(d => d.CarpetaId!.Value)
+            .Select(g => new { CarpetaId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.CarpetaId, x => x.Count);
+
+        var result = carpetas.Select(c => new
+        {
+            c.Id,
+            c.Nombre,
+            c.Codigo,
+            c.Gestion,
+            c.Descripcion,
+            c.CarpetaPadreId,
+            CarpetaPadreNombre = c.CarpetaPadre != null ? c.CarpetaPadre.Nombre : null,
+            c.Activo,
+            c.FechaCreacion,
+            UsuarioCreacionNombre = c.UsuarioCreacion != null ? c.UsuarioCreacion.NombreCompleto : null,
+            NumeroSubcarpetas = c.Subcarpetas.Count,
+            NumeroDocumentos = documentosPorCarpeta.TryGetValue(c.Id, out var count) ? count : 0,
+            // Rango configurado explícitamente en la carpeta (tope lógico)
+            c.RangoInicio,
+            c.RangoFin,
+            c.Tipo
+        }).ToList();
+
         var rangoMap = await ObtenerRangosCorrelativosAsync(carpetaIds, gestion);
         var numeroMap = await ObtenerNumerosCarpetaAsync(carpetaIds, gestion);
 
         // Para carpetas raíz: total de documentos en la carpeta + todas las subcarpetas
-        var raizIds = carpetas.Where(c => c.CarpetaPadreId == null).Select(c => c.Id).ToList();
+        var raizIds = result.Where(c => c.CarpetaPadreId == null).Select(c => c.Id).ToList();
         var totalDocumentosPorRaiz = await ObtenerTotalDocumentosEnArbolAsync(raizIds);
 
-        var result = carpetas.Select(c =>
+        var finalResult = result.Select(c =>
         {
             var numeroDocumentos = c.CarpetaPadreId == null && totalDocumentosPorRaiz.TryGetValue(c.Id, out var total)
                 ? total
@@ -103,7 +111,7 @@ public class CarpetasController : ControllerBase
             };
         });
 
-        return Ok(result);
+        return Ok(finalResult);
     }
 
     /// <summary>
