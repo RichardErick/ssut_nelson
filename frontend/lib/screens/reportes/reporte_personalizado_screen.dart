@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -200,9 +200,25 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
   }
 
   Future<void> _exportarPDF() async {
+    final columnas = _columnasSeleccionadas;
+    
+    // Validaciones
+    if (columnas.isEmpty) {
+      if (mounted) {
+        AppAlert.error(context, 'Error', 'Selecciona al menos una columna para exportar');
+      }
+      return;
+    }
+    
+    if (_documentosFiltrados.isEmpty) {
+      if (mounted) {
+        AppAlert.error(context, 'Error', 'No hay datos para exportar');
+      }
+      return;
+    }
+
     try {
       final pdf = pw.Document();
-      final columnas = _columnasSeleccionadas;
       
       pdf.addPage(
         pw.MultiPage(
@@ -246,56 +262,120 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
       );
 
       final bytes = await pdf.save();
-      _downloadFile(bytes, 'reporte_personalizado_${DateTime.now().millisecondsSinceEpoch}.pdf', 'application/pdf');
+      final filename = 'reporte_personalizado_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      
+      if (kIsWeb) {
+        _downloadFile(bytes, filename, 'application/pdf');
+      } else {
+        // Para plataformas móviles/desktop, mostrar mensaje
+        if (mounted) {
+          AppAlert.error(context, 'Información', 'La descarga de PDF solo está disponible en la versión web');
+        }
+        return;
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF generado exitosamente')),
+          const SnackBar(
+            content: Text('PDF generado exitosamente'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        AppAlert.error(context, 'Error', 'No se pudo generar el PDF: $e');
+        AppAlert.error(context, 'Error', 'No se pudo generar el PDF: ${e.toString()}');
       }
     }
   }
 
   Future<void> _exportarExcel() async {
+    final columnas = _columnasSeleccionadas;
+    
+    // Validaciones
+    if (columnas.isEmpty) {
+      if (mounted) {
+        AppAlert.error(context, 'Error', 'Selecciona al menos una columna para exportar');
+      }
+      return;
+    }
+    
+    if (_documentosFiltrados.isEmpty) {
+      if (mounted) {
+        AppAlert.error(context, 'Error', 'No hay datos para exportar');
+      }
+      return;
+    }
+
     try {
-      final columnas = _columnasSeleccionadas;
       final csv = StringBuffer();
+      
+      // BOM para UTF-8 (ayuda a Excel a reconocer caracteres especiales)
+      csv.write('\uFEFF');
       
       // Headers
       csv.writeln(columnas.map((col) => '"${_columnasDisponibles[col]!.label}"').join(','));
       
       // Data
       for (final doc in _documentosFiltrados) {
-        csv.writeln(columnas.map((col) => '"${_getColumnValue(doc, col)}"').join(','));
+        csv.writeln(columnas.map((col) {
+          final value = _getColumnValue(doc, col);
+          // Escapar comillas dobles
+          return '"${value.replaceAll('"', '""')}"';
+        }).join(','));
       }
 
       final bytes = utf8.encode(csv.toString());
-      _downloadFile(Uint8List.fromList(bytes), 'reporte_personalizado_${DateTime.now().millisecondsSinceEpoch}.csv', 'text/csv');
+      final filename = 'reporte_personalizado_${DateTime.now().millisecondsSinceEpoch}.csv';
+      
+      if (kIsWeb) {
+        _downloadFile(Uint8List.fromList(bytes), filename, 'text/csv;charset=utf-8');
+      } else {
+        // Para plataformas móviles/desktop, mostrar mensaje
+        if (mounted) {
+          AppAlert.error(context, 'Información', 'La descarga de Excel solo está disponible en la versión web');
+        }
+        return;
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('CSV generado exitosamente')),
+          const SnackBar(
+            content: Text('Excel/CSV generado exitosamente'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        AppAlert.error(context, 'Error', 'No se pudo generar el CSV: $e');
+        AppAlert.error(context, 'Error', 'No se pudo generar el Excel: ${e.toString()}');
       }
     }
   }
 
   void _downloadFile(Uint8List bytes, String filename, String mimeType) {
     if (kIsWeb) {
-      final blob = html.Blob([bytes], mimeType);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', filename)
-        ..click();
-      html.Url.revokeObjectUrl(url);
+      try {
+        final blob = html.Blob([bytes], mimeType);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', filename)
+          ..style.display = 'none';
+        
+        html.document.body?.append(anchor);
+        anchor.click();
+        
+        // Limpiar después de un pequeño delay
+        Future.delayed(const Duration(milliseconds: 100), () {
+          anchor.remove();
+          html.Url.revokeObjectUrl(url);
+        });
+      } catch (e) {
+        debugPrint('Error al descargar archivo: $e');
+        rethrow;
+      }
     }
   }
 
@@ -791,21 +871,27 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
                 ),
               ),
               FilledButton.icon(
-                onPressed: _exportarPDF,
+                onPressed: _columnasSeleccionadas.isEmpty || _documentosFiltrados.isEmpty 
+                    ? null 
+                    : _exportarPDF,
                 icon: const Icon(Icons.picture_as_pdf_rounded, size: 20),
                 label: const Text('PDF'),
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.red.shade600,
+                  disabledBackgroundColor: Colors.grey.shade400,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
               ),
               const SizedBox(width: 12),
               FilledButton.icon(
-                onPressed: _exportarExcel,
+                onPressed: _columnasSeleccionadas.isEmpty || _documentosFiltrados.isEmpty 
+                    ? null 
+                    : _exportarExcel,
                 icon: const Icon(Icons.table_chart_rounded, size: 20),
                 label: const Text('Excel'),
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.green.shade600,
+                  disabledBackgroundColor: Colors.grey.shade400,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
               ),
