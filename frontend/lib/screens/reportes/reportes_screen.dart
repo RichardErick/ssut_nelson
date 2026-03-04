@@ -16,6 +16,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/error_helper.dart';
 import '../../widgets/animated_card.dart';
 import '../../widgets/app_alert.dart';
+import 'reporte_personalizado_screen.dart';
 
 class ReportesScreen extends StatefulWidget {
   /// Índice de la pestaña actual en Home; si coincide con [reportesIndex] esta pantalla está visible.
@@ -136,6 +137,23 @@ class _ReportesScreenState extends State<ReportesScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ReportePersonalizadoScreen(),
+            ),
+          );
+        },
+        icon: const Icon(Icons.table_chart_rounded),
+        label: Text(
+          'Reporte Personalizado',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: Colors.white,
+      ),
       body:
           _isLoading
               ? _buildLoadingState()
