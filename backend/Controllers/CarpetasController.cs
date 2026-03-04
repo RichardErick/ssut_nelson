@@ -5,11 +5,31 @@ using SistemaGestionDocumental.Models;
 
 namespace SistemaGestionDocumental.Controllers;
 
+/// <summary>
+/// Controlador para la gestión de carpetas del sistema documental.
+/// 
+/// FUNCIONALIDADES PRINCIPALES:
+/// - Crear, leer, actualizar y eliminar carpetas
+/// - Organización jerárquica (carpetas padre e hijas)
+/// - Numeración automática e independiente por tipo (Ingreso/Egreso)
+/// - Gestión de rangos de documentos por carpeta
+/// - Códigos romanos automáticos para identificación
+/// 
+/// IMPORTANTE - NUMERACIÓN INDEPENDIENTE:
+/// Las carpetas de tipo "Ingreso" y "Egreso" tienen numeraciones separadas.
+/// Ejemplo correcto:
+///   - Comprobante de Ingreso 1, 2, 3
+///   - Comprobante de Egreso 1, 2, 3
+/// 
+/// Esto se logra filtrando por el campo "Tipo" al contar carpetas existentes.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class CarpetasController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    
+    // Constantes de configuración
     private const string NombreCarpetaPermitida = "Comprobante de Egreso";
     private const int TamanoRango = 30;
     private const int RangosIniciales = 3;
@@ -307,18 +327,35 @@ public class CarpetasController : ControllerBase
             }
         }
 
-        // Calcular número de carpeta automáticamente (independiente por tipo)
+        // ============================================================================
+        // CÁLCULO DE NÚMERO DE CARPETA (INDEPENDIENTE POR TIPO)
+        // ============================================================================
+        // Cuenta cuántas carpetas existen con:
+        // - La misma gestión (año)
+        // - El mismo padre (misma ubicación en la jerarquía)
+        // - El mismo tipo (Ingreso o Egreso)
+        // 
+        // Esto asegura que las carpetas de "Ingreso" y "Egreso" tengan
+        // numeraciones independientes. Por ejemplo:
+        // - Ingreso 1, Ingreso 2, Ingreso 3
+        // - Egreso 1, Egreso 2, Egreso 3
+        // 
+        // Sin el filtro por tipo, todas compartirían la misma numeración:
+        // - Ingreso 1, Ingreso 2, Egreso 3 (INCORRECTO)
+        // ============================================================================
         var numeroCarpeta = await _context.Carpetas
             .Where(c => c.Gestion == dto.Gestion 
                 && c.CarpetaPadreId == dto.CarpetaPadreId
-                && c.Tipo == dto.Tipo)
+                && c.Tipo == dto.Tipo)  // ← IMPORTANTE: Filtro por tipo
             .CountAsync() + 1;
 
-        // Usar el código romano proporcionado o generar uno automáticamente
+        // Generar código romano para la carpeta
+        // Si el usuario proporciona un código, se usa ese; si no, se genera automáticamente
         var codigoRomano = !string.IsNullOrWhiteSpace(dto.Codigo) 
             ? dto.Codigo 
             : ToRoman(numeroCarpeta);
 
+        // Crear la nueva carpeta con todos los datos
         var carpeta = new Carpeta
         {
             Nombre = dto.Nombre.Trim(),
@@ -547,33 +584,64 @@ public class CarpetasController : ControllerBase
         return result;
     }
 
+    /// <summary>
+    /// Obtiene el número de carpeta para visualización en la interfaz.
+    /// Este número es independiente por tipo de carpeta (Ingreso/Egreso).
+    /// </summary>
+    /// <param name="carpetaIds">Lista de IDs de carpetas a numerar</param>
+    /// <param name="gestion">Gestión (año) para filtrar, opcional</param>
+    /// <returns>Diccionario con ID de carpeta y su número correspondiente</returns>
     private async Task<Dictionary<int, int>> ObtenerNumerosCarpetaAsync(List<int> carpetaIds, string? gestion)
     {
         var result = new Dictionary<int, int>();
         if (carpetaIds.Count == 0)
             return result;
 
-        // Obtener todas las carpetas raíz agrupadas por tipo
+        // ============================================================================
+        // PASO 1: Obtener todas las carpetas raíz (sin padre) agrupadas por tipo
+        // ============================================================================
+        // Se ordenan primero por tipo y luego por ID para mantener consistencia
         var roots = await _context.Carpetas
             .Where(c => c.CarpetaPadreId == null && c.Activo)
             .Where(c => string.IsNullOrWhiteSpace(gestion) || c.Gestion == gestion)
-            .OrderBy(c => c.Tipo)
-            .ThenBy(c => c.Id)
+            .OrderBy(c => c.Tipo)      // Ordenar por tipo primero
+            .ThenBy(c => c.Id)         // Luego por ID
             .Select(c => new { c.Id, c.Tipo })
             .ToListAsync();
 
-        // Numerar carpetas raíz por tipo independientemente
+        // ============================================================================
+        // PASO 2: Numerar carpetas raíz por tipo independientemente
+        // ============================================================================
+        // Agrupa las carpetas por tipo (Ingreso, Egreso, etc.)
+        // Cada grupo tendrá su propia numeración empezando desde 1
+        // 
+        // Ejemplo:
+        // Tipo "Ingreso": Carpeta 1, Carpeta 2, Carpeta 3
+        // Tipo "Egreso":  Carpeta 1, Carpeta 2, Carpeta 3
+        // 
+        // Sin esta agrupación, todas compartirían la misma numeración:
+        // Ingreso 1, Ingreso 2, Egreso 3 (INCORRECTO)
+        // ============================================================================
         var rootsByTipo = roots.GroupBy(r => r.Tipo ?? "");
         foreach (var tipoGroup in rootsByTipo)
         {
             var rootsInTipo = tipoGroup.ToList();
+            // Numerar desde 1 para cada tipo
             for (var i = 0; i < rootsInTipo.Count; i++)
             {
                 result[rootsInTipo[i].Id] = i + 1;
             }
         }
 
-        // También numerar subcarpetas (por ejemplo, rangos dentro de la carpeta general)
+        // ============================================================================
+        // PASO 3: Numerar subcarpetas (rangos dentro de cada carpeta padre)
+        // ============================================================================
+        // Las subcarpetas también se numeran independientemente dentro de su padre
+        // Por ejemplo, si una carpeta "Ingreso 1" tiene 3 rangos:
+        // - Rango 1 (1-30)
+        // - Rango 2 (31-60)
+        // - Rango 3 (61-90)
+        // ============================================================================
         foreach (var root in roots)
         {
             var subIds = await _context.Carpetas
@@ -592,25 +660,56 @@ public class CarpetasController : ControllerBase
         return result;
     }
 
+    /// <summary>
+    /// Convierte un número entero a su representación en números romanos.
+    /// </summary>
+    /// <param name="number">Número entero a convertir (debe ser mayor a 0)</param>
+    /// <returns>Representación en números romanos del número</returns>
+    /// <example>
+    /// ToRoman(1) → "I"
+    /// ToRoman(4) → "IV"
+    /// ToRoman(9) → "IX"
+    /// ToRoman(58) → "LVIII"
+    /// ToRoman(1994) → "MCMXCIV"
+    /// </example>
     private static string ToRoman(int number)
     {
+        // Si el número es 0 o negativo, retornar cadena vacía
         if (number <= 0) return string.Empty;
+        
+        // Mapa de valores decimales a romanos en orden descendente
+        // Incluye valores compuestos como 900 (CM), 400 (CD), etc.
         var map = new[]
         {
-            (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
-            (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
-            (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")
+            (1000, "M"),   // 1000 = M
+            (900, "CM"),   // 900 = CM (1000 - 100)
+            (500, "D"),    // 500 = D
+            (400, "CD"),   // 400 = CD (500 - 100)
+            (100, "C"),    // 100 = C
+            (90, "XC"),    // 90 = XC (100 - 10)
+            (50, "L"),     // 50 = L
+            (40, "XL"),    // 40 = XL (50 - 10)
+            (10, "X"),     // 10 = X
+            (9, "IX"),     // 9 = IX (10 - 1)
+            (5, "V"),      // 5 = V
+            (4, "IV"),     // 4 = IV (5 - 1)
+            (1, "I")       // 1 = I
         };
+        
         var result = string.Empty;
         var remaining = number;
+        
+        // Iterar sobre cada valor del mapa
         foreach (var (value, roman) in map)
         {
+            // Mientras el número restante sea mayor o igual al valor actual
             while (remaining >= value)
             {
-                result += roman;
-                remaining -= value;
+                result += roman;        // Agregar el símbolo romano
+                remaining -= value;     // Restar el valor del número
             }
         }
+        
         return result;
     }
 }
