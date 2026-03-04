@@ -48,6 +48,7 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
           // Quitar áreas que no deberían aparecer en el formulario
           if (nombre.contains('recursos humanos')) return false;
           if (nombre.contains('archivo')) return false;
+          // Incluir Auditoría explícitamente
           return true;
         })
         .map((a) {

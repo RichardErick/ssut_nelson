@@ -638,32 +638,27 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
       final subcarpetaId = carpeta.id;
 
       // Limpiar filtros para que el documento recién creado aparezca en la lista
-      setState(() {
-        _numeroComprobanteFilter = '';
-        _numeroComprobanteFilterController.clear();
-        _fechaDesdeFilter = null;
-        _fechaHastaFilter = null;
-        _responsableIdFilter = null;
-        _codigoQrFilter = '';
-        _codigoQrFilterController.clear();
-        _consultaBusqueda = '';
-        _searchController.clear();
-      });
+      _numeroComprobanteFilter = '';
+      _numeroComprobanteFilterController.clear();
+      _fechaDesdeFilter = null;
+      _fechaHastaFilter = null;
+      _responsableIdFilter = null;
+      _codigoQrFilter = '';
+      _codigoQrFilterController.clear();
+      _consultaBusqueda = '';
+      _searchController.clear();
 
+      // Recargar documentos y carpetas
       await _cargarDocumentosCarpeta(subcarpetaId);
-      if (!mounted) return;
       await _cargarCarpetas(todasLasGestiones: true);
-      if (!mounted) return;
-      final dataProvider = Provider.of<DataProvider>(context, listen: false);
-      dataProvider.refresh();
-      if (mounted) setState(() {});
-      // Forzar otro rebuild en el siguiente frame para que la lista se pinte con los nuevos datos
+      
+      // Refrescar el provider
       if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() {});
-        });
+        final dataProvider = Provider.of<DataProvider>(context, listen: false);
+        dataProvider.refresh();
+        setState(() {});
+        _mostrarSnackBarExito('Documento agregado correctamente.');
       }
-      if (mounted) _mostrarSnackBarExito('Documento agregado correctamente.');
     }
   }
 
