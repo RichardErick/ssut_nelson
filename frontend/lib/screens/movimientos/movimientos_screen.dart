@@ -156,11 +156,41 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
       ).devolverDocumento(mov.id);
       await _loadMovimientos();
       if (mounted) {
-        AppAlert.success(
-          context,
-          'Devolución registrada',
-          'El documento ha sido marcado como devuelto y su estado es Disponible.',
-          buttonText: 'Entendido',
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Devolución registrada',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'Documento: ${mov.documentoCodigo ?? 'Sin código'}\nEstado: Disponible',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green.shade600,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         );
       }
     } catch (e) {

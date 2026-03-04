@@ -147,14 +147,47 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
       ));
 
       if (mounted) {
+        // Primero cerrar la pantalla y retornar true
+        Navigator.of(context).pop(true);
+        
+        // Luego mostrar el mensaje de éxito
         final vencStr = DateFormat('dd/MM/yyyy').format(_fechaLimiteDevolucion);
-        await AppAlert.success(
-          context,
-          'Préstamo registrado',
-          'El documento "${_documentoSeleccionado!.codigo}" ha sido registrado como prestado. Fecha límite de devolución: $vencStr.',
-          buttonText: 'Entendido',
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Préstamo registrado',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'Documento: ${_documentoSeleccionado!.codigo}\nFecha límite: $vencStr',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green.shade600,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         );
-        if (mounted) Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
@@ -250,10 +283,79 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
                         errorStyle: TextStyle(color: Colors.red.shade700, fontSize: 13),
                       ),
                       items: _usuarios
-                          .map((u) => DropdownMenuItem(
-                                value: u,
-                                child: Text('${u.nombreCompleto} (${u.nombreUsuario})', overflow: TextOverflow.ellipsis),
-                              ))
+                          .map((u) {
+                            // Determinar si el usuario puede recibir préstamos
+                            final rolNombre = u.rol.toString().split('.').last;
+                            final puedeRecibirPrestamo = rolNombre == 'Contador' || rolNombre == 'Gerente';
+                            
+                            // Icono según el rol
+                            IconData icono;
+                            Color colorIcono;
+                            String rolDisplay;
+                            
+                            switch (rolNombre) {
+                              case 'Contador':
+                                icono = Icons.check_circle;
+                                colorIcono = Colors.green;
+                                rolDisplay = 'Contador';
+                                break;
+                              case 'Gerente':
+                                icono = Icons.check_circle;
+                                colorIcono = Colors.blue;
+                                rolDisplay = 'Gerente';
+                                break;
+                              case 'AdministradorDocumentos':
+                                icono = Icons.lock;
+                                colorIcono = Colors.grey;
+                                rolDisplay = 'Admin. Docs';
+                                break;
+                              case 'AdministradorSistema':
+                                icono = Icons.lock;
+                                colorIcono = Colors.grey;
+                                rolDisplay = 'Admin. Sistema';
+                                break;
+                              default:
+                                icono = Icons.lock;
+                                colorIcono = Colors.grey;
+                                rolDisplay = rolNombre;
+                            }
+                            
+                            return DropdownMenuItem(
+                              value: u,
+                              enabled: puedeRecibirPrestamo,
+                              child: Row(
+                                children: [
+                                  Icon(icono, size: 18, color: colorIcono),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          u.nombreCompleto,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: puedeRecibirPrestamo ? Colors.black87 : Colors.grey,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          '$rolDisplay • ${u.nombreUsuario}',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 11,
+                                            color: puedeRecibirPrestamo ? colorIcono : Colors.grey,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          })
                           .toList(),
                       onChanged: (u) => setState(() => _usuarioResponsable = u),
                       validator: (v) => v == null ? FormValidators.seleccioneOpcion : null,
