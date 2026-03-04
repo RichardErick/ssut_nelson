@@ -288,26 +288,6 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'Reporte Personalizado',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        actions: [
-          if (_documentos.isNotEmpty) ...[
-            IconButton(
-              icon: const Icon(Icons.picture_as_pdf_rounded),
-              tooltip: 'Exportar PDF',
-              onPressed: _exportarPDF,
-            ),
-            IconButton(
-              icon: const Icon(Icons.table_chart_rounded),
-              tooltip: 'Exportar Excel/CSV',
-              onPressed: _exportarExcel,
-            ),
-          ],
-        ],
-      ),
       body: Row(
         children: [
           // Panel lateral de configuración
@@ -315,12 +295,13 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
             width: isDesktop ? 320 : 280,
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
-              border: Border(
-                right: BorderSide(
-                  color: theme.dividerColor,
-                  width: 1,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(2, 0),
                 ),
-              ),
+              ],
             ),
             child: _buildConfigPanel(theme),
           ),
@@ -336,24 +317,55 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
   Widget _buildConfigPanel(ThemeData theme) {
     return Column(
       children: [
-        // Header del panel
+        // Header del panel con gradiente
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-            border: Border(
-              bottom: BorderSide(color: theme.dividerColor),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.primary.withOpacity(0.8),
+              ],
             ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.settings_rounded, color: theme.colorScheme.primary),
-              const SizedBox(width: 12),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.table_chart_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Reportes',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               Text(
-                'Configuración',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                'Personaliza tu reporte',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: Colors.white.withOpacity(0.9),
                 ),
               ),
             ],
@@ -364,32 +376,59 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                'Columnas a mostrar',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.primary,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Columnas a mostrar',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.primary,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Text(
+                    '${_columnasSeleccionadas.length}/13',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.primary.withOpacity(0.7),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               ..._columnasDisponibles.entries.map((entry) {
-                return CheckboxListTile(
-                  dense: true,
-                  title: Text(
-                    entry.value.label,
-                    style: GoogleFonts.inter(fontSize: 13),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 4),
+                  decoration: BoxDecoration(
+                    color: entry.value.selected
+                        ? theme.colorScheme.primaryContainer.withOpacity(0.3)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  value: entry.value.selected,
-                  onChanged: (value) {
-                    setState(() {
-                      entry.value.selected = value ?? false;
-                    });
-                  },
-                  controlAffinity: ListTileControlAffinity.leading,
+                  child: CheckboxListTile(
+                    dense: true,
+                    title: Text(
+                      entry.value.label,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: entry.value.selected ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                    value: entry.value.selected,
+                    onChanged: (value) {
+                      setState(() {
+                        entry.value.selected = value ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    activeColor: theme.colorScheme.primary,
+                  ),
                 );
               }),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
@@ -403,6 +442,9 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
                       },
                       icon: const Icon(Icons.check_box, size: 18),
                       label: const Text('Todas'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -417,25 +459,43 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
                       },
                       icon: const Icon(Icons.check_box_outline_blank, size: 18),
                       label: const Text('Ninguna'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: _documentos.isEmpty ? _cargarDocumentos : null,
                 icon: _isLoading
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.search_rounded),
                 label: Text(_isLoading ? 'Cargando...' : 'Generar Reporte'),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: theme.colorScheme.primary,
                 ),
               ),
+              if (_documentos.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _cargarDocumentos,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Actualizar Datos'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -445,30 +505,118 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
 
   Widget _buildMainArea(ThemeData theme) {
     if (_documentos.isEmpty && !_isLoading) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              theme.colorScheme.primaryContainer.withOpacity(0.1),
+              theme.scaffoldBackgroundColor,
+            ],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.analytics_outlined,
+                  size: 80,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Genera tu Reporte Personalizado',
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Selecciona las columnas que deseas ver',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'y presiona "Generar Reporte"',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    _buildFeatureItem(
+                      Icons.check_circle_outline,
+                      'Selecciona columnas',
+                      'Elige qué información mostrar',
+                      theme,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFeatureItem(
+                      Icons.filter_list_rounded,
+                      'Filtra resultados',
+                      'Busca y filtra por estado',
+                      theme,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFeatureItem(
+                      Icons.download_rounded,
+                      'Exporta datos',
+                      'Descarga en PDF o Excel',
+                      theme,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_isLoading) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.analytics_outlined,
-              size: 80,
-              color: Colors.grey.shade400,
+            CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
             ),
             const SizedBox(height: 24),
             Text(
-              'Configura las columnas y genera el reporte',
+              'Cargando documentos...',
               style: GoogleFonts.inter(
                 fontSize: 16,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Selecciona las columnas que deseas ver\ny presiona "Generar Reporte"',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: Colors.grey.shade500,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -476,17 +624,121 @@ class _ReportePersonalizadoScreenState extends State<ReportePersonalizadoScreen>
       );
     }
 
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return Column(
       children: [
+        // Header con título y botones de exportación
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.table_view_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Reporte de Documentos',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    Text(
+                      'Visualiza y exporta tus datos',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: _exportarPDF,
+                icon: const Icon(Icons.picture_as_pdf_rounded, size: 20),
+                label: const Text('PDF'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                onPressed: _exportarExcel,
+                icon: const Icon(Icons.table_chart_rounded, size: 20),
+                label: const Text('Excel'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.green.shade600,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
         // Barra de filtros
         _buildFilterBar(theme),
         // Tabla de resultados
         Expanded(
           child: _buildDataTable(theme),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeatureItem(IconData icon, String title, String subtitle, ThemeData theme) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: theme.colorScheme.primary, size: 24),
+        ),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
       ],
     );

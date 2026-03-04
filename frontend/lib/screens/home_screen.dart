@@ -16,7 +16,7 @@ import 'movimientos/movimientos_screen.dart';
 import 'movimientos/mis_prestamos_screen.dart';
 import 'notifications_screen.dart';
 import 'qr/qr_scanner_screen.dart';
-import 'reportes/reportes_screen.dart';
+import 'reportes/reporte_personalizado_screen.dart';
 import 'profile_screen.dart';
 import 'configurar_pregunta_secreta_screen.dart';
 import '../services/api_service.dart';
@@ -145,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           label: 'Reportes',
           icon: Icons.assessment_outlined,
           selectedIcon: Icons.assessment,
-          screen: ReportesScreen(selectedIndex: _selectedIndex, reportesIndex: _reportesNavIndex!),
+          screen: const ReportePersonalizadoScreen(),
         ),
       );
     }
@@ -622,9 +622,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           )
         : KeyedSubtree(
             key: ValueKey('nav_$index'),
-            child: _reportesNavIndex != null && index == _reportesNavIndex
-                ? ReportesScreen(selectedIndex: _selectedIndex, reportesIndex: _reportesNavIndex!)
-                : _navItems[index].screen,
+            child: _navItems[index].screen,
           );
 
     return Container(
