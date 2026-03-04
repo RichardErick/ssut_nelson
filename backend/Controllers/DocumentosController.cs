@@ -332,15 +332,54 @@ public class DocumentosController : ControllerBase
         }
 
         // Validar que el número de comprobante (correlativo) no se repita en la misma carpeta y gestión
-        // Si no hay carpeta, validar globalmente en la gestión
-        var correlativoDuplicado = carpetaId.HasValue
-            ? await _context.Documentos.AnyAsync(d => 
-                d.CarpetaId == carpetaId.Value && 
-                d.Gestion == gestion && 
-                d.NumeroCorrelativo == correlativoFormateado)
-            : await _context.Documentos.AnyAsync(d => 
-                d.Gestion == gestion && 
-                d.NumeroCorrelativo == correlativoFormateado);
+        // Si es una carpeta "general" (Comprobante de Egreso), validar en la carpeta y todas sus subcarpetas
+        bool correlativoDuplicado;
+        
+        if (carpetaId.HasValue)
+        {
+            // Verificar si es una carpeta "general" que tiene subcarpetas
+            var esCarpetaGeneral = carpetaInfo != null && 
+                carpetaInfo.CarpetaPadreId == null && 
+                string.Equals(carpetaInfo.Nombre, NombreCarpetaGeneral, StringComparison.OrdinalIgnoreCase);
+            
+            if (esCarpetaGeneral)
+            {
+                // Obtener IDs de todas las subcarpetas
+                var subcarpetasIds = await _context.Carpetas
+                    .Where(c => c.CarpetaPadreId == carpetaId.Value && c.Activo)
+                    .Select(c => c.Id)
+                    .ToListAsync();
+                
+                // Incluir la carpeta principal y todas sus subcarpetas
+                var carpetasIds = new List<int> { carpetaId.Value };
+                carpetasIds.AddRange(subcarpetasIds);
+                
+                // Validar en todas las carpetas (principal + subcarpetas)
+                correlativoDuplicado = await _context.Documentos
+                    .AnyAsync(d => 
+                        d.CarpetaId.HasValue && 
+                        carpetasIds.Contains(d.CarpetaId.Value) && 
+                        d.Gestion == gestion && 
+                        d.NumeroCorrelativo == correlativoFormateado);
+            }
+            else
+            {
+                // Carpeta normal, validar solo en esa carpeta
+                correlativoDuplicado = await _context.Documentos
+                    .AnyAsync(d => 
+                        d.CarpetaId == carpetaId.Value && 
+                        d.Gestion == gestion && 
+                        d.NumeroCorrelativo == correlativoFormateado);
+            }
+        }
+        else
+        {
+            // Sin carpeta, validar globalmente en la gestión
+            correlativoDuplicado = await _context.Documentos
+                .AnyAsync(d => 
+                    d.Gestion == gestion && 
+                    d.NumeroCorrelativo == correlativoFormateado);
+        }
                 
         if (correlativoDuplicado)
         {
@@ -540,17 +579,62 @@ public class DocumentosController : ControllerBase
                 : documento.Gestion;
 
             // Validar que el número de comprobante no se repita en la misma carpeta y gestión (excluyendo el propio documento)
-            // Si no hay carpeta, validar globalmente en la gestión
-            var correlativoDuplicado = documento.CarpetaId.HasValue
-                ? await _context.Documentos.AnyAsync(d =>
-                    d.Id != id &&
-                    d.CarpetaId == documento.CarpetaId.Value &&
-                    d.Gestion == nuevaGestion &&
-                    d.NumeroCorrelativo == nuevoCorrelativo)
-                : await _context.Documentos.AnyAsync(d =>
-                    d.Id != id &&
-                    d.Gestion == nuevaGestion &&
-                    d.NumeroCorrelativo == nuevoCorrelativo);
+            // Si es una carpeta "general" (Comprobante de Egreso), validar en la carpeta y todas sus subcarpetas
+            bool correlativoDuplicado;
+            
+            if (documento.CarpetaId.HasValue)
+            {
+                // Obtener información de la carpeta
+                var carpetaInfo = await _context.Carpetas
+                    .Include(c => c.CarpetaPadre)
+                    .FirstOrDefaultAsync(c => c.Id == documento.CarpetaId.Value);
+                
+                // Verificar si es una carpeta "general" que tiene subcarpetas
+                var esCarpetaGeneral = carpetaInfo != null && 
+                    carpetaInfo.CarpetaPadreId == null && 
+                    string.Equals(carpetaInfo.Nombre, NombreCarpetaGeneral, StringComparison.OrdinalIgnoreCase);
+                
+                if (esCarpetaGeneral)
+                {
+                    // Obtener IDs de todas las subcarpetas
+                    var subcarpetasIds = await _context.Carpetas
+                        .Where(c => c.CarpetaPadreId == documento.CarpetaId.Value && c.Activo)
+                        .Select(c => c.Id)
+                        .ToListAsync();
+                    
+                    // Incluir la carpeta principal y todas sus subcarpetas
+                    var carpetasIds = new List<int> { documento.CarpetaId.Value };
+                    carpetasIds.AddRange(subcarpetasIds);
+                    
+                    // Validar en todas las carpetas (principal + subcarpetas)
+                    correlativoDuplicado = await _context.Documentos
+                        .AnyAsync(d =>
+                            d.Id != id &&
+                            d.CarpetaId.HasValue && 
+                            carpetasIds.Contains(d.CarpetaId.Value) &&
+                            d.Gestion == nuevaGestion &&
+                            d.NumeroCorrelativo == nuevoCorrelativo);
+                }
+                else
+                {
+                    // Carpeta normal, validar solo en esa carpeta
+                    correlativoDuplicado = await _context.Documentos
+                        .AnyAsync(d =>
+                            d.Id != id &&
+                            d.CarpetaId == documento.CarpetaId.Value &&
+                            d.Gestion == nuevaGestion &&
+                            d.NumeroCorrelativo == nuevoCorrelativo);
+                }
+            }
+            else
+            {
+                // Sin carpeta, validar globalmente en la gestión
+                correlativoDuplicado = await _context.Documentos
+                    .AnyAsync(d =>
+                        d.Id != id &&
+                        d.Gestion == nuevaGestion &&
+                        d.NumeroCorrelativo == nuevoCorrelativo);
+            }
                     
             if (correlativoDuplicado)
             {
