@@ -7,6 +7,7 @@ import '../../models/documento.dart';
 import '../../models/movimiento.dart';
 import '../../models/usuario.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/data_provider.dart';
 import '../../services/catalogo_service.dart';
 import '../../services/documento_service.dart';
 import '../../services/movimiento_service.dart';
@@ -147,6 +148,10 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
       ));
 
       if (mounted) {
+        // Refrescar el DataProvider para actualizar la lista automáticamente
+        final dataProvider = Provider.of<DataProvider>(context, listen: false);
+        dataProvider.refresh();
+        
         // Simplemente cerrar y retornar true
         // El mensaje se mostrará en la pantalla de movimientos
         Navigator.of(context).pop(true);
@@ -286,32 +291,18 @@ class _PrestamoFormScreenState extends State<PrestamoFormScreen> {
                               value: u,
                               enabled: puedeRecibirPrestamo,
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(icono, size: 18, color: colorIcono),
+                                  Icon(icono, size: 16, color: colorIcono),
                                   const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          u.nombreCompleto,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            color: puedeRecibirPrestamo ? Colors.black87 : Colors.grey,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        Text(
-                                          '$rolDisplay • ${u.nombreUsuario}',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 11,
-                                            color: puedeRecibirPrestamo ? colorIcono : Colors.grey,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
+                                  Flexible(
+                                    child: Text(
+                                      '${u.nombreCompleto} ($rolDisplay)',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        color: puedeRecibirPrestamo ? Colors.black87 : Colors.grey,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
