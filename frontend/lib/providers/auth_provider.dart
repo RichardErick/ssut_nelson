@@ -64,6 +64,10 @@ class AuthProvider extends ChangeNotifier {
 
   Duration get remainingLockoutTime {
     if (_lockoutEndTime == null) return Duration.zero;
+    if (DateTime.now().isAfter(_lockoutEndTime!)) {
+      _resetLockout();
+      return Duration.zero;
+    }
     return _lockoutEndTime!.difference(DateTime.now());
   }
 
@@ -152,8 +156,15 @@ class AuthProvider extends ChangeNotifier {
       _token = await _secureStorage.read(key: 'auth_token');
       debugPrint('[AUTH] token leído: ${_token != null ? "SÍ (${_token!.length} chars)" : "null"}');
 
+      // Cargar estado de bloqueo persistente
+      final prefs = await SharedPreferences.getInstance();
+      final lockoutTimestamp = prefs.getInt('lockout_end_time');
+      if (lockoutTimestamp != null && lockoutTimestamp > 0) {
+        _lockoutEndTime = DateTime.fromMillisecondsSinceEpoch(lockoutTimestamp);
+        debugPrint('[AUTH] ⏰ Lockout time loaded: $_lockoutEndTime');
+      }
+
       if (_token != null) {
-        final prefs = await SharedPreferences.getInstance();
         final roleString = prefs.getString('user_role');
         final userDataString = prefs.getString('user_data');
         final userNameString = prefs.getString('user_name');
@@ -243,9 +254,12 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> login(String username, String password) async {
+    // Verificar bloqueo persistente ANTES de intentar conexión
     if (isLocked) {
+      final mins = remainingLockoutTime.inMinutes;
+      final secs = remainingLockoutTime.inSeconds % 60;
       throw Exception(
-        'Cuenta bloqueada temporalmente. Intente en ${remainingLockoutTime.inSeconds} segundos.',
+        '🔒 Cuenta bloqueada. Espere ${mins}min ${secs}s antes de intentar nuevamente.',
       );
     }
 
@@ -340,8 +354,15 @@ class AuthProvider extends ChangeNotifier {
           } else {
             _lockoutEndTime = DateTime.now().add(const Duration(minutes: 10));
           }
+          
+          // Guardar bloqueo persistente
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('lockout_end_time', _lockoutEndTime!.millisecondsSinceEpoch);
+          debugPrint('[AUTH] 🔒 Lockout saved: ${_lockoutEndTime}');
         } catch (_) {
           _lockoutEndTime = DateTime.now().add(const Duration(minutes: 10));
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('lockout_end_time', _lockoutEndTime!.millisecondsSinceEpoch);
         }
       }
 
@@ -362,6 +383,11 @@ class AuthProvider extends ChangeNotifier {
   void _resetLockout() {
     _failedAttempts = 0;
     _lockoutEndTime = null;
+    // Limpiar bloqueo persistente
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('lockout_end_time');
+      debugPrint('[AUTH] 🔓 Lockout cleared');
+    });
   }
 
   Future<void> logout() async {
