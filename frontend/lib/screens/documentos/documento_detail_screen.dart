@@ -1011,13 +1011,48 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
               BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 14),
             ],
           ),
-          child: PdfPreview(
-            build: (_) => _previewPdfBytes!,
-            allowPrinting: true,
-            allowSharing: true,
-            canChangeOrientation: false,
-            canChangePageFormat: false,
-            canDebug: false,
+          child: Stack(
+            children: [
+              // Visor de PDF sin barra inferior (sin imprimir/compartir)
+              PdfPreview(
+                build: (_) => _previewPdfBytes!,
+                allowPrinting: false,
+                allowSharing: false,
+                canChangeOrientation: false,
+                canChangePageFormat: false,
+                canDebug: false,
+                actions: [], // Eliminar todas las acciones de la barra inferior
+                pdfPreviewPageDecoration: const BoxDecoration(
+                  color: Colors.white,
+                ),
+              ),
+              // Botón de pantalla completa en esquina superior derecha
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Material(
+                  color: Colors.white,
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    onTap: _openPdfFullscreen,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.fullscreen_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 12),
@@ -1047,6 +1082,86 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  /// Abre el PDF en pantalla completa sin opciones de descarga
+  Future<void> _openPdfFullscreen() async {
+    if (_previewPdfBytes == null) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog.fullscreen(
+          backgroundColor: Colors.black,
+          child: Stack(
+            children: [
+              // PDF en pantalla completa
+              PdfPreview(
+                build: (_) => _previewPdfBytes!,
+                allowPrinting: false,
+                allowSharing: false,
+                canChangeOrientation: false,
+                canChangePageFormat: false,
+                canDebug: false,
+                actions: [],
+              ),
+              // Botón para cerrar
+              Positioned(
+                top: 16,
+                right: 16,
+                child: Material(
+                  color: Colors.white,
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(30),
+                  child: InkWell(
+                    onTap: () => Navigator.of(dialogContext).pop(),
+                    borderRadius: BorderRadius.circular(30),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      child: const Icon(Icons.close_rounded, size: 28),
+                    ),
+                  ),
+                ),
+              ),
+              // Indicador de documento protegido
+              Positioned(
+                top: 16,
+                left: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.lock_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Documento protegido',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
