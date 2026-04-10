@@ -1,0 +1,154 @@
+================================================================================
+MEJORA DE SEGURIDAD #1: BLOQUEO PROGRESIVO DE CUENTA
+Fecha: 10 de abril de 2026
+Proyecto: Sistema de Informacion Web para la Gestion (SSUT)
+================================================================================
+
+DESCRIPCION:
+------------
+Este script agrega la columna 'bloqueos_acumulados' a la tabla 'usuarios' para
+implementar un sistema de bloqueo progresivo que aumenta el tiempo de bloqueo
+cada vez que un usuario falla repetidamente en su intento de inicio de sesion.
+
+FUNCIONAMIENTO DEL BLOQUEO PROGRESIVO:
+---------------------------------------
+- 1er bloqueo: 10 minutos
+- 2do bloqueo: 20 minutos (10 x 2)
+- 3er bloqueo: 40 minutos (10 x 4)
+- 4to bloqueo: 80 minutos (10 x 8)
+- 5to bloqueo: 160 minutos (10 x 16)
+- 6to bloqueo: 320 minutos (10 x 32)
+- 7mo bloqueo: 640 minutos (10 x 64)
+- 8vo bloqueo en adelante: 1440 minutos (24 horas - maximo)
+
+Formula: Tiempo de bloqueo = 10 minutos x 2^(bloqueos_acumulados)
+
+El contador se reinicia a 0 cuando el usuario inicia sesion exitosamente.
+
+================================================================================
+SCRIPT SQL PARA EJECUTAR EN PostgreSQL
+================================================================================
+
+-- ============================================================================
+-- Script: Agregar columna bloqueos_acumulados a tabla usuarios
+-- Base de datos: ssut_gestion_documental
+-- Tabla: usuarios
+-- ============================================================================
+
+-- 1. Agregar la columna si no existe
+ALTER TABLE usuarios
+ADD COLUMN IF NOT EXISTS bloqueos_acumulados INTEGER NOT NULL DEFAULT 0;
+
+-- 2. Agregar comentario documental (opcional pero recomendado)
+COMMENT ON COLUMN usuarios.bloqueos_acumulados IS 
+'Numero de veces que el usuario ha sido bloqueado por intentos fallidos. 
+Se usa para calculo progresivo del tiempo de bloqueo: 10min * 2^(bloqueos_acumulados).
+Se reinicia a 0 tras un login exitoso.';
+
+-- 3. Verificar que la columna se creo correctamente
+SELECT 
+    column_name AS "Columna",
+    data_type AS "Tipo de Dato",
+    column_default AS "Valor por Defecto",
+    is_nullable AS "Acepta Nulos"
+FROM 
+    information_schema.columns 
+WHERE 
+    table_name = 'usuarios' 
+    AND column_name = 'bloqueos_acumulados';
+
+-- ============================================================================
+-- RESULTADO ESPERADO:
+-- ============================================================================
+-- La consulta debe devolver:
+-- Columna             | Tipo de Dato | Valor por Defecto | Acepta Nulos
+-- --------------------+--------------+-------------------+--------------
+-- bloqueos_acumulados | integer      | 0                 | NO
+
+-- ============================================================================
+-- INSTRUCCIONES PARA EJECUTAR:
+-- ============================================================================
+-- Opcion 1: Usando pgAdmin
+--   1. Abrir pgAdmin y conectarse a la base de datos
+--   2. Seleccionar la base de datos 'ssut_gestion_documental'
+--   3. Ir a Tools > Query Tool
+--   4. Copiar y pegar TODO este script
+--   5. Presionar F5 o clic en el boton de ejecutar (rayo)
+--   6. Verificar que no haya errores en la pestaña Messages
+--
+-- Opcion 2: Usando linea de comandos (psql)
+--   psql -U postgres -d ssut_gestion_documental -f add_bloqueos_acumulados.sql
+--
+-- Opcion 3: Usando el script de Node.js incluido
+--   cd database
+--   node APLICAR_BLOQUEO_PROGRESIVO.js
+
+================================================================================
+VERIFICACION POST-EJECUCION
+================================================================================
+
+-- Despues de ejecutar el script, puedes verificar con:
+
+-- Ver todos los usuarios y su contador de bloqueos
+SELECT 
+    id,
+    nombre_usuario,
+    nombre_completo,
+    intentos_fallidos,
+    bloqueado_hasta,
+    bloqueos_acumulados
+FROM 
+    usuarios
+ORDER BY 
+    bloqueos_acumulados DESC;
+
+-- Verificar estructura de la tabla
+\d usuarios
+
+================================================================================
+NOTAS TECNICAS PARA EL EQUIPO DE DESARROLLO
+================================================================================
+
+1. MODIFICACIONES EN EL BACKEND:
+   - Archivo: backend/Controllers/AuthController.cs
+   - Se modifico la logica de login para:
+     a) Calcular tiempo de bloqueo progresivo: 10 * 2^(bloqueos_acumulados)
+     b) Incrementar el contador al bloquear
+     c) Resetear el contador a 0 tras login exitoso
+   - Maximo de bloqueo: 24 horas (1440 minutos)
+
+2. MODIFICACIONES EN EL MODELO:
+   - Archivo: backend/Models/Usuario.cs
+   - Se agrego la propiedad: public int BloqueosAcumulados { get; set; } = 0;
+
+3. COMPATIBILIDAD:
+   - El script usa IF NOT EXISTS para evitar errores si ya se ejecuto antes
+   - Es seguro ejecutar multiples veces (idempotente)
+   - No afecta datos existentes (DEFAULT 0 para registros actuales)
+
+4. ROLLBACK (si es necesario revertir):
+   ALTER TABLE usuarios DROP COLUMN IF EXISTS bloqueos_acumulados;
+
+================================================================================
+ARCHIVOS RELACIONADOS
+================================================================================
+
+Base de Datos:
+  - database/add_bloqueos_acumulados.sql (script original)
+  - database/APLICAR_BLOQUEO_PROGRESIVO.js (script Node.js para aplicar)
+  - database/APLICAR_BLOQUEO_PROGRESIVO.bat (script batch Windows)
+
+Backend:
+  - backend/Models/Usuario.cs (modelo actualizado)
+  - backend/Controllers/AuthController.cs (logica de bloqueo)
+
+Frontend:
+  - frontend/lib/screens/documentos/documento_detail_screen.dart 
+    (proteccion de comprobantes - cambios separados)
+
+Documentacion:
+  - MEJORAS_SEGURIDAD_IMPLEMENTADAS.md (documentacion completa)
+
+================================================================================
+FIN DEL SCRIPT SQL
+================================================================================

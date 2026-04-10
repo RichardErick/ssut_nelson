@@ -1,4 +1,4 @@
-import 'dart:html' as html;
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -162,6 +163,15 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     final doc = _doc;
     final theme = Theme.of(context);
     final authProvider = Provider.of<AuthProvider>(context);
+    
+    // Protección contra capturas de pantalla (solo funciona en móvil)
+    SystemChrome.setApplicationSwitcherDescription(
+      ApplicationSwitcherDescription(
+        label: 'Documento Protegido',
+        primaryColor: Theme.of(context).primaryColor.value,
+      ),
+    );
+    
     if (!authProvider.hasPermission('ver_documento')) {
       if (!_sinPermisoAlertaMostrada) {
         _sinPermisoAlertaMostrada = true;
@@ -207,32 +217,49 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
     final dateFormat = DateFormat('dd/MM/yyyy');
+    
+    // Obtener información del usuario para el watermark
+    final userName = authProvider.user?['nombreCompleto'] ?? authProvider.user?['nombreUsuario'] ?? 'Usuario';
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface.withOpacity(0.95),
       appBar: _buildAppBar(doc, theme),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child:
-            isDesktop
-                ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: _buildLeftColumn(doc, dateFormat, theme),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child:
+                isDesktop
+                    ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 4,
+                          child: _buildLeftColumn(doc, dateFormat, theme),
+                        ),
+                        const SizedBox(width: 24),
+                        Expanded(flex: 3, child: _buildRightColumn(doc, theme)),
+                      ],
+                    )
+                    : Column(
+                      children: [
+                        _buildLeftColumn(doc, dateFormat, theme),
+                        const SizedBox(height: 24),
+                        _buildRightColumn(doc, theme),
+                      ],
                     ),
-                    const SizedBox(width: 24),
-                    Expanded(flex: 3, child: _buildRightColumn(doc, theme)),
-                  ],
-                )
-                : Column(
-                  children: [
-                    _buildLeftColumn(doc, dateFormat, theme),
-                    const SizedBox(height: 24),
-                    _buildRightColumn(doc, theme),
-                  ],
-                ),
+          ),
+          // Watermark de seguridad
+          IgnorePointer(
+            ignoring: true,
+            child: CustomPaint(
+              painter: _SecurityWatermarkPainter(
+                userName: userName,
+                timestamp: DateTime.now(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -268,69 +295,6 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
             tooltip: 'Editar documento',
           ),
         ],
-        const SizedBox(width: 8),
-        PopupMenuButton<String>(
-          icon: Icon(Icons.more_vert_rounded, color: theme.colorScheme.onSurface),
-          tooltip: 'Más opciones',
-          onSelected: (value) {
-            switch (value) {
-              case 'descargar':
-                _descargarDocumento();
-                break;
-              case 'imprimir':
-                _printDocumento();
-                break;
-              case 'qr':
-                _descargarQRSimple(doc);
-                break;
-              case 'compartir':
-                _compartirDocumento(doc);
-                break;
-            }
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'descargar',
-              child: Row(
-                children: [
-                  Icon(Icons.download_rounded, color: Colors.green.shade700, size: 22),
-                  const SizedBox(width: 12),
-                  const Text('Descargar documento'),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'imprimir',
-              child: Row(
-                children: [
-                  Icon(Icons.print_rounded, size: 22, color: theme.colorScheme.onSurface),
-                  const SizedBox(width: 12),
-                  const Text('Imprimir'),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'qr',
-              child: Row(
-                children: [
-                  Icon(Icons.qr_code_rounded, color: Colors.purple.shade700, size: 22),
-                  const SizedBox(width: 12),
-                  const Text('Descargar código QR'),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'compartir',
-              child: Row(
-                children: [
-                  Icon(Icons.share_rounded, color: Colors.orange.shade700, size: 22),
-                  const SizedBox(width: 12),
-                  const Text('Compartir documento'),
-                ],
-              ),
-            ),
-          ],
-        ),
         const SizedBox(width: 8),
       ],
     );
@@ -1914,17 +1878,10 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
   }
 
   Future<void> _descargarArchivo(Uint8List bytes, String fileName) async {
-    final blob = html.Blob([bytes]);
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor =
-        html.document.createElement('a') as html.AnchorElement
-          ..href = url
-          ..style.display = 'none'
-          ..download = fileName;
-    html.document.body?.children.add(anchor);
-    anchor.click();
-    html.document.body?.children.remove(anchor);
-    html.Url.revokeObjectUrl(url);
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/$fileName');
+    await file.writeAsBytes(bytes);
+    await Printing.sharePdf(bytes: bytes, filename: fileName);
   }
 
   Future<void> _descargarDocumento() async {
@@ -2508,5 +2465,67 @@ class _DocumentoDetailScreenState extends State<DocumentoDetailScreen> {
         ),
       );
     });
+  }
+}
+
+/// Pintor personalizado para crear un watermark de seguridad sobre la pantalla
+/// Muestra el nombre del usuario y timestamp repetidos para dificultar capturas no autorizadas
+class _SecurityWatermarkPainter extends CustomPainter {
+  final String userName;
+  final DateTime timestamp;
+
+  _SecurityWatermarkPainter({required this.userName, required this.timestamp});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+    final watermarkText = '$userName - ${dateFormat.format(timestamp)}';
+    
+    // Configuración del texto
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: watermarkText,
+        style: TextStyle(
+          color: Colors.black.withOpacity(0.04), // Muy sutil y transparente
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    );
+    textPainter.layout();
+
+    // Patrón de repetición diagonal
+    const spacingX = 250.0;
+    const spacingY = 150.0;
+    const angle = -0.4; // Ángulo de inclinación (~-23 grados)
+
+    canvas.save();
+    canvas.rotate(angle);
+
+    // Dibujar en grid diagonal
+    final cols = (size.width * 1.5 / spacingX).ceil() + 2;
+    final rows = (size.height * 1.5 / spacingY).ceil() + 2;
+
+    for (var row = -rows; row <= rows; row++) {
+      for (var col = -cols; col <= cols; col++) {
+        final x = col * spacingX + (row % 2 == 0 ? 0 : spacingX / 2);
+        final y = row * spacingY;
+        
+        textPainter.paint(
+          canvas,
+          Offset(x, y),
+        );
+      }
+    }
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _SecurityWatermarkPainter oldDelegate) {
+    // Repintar si cambió el usuario o el timestamp (cada minuto)
+    return oldDelegate.userName != userName ||
+        oldDelegate.timestamp.minute != timestamp.minute;
   }
 }

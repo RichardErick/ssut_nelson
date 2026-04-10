@@ -550,21 +550,27 @@ public class AuthController : ControllerBase
         if (usuario.BloqueadoHasta.HasValue && usuario.BloqueadoHasta.Value > DateTime.UtcNow)
         {
             var tiempoRestante = usuario.BloqueadoHasta.Value - DateTime.UtcNow;
-            return StatusCode(423, new 
-            { 
-                message = $"Su cuenta está bloqueada. Intente de nuevo en {Math.Ceiling(tiempoRestante.TotalMinutes)} minutos.",
-                remainingSeconds = (int)tiempoRestante.TotalSeconds
+            var minutosRestantes = Math.Ceiling(tiempoRestante.TotalMinutes);
+            var minutosTexto = minutosRestantes < 60 
+                ? $"{minutosRestantes} minutos" 
+                : $"{minutosRestantes / 60} horas{(minutosRestantes % 60 > 0 ? $" y {(int)(minutosRestantes % 60)} minutos" : "")}";
+            
+            return StatusCode(423, new
+            {
+                message = $"Su cuenta está bloqueada. Intente de nuevo en {minutosTexto}.",
+                remainingSeconds = (int)tiempoRestante.TotalSeconds,
+                lockoutCount = usuario.BloqueosAcumulados
             });
         }
 
         if (!VerifyPassword(dto.Password, usuario.PasswordHash))
         {
             const int maxAttempts = 3;
-            const int lockoutMinutes = 10;
+            const int lockoutBaseMinutes = 10;
             var now = DateTime.UtcNow;
             var userId = usuario.Id;
 
-            // Si el bloqueo ya expiró, dar 3 intentos nuevos (reiniciar contador)
+            // Si el bloqueo ya expiró, dar 3 intentos nuevos (reiniciar contador de intentos)
             if (usuario.BloqueadoHasta.HasValue && usuario.BloqueadoHasta.Value <= now)
             {
                 await _context.Database.ExecuteSqlRawAsync(
@@ -583,15 +589,32 @@ public class AuthController : ControllerBase
 
             if (intentosActuales >= maxAttempts)
             {
+                // Calcular tiempo de bloqueo progresivo: base * 2^(bloqueos_acumulados)
+                // Primer bloqueo: 10 min, Segundo: 20 min, Tercero: 40 min, Cuarto: 80 min, etc.
+                var bloqueosPrevios = usuarioActualizado?.BloqueosAcumulados ?? 0;
+                var lockoutMultiplier = Math.Pow(2, bloqueosPrevios);
+                var lockoutMinutes = (int)(lockoutBaseMinutes * lockoutMultiplier);
+                
+                // Limitar a un máximo de 24 horas (1440 minutos) para evitar bloqueos extremos
+                if (lockoutMinutes > 1440)
+                    lockoutMinutes = 1440;
+
                 var bloqueadoHasta = now.AddMinutes(lockoutMinutes);
+                
+                // Incrementar el contador de bloqueos acumulados
                 await _context.Database.ExecuteSqlRawAsync(
-                    "UPDATE usuarios SET bloqueado_hasta = {0}, fecha_actualizacion = {1} WHERE id = {2}",
+                    "UPDATE usuarios SET bloqueado_hasta = {0}, bloqueos_acumulados = bloqueos_acumulados + 1, fecha_actualizacion = {1} WHERE id = {2}",
                     bloqueadoHasta, now, userId);
+
+                var minutosTexto = lockoutMinutes < 60 
+                    ? $"{lockoutMinutes} minutos" 
+                    : $"{lockoutMinutes / 60} horas{(lockoutMinutes % 60 > 0 ? $" y {lockoutMinutes % 60} minutos" : "")}";
 
                 return StatusCode(423, new
                 {
-                    message = $"Se ha excedido el número máximo de intentos. Cuenta bloqueada temporalmente por {lockoutMinutes} minutos.",
-                    remainingSeconds = lockoutMinutes * 60
+                    message = $"Se ha excedido el número máximo de intentos. Cuenta bloqueada temporalmente por {minutosTexto}. (Bloqueo #{bloqueosPrevios + 1})",
+                    remainingSeconds = lockoutMinutes * 60,
+                    lockoutCount = bloqueosPrevios + 1
                 });
             }
 
@@ -609,6 +632,7 @@ public class AuthController : ControllerBase
 
         usuario.IntentosFallidos = 0;
         usuario.BloqueadoHasta = null;
+        usuario.BloqueosAcumulados = 0; // Resetear contador de bloqueos tras login exitoso
         usuario.UltimoAcceso = DateTime.UtcNow;
         usuario.FechaActualizacion = DateTime.UtcNow;
         try

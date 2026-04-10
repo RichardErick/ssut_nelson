@@ -61,6 +61,13 @@ public class Usuario
     [Column("bloqueado_hasta")]
     public DateTime? BloqueadoHasta { get; set; }
 
+    /// <summary>
+    /// Cuenta cuántas veces el usuario ha sido bloqueado por intentos fallidos.
+    /// Se usa para aumentar progresivamente el tiempo de bloqueo.
+    /// </summary>
+    [Column("bloqueos_acumulados")]
+    public int BloqueosAcumulados { get; set; } = 0;
+
     [Column("fecha_registro")]
     public DateTime FechaRegistro { get; set; } = DateTime.UtcNow;
 
