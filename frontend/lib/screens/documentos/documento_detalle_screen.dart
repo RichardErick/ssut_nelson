@@ -24,8 +24,8 @@ import '../../services/documento_service.dart';
 import '../../services/movimiento_service.dart';
 import '../../theme/tema_aplicacion.dart';
 import '../../utils/utilidades_errores.dart';
-import '../../widgets/tarjeta_animada.dart';
 import '../../widgets/alerta_app.dart';
+import '../../widgets/tarjeta_animada.dart';
 import 'documento_form_screen.dart';
 
 class DocumentoDetalleScreen extends StatefulWidget {
@@ -1085,9 +1085,13 @@ class _DocumentoDetalleScreenState extends State<DocumentoDetalleScreen> {
     );
   }
 
-  /// Abre el PDF en pantalla completa sin opciones de descarga
+  /// Abre el PDF en pantalla completa sin opciones de descarga y con protección contra capturas
   Future<void> _openPdfFullscreen() async {
     if (_previewPdfBytes == null) return;
+
+    // Obtener nombre del usuario para watermark
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userName = authProvider.user?['nombreUsuario'] ?? 'Usuario';
 
     await showDialog<void>(
       context: context,
@@ -1105,6 +1109,11 @@ class _DocumentoDetalleScreenState extends State<DocumentoDetalleScreen> {
                 canChangePageFormat: false,
                 canDebug: false,
                 actions: [],
+              ),
+              // Watermark de seguridad sobre el PDF (se repite constantemente)
+              IgnorePointer(
+                ignoring: true,
+                child: _FullscreenSecurityWatermark(userName: userName),
               ),
               // Botón para cerrar
               Positioned(
@@ -1147,7 +1156,7 @@ class _DocumentoDetalleScreenState extends State<DocumentoDetalleScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Documento protegido',
+                        'Documento protegido - Prohibida captura',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -2642,5 +2651,62 @@ class _SecurityWatermarkPainter extends CustomPainter {
     // Repintar si cambió el usuario o el timestamp (cada minuto)
     return oldDelegate.userName != userName ||
         oldDelegate.timestamp.minute != timestamp.minute;
+  }
+}
+
+/// Widget de pantalla completa con watermark de seguridad para vista fullscreen
+/// Cubre toda la pantalla con texto diagonal para dificultar capturas no autorizadas
+class _FullscreenSecurityWatermark extends StatefulWidget {
+  final String userName;
+
+  const _FullscreenSecurityWatermark({required this.userName});
+
+  @override
+  State<_FullscreenSecurityWatermark> createState() =>
+      _FullscreenSecurityWatermarkState();
+}
+
+class _FullscreenSecurityWatermarkState
+    extends State<_FullscreenSecurityWatermark> {
+  late DateTime _timestamp;
+
+  @override
+  void initState() {
+    super.initState();
+    _timestamp = DateTime.now();
+    // Actualizar timestamp cada minuto para mostrar hora actual
+    _startTimestampUpdater();
+  }
+
+  void _startTimestampUpdater() {
+    Future.delayed(const Duration(minutes: 1), () {
+      if (mounted) {
+        setState(() {
+          _timestamp = DateTime.now();
+        });
+        _startTimestampUpdater();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return CustomPaint(
+          size: Size(constraints.maxWidth, constraints.maxHeight),
+          painter: _SecurityWatermarkPainter(
+            userName: widget.userName,
+            timestamp: _timestamp,
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    // Cancelar actualizaciones pendientes
+    super.dispose();
   }
 }
