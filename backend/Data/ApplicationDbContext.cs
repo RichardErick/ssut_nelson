@@ -135,7 +135,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(u => u.Rol)
                 .HasConversion(
                     v => v.ToString(),  // Convertir enum a string al escribir
-                    v => ParseRolFromDb(v)  // Al leer: aceptar "Administrador" o "AdministradorSistema" como Administrador
+                    v => (UsuarioRol)Enum.Parse(typeof(UsuarioRol), v, true)  // Convertir string a enum al leer
                 )
                 .HasColumnType("text");  // Usar text para almacenar como string
             
@@ -276,8 +276,7 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(c => c.Gestion);
             entity.HasIndex(c => c.CarpetaPadreId);
             entity.HasIndex(c => c.Activo);
-            // Índice para búsqueda; mismo nombre permitido, rango se valida en código
-            entity.HasIndex(c => new { c.Nombre, c.Gestion, c.CarpetaPadreId });
+            entity.HasIndex(c => new { c.Nombre, c.Gestion, c.CarpetaPadreId }).IsUnique();
 
             entity.HasOne(c => c.CarpetaPadre)
                 .WithMany(cp => cp.Subcarpetas)
@@ -309,21 +308,11 @@ public class ApplicationDbContext : DbContext
                 .WithMany(d => d.DocumentoPalabrasClaves)
                 .HasForeignKey(dpc => dpc.DocumentoId)
                 .OnDelete(DeleteBehavior.Cascade);
-
+//
             entity.HasOne(dpc => dpc.PalabraClave)
                 .WithMany(pc => pc.DocumentoPalabrasClaves)
                 .HasForeignKey(dpc => dpc.PalabraClaveId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
-    }
-
-    /// <summary>Convierte el valor de rol en BD a enum; acepta "AdministradorSistema" como Administrador.</summary>
-    private static UsuarioRol ParseRolFromDb(string? v)
-    {
-        if (string.IsNullOrWhiteSpace(v)) return UsuarioRol.Contador;
-        var normalized = v.Trim();
-        if (string.Equals(normalized, "AdministradorSistema", StringComparison.OrdinalIgnoreCase))
-            return UsuarioRol.Administrador;
-        return Enum.TryParse<UsuarioRol>(normalized, true, out var rol) ? rol : UsuarioRol.Contador;
     }
 }

@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
@@ -12,9 +12,9 @@ import 'package:universal_html/html.dart' as html;
 
 import '../../models/documento.dart';
 import '../../services/documento_service.dart';
-import '../../theme/app_theme.dart';
-import '../../utils/error_helper.dart';
-import '../../widgets/app_alert.dart';
+import '../../theme/tema_aplicacion.dart';
+import '../../utils/utilidades_errores.dart';
+import '../../widgets/alerta_app.dart';
 
 class ReportePersonalizadoScreen extends StatefulWidget {
   const ReportePersonalizadoScreen({super.key});

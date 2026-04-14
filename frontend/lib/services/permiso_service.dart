@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/permiso.dart';
-import '../models/permiso_usuario_entry.dart';
+import '../models/permiso_usuario_registro.dart';
 import 'api_service.dart';
 
 class PermisoService {

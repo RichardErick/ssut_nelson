@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,8 +14,8 @@ import '../../services/carpeta_service.dart';
 import '../../services/catalogo_service.dart';
 import '../../services/documento_service.dart';
 import '../../services/usuario_service.dart';
-import '../../utils/form_validators.dart';
-import '../../widgets/app_alert.dart';
+import '../../utils/validadores_formulario.dart';
+import '../../widgets/alerta_app.dart';
 
 class DocumentoFormScreen extends StatefulWidget {
   final Documento? documento;

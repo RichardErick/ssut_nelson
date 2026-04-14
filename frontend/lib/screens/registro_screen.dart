@@ -1,0 +1,494 @@
+﻿import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
+import '../services/api_service.dart';
+import '../utils/utilidades_errores.dart';
+import '../utils/validadores_formulario.dart';
+import '../widgets/alerta_app.dart';
+import '../widgets/fondo_animado.dart';
+import '../widgets/glass_container.dart';
+
+class RegistroScreen extends StatefulWidget {
+  const RegistroScreen({super.key});
+
+  @override
+  State<RegistroScreen> createState() => _RegistroScreenState();
+}
+
+class _RegistroScreenState extends State<RegistroScreen> {
+  final _formKey = GlobalKey<FormState>();
+  
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _fullnameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _respuestaSecretaController = TextEditingController();
+  
+  String _selectedRole = 'Contador';
+  int _preguntaSecretaId = 0;
+  List<Map<String, dynamic>> _preguntasSecretas = [];
+  bool _obscurePassword = true;
+  bool _obscureRespuestaSecreta = true;
+  bool _isLoading = false;
+  bool _preguntasLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreguntasSecretas();
+  }
+
+  Future<void> _loadPreguntasSecretas() async {
+    try {
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      final response = await apiService.get('/auth/preguntas-secretas');
+      final list = response.data is List ? response.data as List : [];
+      if (mounted) {
+        setState(() {
+          _preguntasSecretas = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          if (_preguntasSecretas.isNotEmpty && _preguntaSecretaId == 0) {
+            _preguntaSecretaId = (_preguntasSecretas.first['id'] as num?)?.toInt() ?? 1;
+          }
+          _preguntasLoaded = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _preguntasSecretas = [
+            {'id': 1, 'texto': '¿Cuál es el nombre de tu madre?'},
+            {'id': 2, 'texto': '¿Cuál es el nombre de tu primera mascota?'},
+            {'id': 3, 'texto': '¿En qué ciudad naciste?'},
+            {'id': 4, 'texto': '¿Cuál es tu color favorito?'},
+            {'id': 5, 'texto': '¿Nombre de tu mejor amigo de la infancia?'},
+            {'id': 6, 'texto': '¿Cuál fue tu primer trabajo?'},
+            {'id': 7, 'texto': '¿Cuál es el segundo nombre de tu padre?'},
+            {'id': 8, 'texto': '¿En qué colegio estudiaste la primaria?'},
+            {'id': 9, 'texto': '¿Cuál es tu película favorita?'},
+            {'id': 10, 'texto': '¿Cuál es tu comida favorita?'},
+          ];
+          _preguntaSecretaId = 1;
+          _preguntasLoaded = true;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _fullnameController.dispose();
+    _emailController.dispose();
+    _respuestaSecretaController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_preguntaSecretaId <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Elige una pregunta de seguridad'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    if ((_respuestaSecretaController.text).trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La respuesta de seguridad es obligatoria'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+
+    try {
+        final apiService = Provider.of<ApiService>(context, listen: false);
+        
+        await apiService.post('/auth/register', data: {
+          'username': _usernameController.text,
+          'password': _passwordController.text,
+          'nombreCompleto': _fullnameController.text,
+          'email': _emailController.text,
+          'rol': _selectedRole,
+          'preguntaSecretaId': _preguntaSecretaId,
+          'respuestaSecreta': _respuestaSecretaController.text.trim(),
+        });
+
+        if (mounted) {
+          // Show success dialog
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('Registro Exitoso'),
+              content: const Text(
+                'Su cuenta ha sido creada exitosamente.\n\n'
+                'Un administrador debe aprobar su cuenta antes de que pueda iniciar sesion. '
+                'El administrador recibira la solicitud para su aprobacion.',
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); // Go back to login
+                  },
+                  child: const Text('Entendido'),
+                ),
+              ],
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          final msg = ErrorHelper.getErrorMessage(e);
+          AppAlert.error(
+            context,
+            'No se pudo registrar',
+            msg,
+            buttonText: 'Entendido',
+          );
+        }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: AnimatedBackground(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Center(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 450),
+                child: GlassContainer(
+                  blur: 20,
+                  opacity: 0.15,
+                  borderRadius: 24,
+                  padding: const EdgeInsets.all(40.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: const Icon(Icons.arrow_back, color: Colors.white),
+                            ),
+                            const Expanded(child: SizedBox()),
+                          ],
+                        ),
+                        const Icon(
+                          Icons.person_add_outlined,
+                          size: 60,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Crear Cuenta',
+                          style: GoogleFonts.poppins(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                         Text(
+                          'Únete al sistema de gestión documental',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Colors.white70,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        
+                        _buildTextField(
+                          controller: _fullnameController,
+                          label: 'Nombre Completo',
+                          hint: 'Ej. Juan Pérez Botello',
+                          icon: Icons.badge_outlined,
+                          validator: FormValidators.nombre,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          controller: _usernameController,
+                          label: 'Usuario',
+                          hint: 'Ej. juan.perez',
+                          icon: Icons.person_outline,
+                          validator: FormValidators.usuario,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          controller: _emailController,
+                          label: 'Correo electrónico',
+                          hint: 'Ej. juan@correo.com',
+                          icon: Icons.email_outlined,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: FormValidators.email,
+                        ),
+                        const SizedBox(height: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4, bottom: 8),
+                              child: Text(
+                                'Rol',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedRole,
+                                  isExpanded: true,
+                                  dropdownColor: Colors.blue.shade900,
+                                  style: GoogleFonts.inter(color: Colors.white),
+                                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                                  items: [
+                                    {'val': 'Contador', 'label': 'Contador'},
+                                    {'val': 'Gerente', 'label': 'Gerente'},
+                                    {'val': 'AdministradorDocumentos', 'label': 'Admin. Documentos'},
+                                  ].map((item) {
+                                    return DropdownMenuItem<String>(
+                                      value: item['val'],
+                                      child: Text(item['label']!),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) setState(() => _selectedRole = val);
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          controller: _passwordController,
+                          label: 'Contraseña',
+                          hint: '••••••••',
+                          icon: Icons.lock_outline,
+                          isPassword: true,
+                          validator: FormValidators.password,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildPreguntaSecretaDropdown(),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          controller: _respuestaSecretaController,
+                          label: 'Respuesta de seguridad',
+                          hint: 'Tu respuesta a la pregunta (obligatoria para recuperar contraseña)',
+                          icon: Icons.help_outline_rounded,
+                          isRespuestaSecreta: true,
+                          validator: (v) {
+                            if ((v ?? '').trim().isEmpty) return 'La respuesta de seguridad es obligatoria';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 40),
+                        
+                        SizedBox(
+                          width: double.infinity,
+                          height: 55,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _handleRegister,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.blue.shade900,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                             child: _isLoading
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Text(
+                                    'REGISTRARSE',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreguntaSecretaDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Pregunta de seguridad (obligatoria)',
+            style: GoogleFonts.inter(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              value: _preguntaSecretaId > 0 ? _preguntaSecretaId : null,
+              isExpanded: true,
+              dropdownColor: Colors.blue.shade900,
+              style: const TextStyle(color: Colors.white),
+              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+              hint: Text(
+                _preguntasLoaded ? 'Elige una pregunta' : 'Cargando...',
+                style: TextStyle(color: Colors.white.withOpacity(0.7)),
+              ),
+              items: _preguntasSecretas.map((p) {
+                final id = (p['id'] as num?)?.toInt() ?? 0;
+                final texto = p['texto'] as String? ?? '';
+                return DropdownMenuItem<int>(
+                  value: id,
+                  child: Text(texto, overflow: TextOverflow.ellipsis),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _preguntaSecretaId = val);
+              },
+            ),
+          ),
+        ),
+        if (_preguntasLoaded && _preguntaSecretaId == 0)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 4),
+            child: Text(
+              'Elige una pregunta de seguridad',
+              style: GoogleFonts.inter(fontSize: 12, color: Colors.red.shade200),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+    bool isRespuestaSecreta = false,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    final bool obscure = isRespuestaSecreta ? _obscureRespuestaSecreta : (isPassword && _obscurePassword);
+    final bool showEye = isPassword || isRespuestaSecreta;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        TextFormField(
+          controller: controller,
+          obscureText: showEye ? obscure : false,
+          style: const TextStyle(color: Colors.white),
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+            prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.7)),
+            suffixIcon: showEye
+                ? IconButton(
+                    icon: Icon(
+                      obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                    onPressed: () => setState(() {
+                      if (isRespuestaSecreta) {
+                        _obscureRespuestaSecreta = !_obscureRespuestaSecreta;
+                      } else {
+                        _obscurePassword = !_obscurePassword;
+                      }
+                    }),
+                  )
+                : null,
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.1),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.white, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade600, width: 2),
+            ),
+            errorStyle: TextStyle(color: Colors.red.shade100, fontSize: 13),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          validator: validator,
+        ),
+      ],
+    );
+  }
+}

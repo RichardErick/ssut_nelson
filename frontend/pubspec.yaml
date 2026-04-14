@@ -1,7 +1,7 @@
 name: frontend
 description: Sistema de Información Web para la Gestión, Control y Trazabilidad Documental del SSUT
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.12+12
 
 environment:
   sdk: ^3.7.2

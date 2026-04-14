@@ -1,15 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/reporte_service.dart';
-import '../../theme/app_theme.dart';
-import '../../utils/error_helper.dart';
-import '../../widgets/animated_card.dart';
-import '../../widgets/charts/bar_chart_widget.dart';
-import '../../widgets/charts/line_chart_widget.dart';
+import '../../utils/utilidades_errores.dart';
+import '../../widgets/charts/grafico_barras_widget.dart';
+import '../../widgets/charts/grafico_lineas_widget.dart';
 import '../../widgets/charts/pie_chart_widget.dart';
+import '../../widgets/tarjeta_animada.dart';
 
 class ReportesScreenNew extends StatefulWidget {
   final int? selectedIndex;
@@ -512,7 +511,7 @@ class _ReportesScreenNewState extends State<ReportesScreenNew> {
             SizedBox(
               height: 300,
               child: DocumentosBarChart(
-                data: _estadisticas!['documentosPorTipo'] as Map? ?? {},
+                data: (_estadisticas!['documentosPorTipo'] as Map?)?.cast<String, dynamic>() ?? {},
                 barColor: Colors.blue,
               ),
             ),
@@ -608,7 +607,7 @@ class _ReportesScreenNewState extends State<ReportesScreenNew> {
             ),
             const SizedBox(height: 24),
             DocumentosBarChart(
-              data: _estadisticas!['documentosPorArea'] as Map? ?? {},
+              data: (_estadisticas!['documentosPorArea'] as Map?)?.cast<String, dynamic>() ?? {},
               barColor: Colors.purple,
               horizontal: true,
             ),

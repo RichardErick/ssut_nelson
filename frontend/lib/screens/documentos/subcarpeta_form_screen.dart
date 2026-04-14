@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/carpeta.dart';
-import '../../utils/form_validators.dart';
-import 'package:frontend/providers/data_provider.dart';
+import '../../utils/validadores_formulario.dart';
+import 'package:frontend/providers/datos_provider.dart';
 import 'package:intl/intl.dart';
 import '../../services/carpeta_service.dart';
 

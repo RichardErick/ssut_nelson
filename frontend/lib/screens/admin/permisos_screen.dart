@@ -1,15 +1,15 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/permiso.dart';
-import '../../models/user_role.dart';
+import '../../models/rol_usuario.dart';
 import '../../models/usuario.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/autenticacion_provider.dart';
 import '../../services/permiso_service.dart';
 import '../../services/usuario_service.dart';
-import '../../theme/app_theme.dart';
-import '../../utils/error_helper.dart';
+import '../../theme/tema_aplicacion.dart';
+import '../../utils/utilidades_errores.dart';
 
 class PermisosScreen extends StatefulWidget {
   const PermisosScreen({super.key});

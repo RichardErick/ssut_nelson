@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'forgot_password_admin_screen.dart';
+import '../widgets/fondo_animado.dart';
 import 'forgot_password_pregunta_screen.dart';
-import '../widgets/animated_background.dart';
+import 'olvide_contrasena_admin_screen.dart';
 
 /// Pantalla inicial de recuperación. Solo disponible de 8:00 a 18:00.
 class ForgotPasswordScreen extends StatelessWidget {
@@ -82,7 +82,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                       title: 'Que un administrador la restablezca',
                       subtitle: 'El admin pone tu nueva contraseña en Gestión de Usuarios y te la comunica.',
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ForgotPasswordAdminScreen()),
+                        MaterialPageRoute(builder: (_) => const OlvideContrasenaAdminScreen()),
                       ),
                     ),
                     const SizedBox(height: 10),

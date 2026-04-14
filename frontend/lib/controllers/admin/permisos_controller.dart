@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../models/usuario.dart';
 import '../../models/permiso.dart';
-import '../../models/permiso_usuario_entry.dart';
+import '../../models/permiso_usuario_registro.dart';
 import '../../services/permiso_service.dart';
 import '../../services/usuario_service.dart';
-import '../../utils/error_helper.dart';
+import '../../utils/utilidades_errores.dart';
 
 /// Controlador para la gestión de permisos de usuarios
 class PermisosController extends ChangeNotifier {

@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../theme/app_theme.dart';
+import '../theme/tema_aplicacion.dart';
 import 'glass_container.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../models/user_role.dart';
+import '../providers/autenticacion_provider.dart';
+import '../models/rol_usuario.dart';
 
 /// Modelo para definir elementos de navegación en la barra lateral.
 class NavigationItem {

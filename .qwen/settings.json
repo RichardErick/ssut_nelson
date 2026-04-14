@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet *)",
+      "Bash(flutter *)",
+      "Bash(findstr *)",
+      "Bash(where *)",
+      "Bash(dir *)",
+      "Bash(echo *)",
+      "Bash(aplicar_bloqueo_progresivo.bat)",
+      "Bash(echo.)",
+      "Bash(set *)",
+      "Bash(\"c:\\program files\\postgresql\\17\\bin\\psql.exe\" *)",
+      "Bash(node *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(ren *)",
+      "Bash(renombrar_frontend.bat)",
+      "Bash(powershell *)",
+      "Bash(del *)"
+    ]
+  },
+  "$version": 3
+}

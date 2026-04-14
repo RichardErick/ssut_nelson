@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/auth_provider.dart';
+import '../providers/autenticacion_provider.dart';
 
 /// Pantalla inicial al abrir la app. Muestra logo y carga, luego redirige a login o home.
 class SplashScreen extends StatefulWidget {

@@ -1,28 +1,28 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:frontend/providers/data_provider.dart';
+import 'package:frontend/providers/datos_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/carpeta.dart';
 import '../../models/documento.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/autenticacion_provider.dart';
 import '../../services/carpeta_service.dart';
 import '../../services/documento_service.dart';
-import '../../theme/app_theme.dart';
-import '../../utils/error_helper.dart';
-import '../../widgets/app_alert.dart';
+import '../../theme/tema_aplicacion.dart';
+import '../../utils/utilidades_errores.dart';
+import '../../widgets/alerta_app.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_shimmer.dart';
-import 'components/breadcrumb_header.dart';
 import 'components/carpeta_card.dart';
 import 'components/dialog_filtro_carpetas.dart';
 import 'components/documento_card.dart';
+import 'components/encabezado_migas.dart';
 import 'components/filtros_avanzados_sheet.dart';
 import 'components/subcarpeta_card.dart';
-import 'documento_detail_screen.dart';
+import 'documento_detalle_screen.dart';
 import 'documento_form_screen.dart';
 import 'subcarpeta_form_screen.dart';
 
@@ -930,7 +930,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
           surfaceTintColor: theme.scaffoldBackgroundColor,
           centerTitle: false,
           toolbarHeight: 44,
-          title: BreadcrumbHeader(
+          title: EncabezadoMigas(
             currentName: carpeta.nombre,
             parentName: carpeta.carpetaPadreNombre,
             onParentTap: () {
@@ -2523,7 +2523,7 @@ class DocumentosListScreenState extends State<DocumentosListScreen>
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => DocumentoDetailScreen(documento: doc),
+        builder: (context) => DocumentoDetalleScreen(documento: doc),
       ),
     );
 

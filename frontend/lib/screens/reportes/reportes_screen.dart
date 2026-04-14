@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -12,10 +12,10 @@ import 'package:universal_html/html.dart' as html;
 import '../../models/documento.dart';
 import '../../models/movimiento.dart';
 import '../../services/reporte_service.dart';
-import '../../theme/app_theme.dart';
-import '../../utils/error_helper.dart';
-import '../../widgets/animated_card.dart';
-import '../../widgets/app_alert.dart';
+import '../../theme/tema_aplicacion.dart';
+import '../../utils/utilidades_errores.dart';
+import '../../widgets/tarjeta_animada.dart';
+import '../../widgets/alerta_app.dart';
 import 'reporte_personalizado_screen.dart';
 
 class ReportesScreen extends StatefulWidget {

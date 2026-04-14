@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../services/api_service.dart';
-import '../utils/error_helper.dart';
-import '../widgets/animated_background.dart';
+import '../utils/utilidades_errores.dart';
+import '../widgets/fondo_animado.dart';
 import '../widgets/glass_container.dart';
 
 /// Recuperar contraseña con pregunta de seguridad (la que eligió al registrarse).

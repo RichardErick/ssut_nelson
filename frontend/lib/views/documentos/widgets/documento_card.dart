@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../models/documento.dart';
-import '../../../theme/app_theme.dart';
+import '../../../theme/tema_aplicacion.dart';
 
 /// Widget de tarjeta para mostrar un documento
 class DocumentoCard extends StatelessWidget {

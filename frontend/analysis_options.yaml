@@ -11,7 +11,7 @@ include: package:flutter_lints/flutter.yaml
 
 analyzer:
   exclude:
-    - lib/screens/documentos/documento_detail_screen_backup.dart
+    - lib/screens/documentos/documento_detalle_screen_respaldo.dart
     - test/**
 
 linter:

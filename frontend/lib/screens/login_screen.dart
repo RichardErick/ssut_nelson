@@ -1,17 +1,17 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../providers/auth_provider.dart';
-import '../utils/error_helper.dart';
-import '../widgets/animated_background.dart';
-import '../widgets/app_alert.dart';
+import '../providers/autenticacion_provider.dart';
+import '../utils/utilidades_errores.dart';
+import '../widgets/alerta_app.dart';
+import '../widgets/fondo_animado.dart';
 import '../widgets/glass_container.dart';
 import 'forgot_password_screen.dart';
-import 'login/widgets/lockout_timer.dart';
-import 'register_screen.dart';
+import 'login/widgets/temporizador_bloqueo.dart';
+import 'registro_screen.dart';
 import 'splash_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -325,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen>
                           child: Consumer<AuthProvider>(
                             builder: (context, authProvider, _) {
                               if (authProvider.isLocked) {
-                                return LockoutTimer(
+                                return TemporizadorBloqueo(
                                   lockoutEndTime: authProvider.lockoutEndTime!,
                                   onTimerEnd: () {
                                     setState(() {});
@@ -466,7 +466,7 @@ class _LoginScreenState extends State<LoginScreen>
                                           Navigator.of(context).push(
                                             MaterialPageRoute(
                                               builder:
-                                                  (_) => const RegisterScreen(),
+                                                  (_) => const RegistroScreen(),
                                             ),
                                           );
                                         },
@@ -601,7 +601,7 @@ class _LoginScreenState extends State<LoginScreen>
                   opacity: 0.12,
                   borderRadius: 24,
                   padding: const EdgeInsets.all(28),
-                  child: LockoutTimer(
+                  child: TemporizadorBloqueo(
                     lockoutEndTime: authProvider.lockoutEndTime!,
                     onTimerEnd: () => setState(() {}),
                   ),
@@ -722,7 +722,7 @@ class _LoginScreenState extends State<LoginScreen>
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const RegisterScreen(),
+                              builder: (_) => const RegistroScreen(),
                             ),
                           );
                         },

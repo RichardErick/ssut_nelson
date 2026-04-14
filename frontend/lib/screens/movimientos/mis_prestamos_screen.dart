@@ -1,16 +1,16 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/movimiento.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/autenticacion_provider.dart';
 import '../../services/documento_service.dart';
 import '../../services/movimiento_service.dart';
-import '../../utils/error_helper.dart';
-import '../../widgets/animated_card.dart';
-import '../../widgets/app_alert.dart';
-import '../documentos/documento_detail_screen.dart';
+import '../../utils/utilidades_errores.dart';
+import '../../widgets/alerta_app.dart';
+import '../../widgets/tarjeta_animada.dart';
+import '../documentos/documento_detalle_screen.dart';
 
 /// Pantalla donde el usuario ve SOLO sus préstamos activos
 /// y puede registrar la devolución de cada uno.
@@ -138,7 +138,7 @@ class _MisPrestamosScreenState extends State<MisPrestamosScreen> {
       }
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => DocumentoDetailScreen(documento: doc)),
+        MaterialPageRoute(builder: (_) => DocumentoDetalleScreen(documento: doc)),
       );
     } catch (e) {
       if (!mounted) return;

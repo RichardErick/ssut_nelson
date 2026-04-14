@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/carpeta.dart';
-import '../../utils/form_validators.dart';
-import '../../widgets/app_alert.dart';
-import 'package:frontend/providers/data_provider.dart';
+import '../../utils/validadores_formulario.dart';
+import '../../widgets/alerta_app.dart';
+import 'package:frontend/providers/datos_provider.dart';
 import '../../services/carpeta_service.dart';
 
 class CarpetaFormScreen extends StatefulWidget {

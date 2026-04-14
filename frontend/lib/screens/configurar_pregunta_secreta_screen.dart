@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/auth_provider.dart';
+import '../providers/autenticacion_provider.dart';
 import '../services/api_service.dart';
-import '../utils/error_helper.dart';
+import '../utils/utilidades_errores.dart';
 
 /// Pantalla para que usuarios antiguos (sin pregunta secreta) configuren su pregunta y respuesta.
 class ConfigurarPreguntaSecretaScreen extends StatefulWidget {

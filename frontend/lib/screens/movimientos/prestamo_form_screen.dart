@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -6,16 +6,16 @@ import 'package:provider/provider.dart';
 import '../../models/documento.dart';
 import '../../models/movimiento.dart';
 import '../../models/usuario.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/data_provider.dart';
+import '../../providers/autenticacion_provider.dart';
+import '../../providers/datos_provider.dart';
 import '../../services/catalogo_service.dart';
 import '../../services/documento_service.dart';
 import '../../services/movimiento_service.dart';
 import '../../services/usuario_service.dart';
-import '../../theme/app_theme.dart';
-import '../../utils/error_helper.dart';
-import '../../utils/form_validators.dart';
-import '../../widgets/app_alert.dart';
+import '../../theme/tema_aplicacion.dart';
+import '../../utils/utilidades_errores.dart';
+import '../../utils/validadores_formulario.dart';
+import '../../widgets/alerta_app.dart';
 
 /// Pantalla para registrar un préstamo (movimiento tipo Salida).
 class PrestamoFormScreen extends StatefulWidget {

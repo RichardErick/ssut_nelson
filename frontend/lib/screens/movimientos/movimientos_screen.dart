@@ -1,17 +1,17 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/movimiento.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/autenticacion_provider.dart';
 import '../../services/documento_service.dart';
 import '../../services/movimiento_service.dart';
-import '../../utils/error_helper.dart';
-import '../../widgets/animated_card.dart';
-import '../../widgets/app_alert.dart';
+import '../../utils/utilidades_errores.dart';
+import '../../widgets/alerta_app.dart';
 import '../../widgets/loading_shimmer.dart';
-import '../documentos/documento_detail_screen.dart';
+import '../../widgets/tarjeta_animada.dart';
+import '../documentos/documento_detalle_screen.dart';
 import 'prestamo_form_screen.dart';
 
 /// Filtro de tipo de movimiento para la lista.
@@ -221,7 +221,7 @@ class _MovimientosScreenState extends State<MovimientosScreen> {
       }
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => DocumentoDetailScreen(documento: doc)),
+        MaterialPageRoute(builder: (_) => DocumentoDetalleScreen(documento: doc)),
       );
     } catch (e) {
       if (!mounted) return;

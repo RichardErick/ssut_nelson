@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Diccionario de Datos (19 Tablas)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a2a6c;
+            border-bottom: 2px solid #1a2a6c;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #004080;
+            margin-top: 30px;
+            background: #e9ecef;
+            padding: 5px 10px;
+            border-left: 5px solid #004080;
+        }
+
+        p {
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .btn-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .export-btn {
+            background-color: #2b5797;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .export-btn:hover {
+            background-color: #1e3e6d;
+        }
+
+        /* Configuración para evitar desborde en Word */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            table-layout: fixed;
+            /* Esto fuerza a las columnas a respetar el ancho */
+            word-wrap: break-word;
+        }
+
+        th,
+        td {
+            border: 1px solid #333;
+            padding: 10px;
+            text-align: left;
+            font-size: 11pt;
+            /* Tamaño estándar de Word */
+        }
+
+        th {
+            background-color: #004080;
+            color: white;
+            font-weight: bold;
+            width: 25%;
+        }
+
+        /* Ajuste de anchos para columnas específicas */
+        th:nth-child(1) {
+            width: 20%;
+        }
+
+        th:nth-child(2) {
+            width: 15%;
+        }
+
+        th:nth-child(3) {
+            width: 10%;
+        }
+
+        th:nth-child(4) {
+            width: 55%;
+        }
+
+        @media print {
+            .export-btn {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container" id="source-html">
+        <div class="btn-container">
+            <button class="export-btn" onclick="exportHTMLtoWord()">📥 Descargar Diccionario para Word (.doc)</button>
+        </div>
+
+        <h1>Diccionario de Datos Completo (19 Tablas)</h1>
+        <p>Proyecto: Sistema de Gestión Documental</p>
+
+        <!-- TABLA 1 -->
+        <h2>1. Tabla: alertas</h2>
+        <p>Almacena notificaciones personales para los usuarios.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>uuid</td>
+                    <td>UUID</td>
+                    <td>NO</td>
+                    <td>Identificador único universal.</td>
+                </tr>
+                <tr>
+                    <td>usuario_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a usuarios. Destinatario de la alerta.</td>
+                </tr>
+                <tr>
+                    <td>titulo</td>
+                    <td>VARCHAR(200)</td>
+                    <td>NO</td>
+                    <td>Título corto de la notificación.</td>
+                </tr>
+                <tr>
+                    <td>mensaje</td>
+                    <td>TEXT</td>
+                    <td>NO</td>
+                    <td>Contenido detallado de la alerta.</td>
+                </tr>
+                <tr>
+                    <td>tipo_alerta</td>
+                    <td>VARCHAR(20)</td>
+                    <td>NO</td>
+                    <td>Categoría (info, warning, error, success).</td>
+                </tr>
+                <tr>
+                    <td>leida</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Estado de lectura (default FALSE).</td>
+                </tr>
+                <tr>
+                    <td>fecha_creacion</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Fecha y hora de generación.</td>
+                </tr>
+                <tr>
+                    <td>fecha_lectura</td>
+                    <td>TIMESTAMP</td>
+                    <td>SÍ</td>
+                    <td>Fecha y hora en que se marcó como leída.</td>
+                </tr>
+                <tr>
+                    <td>documento_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a documentos.</td>
+                </tr>
+                <tr>
+                    <td>movimiento_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a movimientos.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 2 -->
+        <h2>2. Tabla: anexos</h2>
+        <p>Almacena la metadata de los archivos digitales adjuntos.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>uuid</td>
+                    <td>UUID</td>
+                    <td>NO</td>
+                    <td>Identificador único.</td>
+                </tr>
+                <tr>
+                    <td>documento_id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>FK a documentos.</td>
+                </tr>
+                <tr>
+                    <td>nombre_archivo</td>
+                    <td>VARCHAR(255)</td>
+                    <td>NO</td>
+                    <td>Nombre lógico del archivo subido.</td>
+                </tr>
+                <tr>
+                    <td>extension</td>
+                    <td>VARCHAR(10)</td>
+                    <td>SÍ</td>
+                    <td>Extensión del archivo (.pdf).</td>
+                </tr>
+                <tr>
+                    <td>tamano_bytes</td>
+                    <td>BIGINT</td>
+                    <td>SÍ</td>
+                    <td>Tamaño en bytes.</td>
+                </tr>
+                <tr>
+                    <td>url_archivo</td>
+                    <td>VARCHAR(500)</td>
+                    <td>SÍ</td>
+                    <td>Ruta física o URL de almacenamiento.</td>
+                </tr>
+                <tr>
+                    <td>tipo_contenido</td>
+                    <td>VARCHAR(100)</td>
+                    <td>SÍ</td>
+                    <td>MIME Type.</td>
+                </tr>
+                <tr>
+                    <td>hash_archivo</td>
+                    <td>VARCHAR(64)</td>
+                    <td>SÍ</td>
+                    <td>Hash SHA-256 de seguridad.</td>
+                </tr>
+                <tr>
+                    <td>version</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>Número de versión del archivo.</td>
+                </tr>
+                <tr>
+                    <td>fecha_registro</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Fecha de subida.</td>
+                </tr>
+                <tr>
+                    <td>activo</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Estado lógico.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 3 -->
+        <h2>3. Tabla: areas</h2>
+        <p>Departamentos o unidades organizativas.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>uuid</td>
+                    <td>UUID</td>
+                    <td>NO</td>
+                    <td>Identificador único.</td>
+                </tr>
+                <tr>
+                    <td>nombre</td>
+                    <td>VARCHAR(100)</td>
+                    <td>NO</td>
+                    <td>Nombre del área.</td>
+                </tr>
+                <tr>
+                    <td>codigo</td>
+                    <td>VARCHAR(20)</td>
+                    <td>NO</td>
+                    <td>Sigla o código corto.</td>
+                </tr>
+                <tr>
+                    <td>descripcion</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>Detalle de las funciones del área.</td>
+                </tr>
+                <tr>
+                    <td>activo</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Estado activo.</td>
+                </tr>
+                <tr>
+                    <td>fecha_creacion</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Registro de creación.</td>
+                </tr>
+                <tr>
+                    <td>creado_por</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a usuarios. Creador.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 4 -->
+        <h2>4. Tabla: auditoria</h2>
+        <p>Logs detallados operativos (Log transaccionales).</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>uuid</td>
+                    <td>UUID</td>
+                    <td>NO</td>
+                    <td>Identificador único universal.</td>
+                </tr>
+                <tr>
+                    <td>usuario_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a usuarios.</td>
+                </tr>
+                <tr>
+                    <td>sesion_id</td>
+                    <td>VARCHAR(255)</td>
+                    <td>SÍ</td>
+                    <td>Identificador de sesión.</td>
+                </tr>
+                <tr>
+                    <td>accion</td>
+                    <td>VARCHAR(100)</td>
+                    <td>NO</td>
+                    <td>Operación (LOGIN, INSERT).</td>
+                </tr>
+                <tr>
+                    <td>tabla_afectada</td>
+                    <td>VARCHAR(50)</td>
+                    <td>SÍ</td>
+                    <td>Nombre de tabla modificada.</td>
+                </tr>
+                <tr>
+                    <td>registro_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>ID del registro modificado.</td>
+                </tr>
+                <tr>
+                    <td>detalle</td>
+                    <td>JSONB/TEXT</td>
+                    <td>SÍ</td>
+                    <td>Datos previos y posteriores al cambio.</td>
+                </tr>
+                <tr>
+                    <td>ip_address</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>IP del dispositivo.</td>
+                </tr>
+                <tr>
+                    <td>user_agent</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>Navegador web del cliente.</td>
+                </tr>
+                <tr>
+                    <td>fecha_accion</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Fecha del evento.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 5 -->
+        <h2>5. Tabla: carpetas</h2>
+        <p>Estructura física o digital de archivadores.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>nombre</td>
+                    <td>VARCHAR(100)</td>
+                    <td>NO</td>
+                    <td>Nombre del archivador.</td>
+                </tr>
+                <tr>
+                    <td>codigo</td>
+                    <td>VARCHAR(20)</td>
+                    <td>SÍ</td>
+                    <td>Código físico identificador.</td>
+                </tr>
+                <tr>
+                    <td>gestion</td>
+                    <td>VARCHAR(4)</td>
+                    <td>NO</td>
+                    <td>Año fiscal (2026).</td>
+                </tr>
+                <tr>
+                    <td>descripcion</td>
+                    <td>VARCHAR(300)</td>
+                    <td>SÍ</td>
+                    <td>Descripción del contenido.</td>
+                </tr>
+                <tr>
+                    <td>rango_inicio</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>Correlativo de inicio.</td>
+                </tr>
+                <tr>
+                    <td>rango_fin</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>Correlativo de finalización.</td>
+                </tr>
+                <tr>
+                    <td>carpeta_padre_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK Recursiva a carpetas (subcarpeta).</td>
+                </tr>
+                <tr>
+                    <td>activo</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Estado operativo de carpeta.</td>
+                </tr>
+                <tr>
+                    <td>fecha_creacion</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Fecha en la que fue dada de alta.</td>
+                </tr>
+                <tr>
+                    <td>usuario_creacion_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a usuarios. Autor del archivador.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 6 -->
+        <h2>6. Tabla: configuracion</h2>
+        <p>Parámetros globales que alteran flujos.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>clave</td>
+                    <td>VARCHAR(100)</td>
+                    <td>NO</td>
+                    <td>Nombre único (key) de configuración.</td>
+                </tr>
+                <tr>
+                    <td>valor</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>Dato almacenado.</td>
+                </tr>
+                <tr>
+                    <td>descripcion</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>Para qué sirve el parámetro.</td>
+                </tr>
+                <tr>
+                    <td>tipo_dato</td>
+                    <td>VARCHAR(20)</td>
+                    <td>NO</td>
+                    <td>string, integer, json, boolean.</td>
+                </tr>
+                <tr>
+                    <td>editable</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Si es modificable por la interfaz UI.</td>
+                </tr>
+                <tr>
+                    <td>fecha_actualizacion</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Última edición.</td>
+                </tr>
+                <tr>
+                    <td>actualizado_por</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a usuarios. Editor reciente.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 7 -->
+        <h2>7. Tabla: documentos</h2>
+        <p>Registro matriz con toda la meta-información.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>uuid</td>
+                    <td>UUID</td>
+                    <td>NO</td>
+                    <td>PK externa (Integraciones).</td>
+                </tr>
+                <tr>
+                    <td>codigo</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>Código QR visual e institucional.</td>
+                </tr>
+                <tr>
+                    <td>numero_correlativo</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>Número de folio.</td>
+                </tr>
+                <tr>
+                    <td>tipo_documento_id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>FK a tipos_documento.</td>
+                </tr>
+                <tr>
+                    <td>area_origen_id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>FK a areas (Emisor).</td>
+                </tr>
+                <tr>
+                    <td>area_actual_id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>FK a areas (Poseedor real).</td>
+                </tr>
+                <tr>
+                    <td>gestion</td>
+                    <td>VARCHAR(4)</td>
+                    <td>NO</td>
+                    <td>Año (2026).</td>
+                </tr>
+                <tr>
+                    <td>fecha_documento</td>
+                    <td>DATE</td>
+                    <td>NO</td>
+                    <td>Fecha física en papel.</td>
+                </tr>
+                <tr>
+                    <td>descripcion</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>Asunto o motivos (Búsqueda Full Text).</td>
+                </tr>
+                <tr>
+                    <td>responsable_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a usuarios.</td>
+                </tr>
+                <tr>
+                    <td>codigo_qr</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>String codificada en barra.</td>
+                </tr>
+                <tr>
+                    <td>url_qr</td>
+                    <td>VARCHAR(500)</td>
+                    <td>SÍ</td>
+                    <td>Ubicación en disco de imagen QR.</td>
+                </tr>
+                <tr>
+                    <td>id_documento</td>
+                    <td>VARCHAR(100)</td>
+                    <td>SÍ</td>
+                    <td>Código manual.</td>
+                </tr>
+                <tr>
+                    <td>carpeta_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a carpetas. Estante archivado.</td>
+                </tr>
+                <tr>
+                    <td>ubicacion_fisica</td>
+                    <td>VARCHAR(200)</td>
+                    <td>SÍ</td>
+                    <td>Texto guía del mueble.</td>
+                </tr>
+                <tr>
+                    <td>estado</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>Activo, Inactivo, Archivado, Prestado.</td>
+                </tr>
+                <tr>
+                    <td>nivel_confidencialidad</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>Nivel del 1 al 5 en sensibilidad.</td>
+                </tr>
+                <tr>
+                    <td>fecha_vencimiento</td>
+                    <td>DATE</td>
+                    <td>SÍ</td>
+                    <td>Expiración legal.</td>
+                </tr>
+                <tr>
+                    <td>fecha_registro</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Hora exacta de registro.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 8 -->
+        <h2>8. Tabla: documento_palabras_clave</h2>
+        <p>Matriz muchos a muchos para buscar documentos por Tags.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>documento_id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>FK a documentos.</td>
+                </tr>
+                <tr>
+                    <td>palabra_clave_id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>FK a palabras_clave.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 9 -->
+        <h2>9. Tabla: historial_documento</h2>
+        <p>Logs granulares por cada modificación individual.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>uuid</td>
+                    <td>UUID</td>
+                    <td>NO</td>
+                    <td>Universal PK.</td>
+                </tr>
+                <tr>
+                    <td>documento_id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>FK a documentos.</td>
+                </tr>
+                <tr>
+                    <td>fecha_cambio</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Instante de modificación.</td>
+                </tr>
+                <tr>
+                    <td>usuario_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a usuarios. Autor del fix.</td>
+                </tr>
+                <tr>
+                    <td>tipo_cambio</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>Ej: ACTUALIZACION_ESTADO.</td>
+                </tr>
+                <tr>
+                    <td>estado_anterior</td>
+                    <td>VARCHAR(50)</td>
+                    <td>SÍ</td>
+                    <td>Status viejo.</td>
+                </tr>
+                <tr>
+                    <td>estado_nuevo</td>
+                    <td>VARCHAR(50)</td>
+                    <td>SÍ</td>
+                    <td>Status posterior.</td>
+                </tr>
+                <tr>
+                    <td>area_anterior_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>Área vieja (FK).</td>
+                </tr>
+                <tr>
+                    <td>area_nueva_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>Área nueva (FK).</td>
+                </tr>
+                <tr>
+                    <td>campo_modificado</td>
+                    <td>VARCHAR(100)</td>
+                    <td>SÍ</td>
+                    <td>Atributo que cambió.</td>
+                </tr>
+                <tr>
+                    <td>valor_anterior</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>Contenido viejo.</td>
+                </tr>
+                <tr>
+                    <td>valor_nuevo</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>Contenido nuevo.</td>
+                </tr>
+                <tr>
+                    <td>observacion</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>Reporte del sistema.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 10 -->
+        <h2>10. Tabla: movimientos</h2>
+        <p>Derivaciones y Préstamos oficiales de la ruta del documento.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>uuid</td>
+                    <td>UUID</td>
+                    <td>NO</td>
+                    <td>Externo.</td>
+                </tr>
+                <tr>
+                    <td>documento_id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>FK a documentos.</td>
+                </tr>
+                <tr>
+                    <td>tipo_movimiento</td>
+                    <td>VARCHAR(20)</td>
+                    <td>NO</td>
+                    <td>Entrada, Salida, Derivacion.</td>
+                </tr>
+                <tr>
+                    <td>area_origen_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a areas. Emisor.</td>
+                </tr>
+                <tr>
+                    <td>area_destino_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a areas. Receptor.</td>
+                </tr>
+                <tr>
+                    <td>usuario_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a usuarios. Receptor/Solicitante.</td>
+                </tr>
+                <tr>
+                    <td>usuario_autoriza_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>FK a usuarios. Jefe aprobador.</td>
+                </tr>
+                <tr>
+                    <td>observaciones</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>Nota humana.</td>
+                </tr>
+                <tr>
+                    <td>fecha_movimiento</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Momento del envío.</td>
+                </tr>
+                <tr>
+                    <td>fecha_devolucion</td>
+                    <td>TIMESTAMP</td>
+                    <td>SÍ</td>
+                    <td>Día de retorno real.</td>
+                </tr>
+                <tr>
+                    <td>fecha_limite_devolucion</td>
+                    <td>TIMESTAMP</td>
+                    <td>SÍ</td>
+                    <td>Plazo del préstamo.</td>
+                </tr>
+                <tr>
+                    <td>estado</td>
+                    <td>VARCHAR(20)</td>
+                    <td>NO</td>
+                    <td>Activo, Devuelto.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 11 -->
+        <h2>11. Tabla: palabras_clave</h2>
+        <p>Catálogo base de Tags disponibles.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>palabra</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>Etiqueta ej. URGENTE.</td>
+                </tr>
+                <tr>
+                    <td>descripcion</td>
+                    <td>VARCHAR(200)</td>
+                    <td>SÍ</td>
+                    <td>Semántica del tag.</td>
+                </tr>
+                <tr>
+                    <td>activo</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Disponibilidad.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 12 -->
+        <h2>12. Tabla: permisos</h2>
+        <p>Acciones programáticas granulares.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>codigo</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>Identificador único logic.</td>
+                </tr>
+                <tr>
+                    <td>nombre</td>
+                    <td>VARCHAR(100)</td>
+                    <td>NO</td>
+                    <td>Nombre estético.</td>
+                </tr>
+                <tr>
+                    <td>descripcion</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>Manual del permiso.</td>
+                </tr>
+                <tr>
+                    <td>modulo</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>Agrupador (DOCUMENTOS).</td>
+                </tr>
+                <tr>
+                    <td>activo</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Estado.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 13 -->
+        <h2>13. Tabla: rol_permisos</h2>
+        <p>Matriz de acceso por grupo.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>rol</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>Nombre del grupo (Admin).</td>
+                </tr>
+                <tr>
+                    <td>permiso_id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>FK a permisos que posee.</td>
+                </tr>
+                <tr>
+                    <td>activo</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Vigencia en sistema.</td>
+                </tr>
+                <tr>
+                    <td>fecha_asignacion</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Fecha creación regla.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 14 -->
+        <h2>14. Tabla: tarjetas</h2>
+        <p>Sistema de carnets ID físico (Módulo HR).</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>nombre_completo</td>
+                    <td>VARCHAR(255)</td>
+                    <td>NO</td>
+                    <td>Titular acreditado.</td>
+                </tr>
+                <tr>
+                    <td>numero_identificacion</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>CI o ID único.</td>
+                </tr>
+                <tr>
+                    <td>cargo_departamento</td>
+                    <td>VARCHAR(100)</td>
+                    <td>NO</td>
+                    <td>Donde trabaja.</td>
+                </tr>
+                <tr>
+                    <td>fecha_emision</td>
+                    <td>DATE</td>
+                    <td>NO</td>
+                    <td>Fecha entrega credencial.</td>
+                </tr>
+                <tr>
+                    <td>fecha_vencimiento</td>
+                    <td>DATE</td>
+                    <td>SÍ</td>
+                    <td>Día en que expira.</td>
+                </tr>
+                <tr>
+                    <td>estado</td>
+                    <td>VARCHAR(20)</td>
+                    <td>NO</td>
+                    <td>Activo/Inactivo/Extraviado.</td>
+                </tr>
+                <tr>
+                    <td>foto_url</td>
+                    <td>VARCHAR(255)</td>
+                    <td>SÍ</td>
+                    <td>URL de fotografía.</td>
+                </tr>
+                <tr>
+                    <td>qr_code_url</td>
+                    <td>VARCHAR(255)</td>
+                    <td>SÍ</td>
+                    <td>URL del validador QR.</td>
+                </tr>
+                <tr>
+                    <td>created_at</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Registro primario.</td>
+                </tr>
+                <tr>
+                    <td>updated_at</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Última edición.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 15 -->
+        <h2>15. Tabla: tipos_documento</h2>
+        <p>Tipologías Documentales formales establecidas.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>uuid</td>
+                    <td>UUID</td>
+                    <td>NO</td>
+                    <td>Identificador único universal.</td>
+                </tr>
+                <tr>
+                    <td>nombre</td>
+                    <td>VARCHAR(100)</td>
+                    <td>NO</td>
+                    <td>Ej: Resolución.</td>
+                </tr>
+                <tr>
+                    <td>codigo</td>
+                    <td>VARCHAR(20)</td>
+                    <td>NO</td>
+                    <td>Abreviación Ej: RES.</td>
+                </tr>
+                <tr>
+                    <td>descripcion</td>
+                    <td>TEXT</td>
+                    <td>SÍ</td>
+                    <td>Uso y fines.</td>
+                </tr>
+                <tr>
+                    <td>activo</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Vigencia.</td>
+                </tr>
+                <tr>
+                    <td>requiere_aprobacion</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Workflow condicionado.</td>
+                </tr>
+                <tr>
+                    <td>plazo_retencion_dias</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>Días vida legal.</td>
+                </tr>
+                <tr>
+                    <td>creado_por</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>Autor del tipo (FK).</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 16 -->
+        <h2>16. Tabla: usuarios</h2>
+        <p>Credenciales e identidades del sistema.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>uuid</td>
+                    <td>UUID</td>
+                    <td>NO</td>
+                    <td>Firma JWT.</td>
+                </tr>
+                <tr>
+                    <td>nombre_usuario</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>Login username.</td>
+                </tr>
+                <tr>
+                    <td>nombre_completo</td>
+                    <td>VARCHAR(100)</td>
+                    <td>NO</td>
+                    <td>Nombre legible.</td>
+                </tr>
+                <tr>
+                    <td>email</td>
+                    <td>VARCHAR(255)</td>
+                    <td>NO</td>
+                    <td>Correo institucional.</td>
+                </tr>
+                <tr>
+                    <td>password_hash</td>
+                    <td>VARCHAR(255)</td>
+                    <td>NO</td>
+                    <td>Hash BCrypt.</td>
+                </tr>
+                <tr>
+                    <td>rol</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>Grupo Maestro.</td>
+                </tr>
+                <tr>
+                    <td>area_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>Área de trabajo (FK).</td>
+                </tr>
+                <tr>
+                    <td>activo</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Acceso habilitado.</td>
+                </tr>
+                <tr>
+                    <td>ultimo_acceso</td>
+                    <td>TIMESTAMP</td>
+                    <td>SÍ</td>
+                    <td>Última entrada.</td>
+                </tr>
+                <tr>
+                    <td>intentos_fallidos</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>Audit de ataques.</td>
+                </tr>
+                <tr>
+                    <td>bloqueado_hasta</td>
+                    <td>TIMESTAMP</td>
+                    <td>SÍ</td>
+                    <td>Lock temporal.</td>
+                </tr>
+                <tr>
+                    <td>pregunta_secreta_id</td>
+                    <td>INTEGER</td>
+                    <td>SÍ</td>
+                    <td>Recover ID.</td>
+                </tr>
+                <tr>
+                    <td>respuesta_secreta_hash</td>
+                    <td>VARCHAR(255)</td>
+                    <td>SÍ</td>
+                    <td>Recover Hash.</td>
+                </tr>
+                <tr>
+                    <td>fecha_registro</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Alta en sistema.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 17 -->
+        <h2>17. Tabla: usuario_permisos</h2>
+        <p>Delegaciones extraordinarias a usuarios.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>SERIAL</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>usuario_id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>FK a usuarios.</td>
+                </tr>
+                <tr>
+                    <td>permiso_id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>FK a permisos.</td>
+                </tr>
+                <tr>
+                    <td>activo</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Regla vigente.</td>
+                </tr>
+                <tr>
+                    <td>denegado</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Bloqueo/Excepción (Lock).</td>
+                </tr>
+                <tr>
+                    <td>fecha_asignacion</td>
+                    <td>TIMESTAMP</td>
+                    <td>NO</td>
+                    <td>Cronológico de regla.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 18 -->
+        <h2>18. Tabla / Extensión: tipo_movimientos</h2>
+        <p>Enumeraciones PGSQL para flujos.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>ID nominal.</td>
+                </tr>
+                <tr>
+                    <td>nombre</td>
+                    <td>VARCHAR(50)</td>
+                    <td>NO</td>
+                    <td>Prestamo, Retorno, Archivo.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLA 19 -->
+        <h2>19. Tabla / Extensión: notificaciones_config</h2>
+        <p>Maestro de canales de salida.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Nulo</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>INTEGER</td>
+                    <td>NO</td>
+                    <td>Clave primaria.</td>
+                </tr>
+                <tr>
+                    <td>canal</td>
+                    <td>VARCHAR(20)</td>
+                    <td>NO</td>
+                    <td>Email, Push, UI.</td>
+                </tr>
+                <tr>
+                    <td>activo</td>
+                    <td>BOOLEAN</td>
+                    <td>NO</td>
+                    <td>Canal habilitado.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function exportHTMLtoWord() {
+            var header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
+                "xmlns:w='urn:schemas-microsoft-com:office:word' " +
+                "xmlns='http://www.w3.org/TR/REC-html40'>" +
+                "<head><meta charset='utf-8'><title>Diccionario</title><style>" +
+                "table { border-collapse: collapse; width: 100%; }" +
+                "th, td { border: 1px solid black; padding: 5px; font-family: 'Times New Roman', serif; font-size: 11pt; }" +
+                "th { background-color: #f2f2f2; }" +
+                "h1 { text-align: center; font-size: 16pt; }" +
+                "h2 { font-size: 14pt; margin-top: 15pt; page-break-after: avoid; }" +
+                "p { margin: 5pt 0; font-size: 11pt; }" +
+                "</head><body>";
+            var footer = "</body></html>";
+            var sourceHTML = header + document.getElementById("source-html").innerHTML + footer;
+
+            var source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+            var fileDownload = document.createElement("a");
+            document.body.appendChild(fileDownload);
+            fileDownload.href = source;
+            fileDownload.download = 'DiccionarioDatos_19_Tablas.doc';
+            fileDownload.click();
+            document.body.removeChild(fileDownload);
+        }
+    </script>
+
+</body>
+
+</html>

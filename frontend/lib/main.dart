@@ -5,26 +5,26 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
-import 'providers/auth_provider.dart';
-import 'providers/data_provider.dart';
-import 'providers/theme_provider.dart';
-import 'screens/home_screen.dart';
+import 'providers/autenticacion_provider.dart';
+import 'providers/datos_provider.dart';
+import 'providers/tema_provider.dart';
+import 'screens/advertencia_contrasena_debil_screen.dart';
+import 'screens/inicio_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/reset_password_screen.dart';
+import 'screens/restablecer_contrasena_screen.dart';
 import 'screens/splash_screen.dart';
-import 'screens/weak_password_warning_screen.dart';
 import 'services/anexo_service.dart';
 import 'services/api_service.dart';
-import 'services/audit_service.dart';
+import 'services/auditoria_servicio.dart';
 import 'services/carpeta_service.dart';
 import 'services/catalogo_service.dart';
 import 'services/documento_service.dart';
 import 'services/movimiento_service.dart';
 import 'services/permiso_service.dart';
 import 'services/reporte_service.dart';
-import 'services/sync_service.dart';
+import 'services/sincronizacion_servicio.dart';
 import 'services/usuario_service.dart';
-import 'theme/app_theme.dart';
+import 'theme/tema_aplicacion.dart';
 
 void main() {
   // Zona y bindings en la misma zona para evitar "Zone mismatch" (runApp debe estar en la misma zona que ensureInitialized)
