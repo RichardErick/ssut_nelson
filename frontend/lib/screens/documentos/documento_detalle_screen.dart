@@ -2594,6 +2594,7 @@ class _DocumentoDetalleScreenState extends State<DocumentoDetalleScreen> {
 
 /// Pintor personalizado para crear un watermark de seguridad sobre la pantalla
 /// Muestra el nombre del usuario y timestamp repetidos para dificultar capturas no autorizadas
+/// Versión AGRESIVA: watermark denso que arruina CUALQUIER captura, incluso recortes parciales
 class _SecurityWatermarkPainter extends CustomPainter {
   final String userName;
   final DateTime timestamp;
@@ -2604,38 +2605,60 @@ class _SecurityWatermarkPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
     final watermarkText = '$userName - ${dateFormat.format(timestamp)}';
+
+    // CAPA 1: Fondo de líneas diagonales cruzadas (arruina cualquier selección de área)
+    final linePaint = Paint()
+      ..color = Colors.white.withOpacity(0.08)
+      ..strokeWidth = 1.5;
+
+    const lineSpacing = 20.0;
+    final diagonal = size.width + size.height;
     
-    // Configuración del texto
+    // Líneas diagonales principales
+    for (var i = -diagonal; i < diagonal; i += lineSpacing) {
+      canvas.drawLine(
+        Offset(i.toDouble(), 0),
+        Offset(i.toDouble() + size.height, size.height),
+        linePaint,
+      );
+      canvas.drawLine(
+        Offset(i.toDouble() + size.height, 0),
+        Offset(i.toDouble(), size.height),
+        linePaint,
+      );
+    }
+
+    // CAPA 2: Texto de watermark MUY denso y visible
     final textPainter = TextPainter(
       text: TextSpan(
         text: watermarkText,
         style: TextStyle(
-          color: Colors.black.withOpacity(0.04), // Muy sutil y transparente
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
+          color: Colors.white.withOpacity(0.15), // Más visible
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
         ),
       ),
       textDirection: ui.TextDirection.ltr,
     );
     textPainter.layout();
 
-    // Patrón de repetición diagonal
-    const spacingX = 250.0;
-    const spacingY = 150.0;
-    const angle = -0.4; // Ángulo de inclinación (~-23 grados)
+    // Patrón de repetición MUY denso (sin espacios vacíos)
+    const spacingX = 180.0; // Más juntos
+    const spacingY = 100.0; // Más juntos
+    const angle = -0.5; // Ángulo más pronunciado
 
     canvas.save();
     canvas.rotate(angle);
 
-    // Dibujar en grid diagonal
-    final cols = (size.width * 1.5 / spacingX).ceil() + 2;
-    final rows = (size.height * 1.5 / spacingY).ceil() + 2;
+    // Dibujar en grid diagonal ultra denso
+    final cols = (size.width * 2 / spacingX).ceil() + 4;
+    final rows = (size.height * 2 / spacingY).ceil() + 4;
 
     for (var row = -rows; row <= rows; row++) {
       for (var col = -cols; col <= cols; col++) {
         final x = col * spacingX + (row % 2 == 0 ? 0 : spacingX / 2);
         final y = row * spacingY;
-        
+
         textPainter.paint(
           canvas,
           Offset(x, y),
@@ -2644,6 +2667,20 @@ class _SecurityWatermarkPainter extends CustomPainter {
     }
 
     canvas.restore();
+
+    // CAPA 3: Bloques semi-transparentes aleatorios (dificulta OCR y limpieza)
+    final random = (userName.length * timestamp.millisecond) % 100;
+    final blockPaint = Paint()
+      ..color = Colors.black.withOpacity(0.03)
+      ..style = PaintingStyle.fill;
+
+    for (var i = 0; i < 15; i++) {
+      final x = ((i * 137 + random) % size.width.toInt()).toDouble();
+      final y = ((i * 251 + random) % size.height.toInt()).toDouble();
+      final w = 50 + (i * 31) % 100;
+      final h = 30 + (i * 47) % 60;
+      canvas.drawRect(Rect.fromLTWH(x, y, w.toDouble(), h.toDouble()), blockPaint);
+    }
   }
 
   @override
