@@ -57,6 +57,9 @@ class _DocumentoDetalleScreenState extends State<DocumentoDetalleScreen> {
   void initState() {
     super.initState();
 
+    // Activar TODAS las protecciones contra capturas
+    _activarProteccionesCaptura();
+
     // Inicializar QR de forma independiente del puerto
     String? initialQrData = widget.documento.urlQR ?? widget.documento.codigoQR;
 
@@ -89,6 +92,147 @@ class _DocumentoDetalleScreenState extends State<DocumentoDetalleScreen> {
       _movimientosLoaded = true;
       _loadMovimientos();
     }
+  }
+
+  @override
+  void dispose() {
+    // Desactivar protecciones al salir
+    _desactivarProteccionesCaptura();
+    super.dispose();
+  }
+
+  /// Activa TODAS las protecciones contra capturas de pantalla
+  void _activarProteccionesCaptura() {
+    // Escuchar teclas globales para bloquear atajos
+    HardwareKeyboard.instance.addHandler(_onKeyEvent);
+  }
+
+  /// Desactiva protecciones contra capturas
+  void _desactivarProteccionesCaptura() {
+    HardwareKeyboard.instance.removeHandler(_onKeyEvent);
+  }
+
+  /// Manejador de eventos de teclado - BLOQUEA todo intento de captura
+  bool _onKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+
+    final key = event.logicalKey;
+    final isCtrl = HardwareKeyboard.instance.isControlPressed;
+    final isShift = HardwareKeyboard.instance.isShiftPressed;
+    final isAlt = HardwareKeyboard.instance.isAltPressed;
+
+    // ========== BLOQUEAR TODOS LOS MÉTODOS DE CAPTURA ==========
+
+    // PrintScreen (todos los métodos)
+    if (key == LogicalKeyboardKey.printScreen) {
+      _mostrarAlertaCaptura('🚫 CAPTURA BLOQUEADA - No puedes capturar documentos protegidos');
+      return true;
+    }
+
+    // Ctrl+Shift+S (Recortes de Windows 11)
+    if (key == LogicalKeyboardKey.keyS && isCtrl && isShift) {
+      _mostrarAlertaCaptura('🚫 RECORTES BLOQUEADO - No puedes usar Ctrl+Shift+S');
+      return true;
+    }
+
+    // Win+Shift+S (no se puede bloquear desde web, pero intentamos)
+    if (key == LogicalKeyboardKey.keyS && isShift) {
+      // Podría ser Win+Shift+S
+      return true;
+    }
+
+    // Ctrl+S (Guardar)
+    if (key == LogicalKeyboardKey.keyS && isCtrl && !isShift) {
+      _mostrarAlertaCaptura('🚫 GUARDAR BLOQUEADO - No puedes guardar documentos protegidos');
+      return true;
+    }
+
+    // Ctrl+P (Imprimir)
+    if (key == LogicalKeyboardKey.keyP && isCtrl) {
+      _mostrarAlertaCaptura('🚫 IMPRIMIR BLOQUEADO - No puedes imprimir documentos protegidos');
+      return true;
+    }
+
+    // Ctrl+Shift+I (DevTools)
+    if (key == LogicalKeyboardKey.keyI && isCtrl && isShift) {
+      return true;
+    }
+
+    // Ctrl+Shift+J (Consola)
+    if (key == LogicalKeyboardKey.keyJ && isCtrl && isShift) {
+      return true;
+    }
+
+    // Ctrl+Shift+C (Inspector)
+    if (key == LogicalKeyboardKey.keyC && isCtrl && isShift) {
+      return true;
+    }
+
+    // F12 (DevTools)
+    if (key == LogicalKeyboardKey.f12) {
+      return true;
+    }
+
+    // Ctrl+U (Código fuente)
+    if (key == LogicalKeyboardKey.keyU && isCtrl) {
+      return true;
+    }
+
+    // Alt+PrintScreen (captura ventana activa)
+    if (key == LogicalKeyboardKey.printScreen && isAlt) {
+      _mostrarAlertaCaptura('🚫 CAPTURA BLOQUEADA - No puedes capturar la ventana');
+      return true;
+    }
+
+    // Ctrl+C (Copiar - evitar copiar contenido)
+    if (key == LogicalKeyboardKey.keyC && isCtrl && !isShift && !isAlt) {
+      // Permitir Ctrl+C solo si no está combinado con Shift
+      // pero mostrar advertencia
+      return false; // No bloquear completamente, solo el texto
+    }
+
+    return false;
+  }
+
+  /// Muestra alerta de captura bloqueada
+  void _mostrarAlertaCaptura(String mensaje) {
+    if (!mounted) return;
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.block, color: Colors.white, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  mensaje,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade800,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 10,
+        ),
+      );
+
+      // Vibrar si está disponible (móvil)
+      try {
+        HapticFeedback.heavyImpact();
+      } catch (_) {}
+    });
   }
 
   Future<void> _loadMovimientos() async {
@@ -221,45 +365,120 @@ class _DocumentoDetalleScreenState extends State<DocumentoDetalleScreen> {
     // Obtener información del usuario para el watermark
     final userName = authProvider.user?['nombreCompleto'] ?? authProvider.user?['nombreUsuario'] ?? 'Usuario';
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface.withOpacity(0.95),
-      appBar: _buildAppBar(doc, theme),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child:
-                isDesktop
-                    ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 4,
-                          child: _buildLeftColumn(doc, dateFormat, theme),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(flex: 3, child: _buildRightColumn(doc, theme)),
-                      ],
-                    )
-                    : Column(
-                      children: [
-                        _buildLeftColumn(doc, dateFormat, theme),
-                        const SizedBox(height: 24),
-                        _buildRightColumn(doc, theme),
-                      ],
-                    ),
-          ),
-          // Watermark de seguridad
-          IgnorePointer(
-            ignoring: true,
-            child: CustomPaint(
-              painter: _SecurityWatermarkPainter(
-                userName: userName,
-                timestamp: DateTime.now(),
+    // ========== PROTECCIÓN TOTAL CONTRA CAPTURAS ==========
+    // Envolver todo con Listener para bloquear clic derecho y mostrar overlay de protección
+    return Listener(
+      onPointerDown: (event) {
+        // Detectar clic derecho (botón secundario del mouse)
+        if (event.buttons == 2) { // kSecondaryMouseButton = 2
+          _mostrarAlertaCaptura('🚫 CLIC DERECHO BLOQUEADO - Acción no permitida en documentos protegidos');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: theme.colorScheme.surface.withOpacity(0.95),
+        appBar: _buildAppBar(doc, theme),
+        body: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child:
+                  isDesktop
+                      ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 4,
+                            child: _buildLeftColumn(doc, dateFormat, theme),
+                          ),
+                          const SizedBox(width: 24),
+                          Expanded(flex: 3, child: _buildRightColumn(doc, theme)),
+                        ],
+                      )
+                      : Column(
+                        children: [
+                          _buildLeftColumn(doc, dateFormat, theme),
+                          const SizedBox(height: 24),
+                          _buildRightColumn(doc, theme),
+                        ],
+                      ),
+            ),
+            // CAPA 1: Watermark agresivo de seguridad (líneas + texto denso)
+            IgnorePointer(
+              ignoring: true,
+              child: CustomPaint(
+                painter: _SecurityWatermarkPainter(
+                  userName: userName,
+                  timestamp: DateTime.now(),
+                ),
               ),
             ),
-          ),
-        ],
+            // CAPA 2: Overlay de advertencia permanente en esquina superior
+            Positioned(
+              top: 12,
+              left: 12,
+              child: IgnorePointer(
+                ignoring: true,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade700,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.lock_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'DOCUMENTO PROTEGIDO - PROHIBIDA CAPTURA',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // CAPA 3: Esquina inferior con información del usuario
+            Positioned(
+              bottom: 12,
+              right: 12,
+              child: IgnorePointer(
+                ignoring: true,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Text(
+                    '👤 $userName | ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2594,7 +2813,6 @@ class _DocumentoDetalleScreenState extends State<DocumentoDetalleScreen> {
 
 /// Pintor personalizado para crear un watermark de seguridad sobre la pantalla
 /// Muestra el nombre del usuario y timestamp repetidos para dificultar capturas no autorizadas
-/// Versión AGRESIVA: watermark denso que arruina CUALQUIER captura, incluso recortes parciales
 class _SecurityWatermarkPainter extends CustomPainter {
   final String userName;
   final DateTime timestamp;
@@ -2605,60 +2823,38 @@ class _SecurityWatermarkPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
     final watermarkText = '$userName - ${dateFormat.format(timestamp)}';
-
-    // CAPA 1: Fondo de líneas diagonales cruzadas (arruina cualquier selección de área)
-    final linePaint = Paint()
-      ..color = Colors.white.withOpacity(0.08)
-      ..strokeWidth = 1.5;
-
-    const lineSpacing = 20.0;
-    final diagonal = size.width + size.height;
     
-    // Líneas diagonales principales
-    for (var i = -diagonal; i < diagonal; i += lineSpacing) {
-      canvas.drawLine(
-        Offset(i.toDouble(), 0),
-        Offset(i.toDouble() + size.height, size.height),
-        linePaint,
-      );
-      canvas.drawLine(
-        Offset(i.toDouble() + size.height, 0),
-        Offset(i.toDouble(), size.height),
-        linePaint,
-      );
-    }
-
-    // CAPA 2: Texto de watermark MUY denso y visible
+    // Configuración del texto
     final textPainter = TextPainter(
       text: TextSpan(
         text: watermarkText,
         style: TextStyle(
-          color: Colors.white.withOpacity(0.15), // Más visible
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
+          color: Colors.black.withOpacity(0.04), // Muy sutil y transparente
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
         ),
       ),
       textDirection: ui.TextDirection.ltr,
     );
     textPainter.layout();
 
-    // Patrón de repetición MUY denso (sin espacios vacíos)
-    const spacingX = 180.0; // Más juntos
-    const spacingY = 100.0; // Más juntos
-    const angle = -0.5; // Ángulo más pronunciado
+    // Patrón de repetición diagonal
+    const spacingX = 250.0;
+    const spacingY = 150.0;
+    const angle = -0.4; // Ángulo de inclinación (~-23 grados)
 
     canvas.save();
     canvas.rotate(angle);
 
-    // Dibujar en grid diagonal ultra denso
-    final cols = (size.width * 2 / spacingX).ceil() + 4;
-    final rows = (size.height * 2 / spacingY).ceil() + 4;
+    // Dibujar en grid diagonal
+    final cols = (size.width * 1.5 / spacingX).ceil() + 2;
+    final rows = (size.height * 1.5 / spacingY).ceil() + 2;
 
     for (var row = -rows; row <= rows; row++) {
       for (var col = -cols; col <= cols; col++) {
         final x = col * spacingX + (row % 2 == 0 ? 0 : spacingX / 2);
         final y = row * spacingY;
-
+        
         textPainter.paint(
           canvas,
           Offset(x, y),
@@ -2667,20 +2863,6 @@ class _SecurityWatermarkPainter extends CustomPainter {
     }
 
     canvas.restore();
-
-    // CAPA 3: Bloques semi-transparentes aleatorios (dificulta OCR y limpieza)
-    final random = (userName.length * timestamp.millisecond) % 100;
-    final blockPaint = Paint()
-      ..color = Colors.black.withOpacity(0.03)
-      ..style = PaintingStyle.fill;
-
-    for (var i = 0; i < 15; i++) {
-      final x = ((i * 137 + random) % size.width.toInt()).toDouble();
-      final y = ((i * 251 + random) % size.height.toInt()).toDouble();
-      final w = 50 + (i * 31) % 100;
-      final h = 30 + (i * 47) % 60;
-      canvas.drawRect(Rect.fromLTWH(x, y, w.toDouble(), h.toDouble()), blockPaint);
-    }
   }
 
   @override
